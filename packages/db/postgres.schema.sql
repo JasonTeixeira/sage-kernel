@@ -1,6 +1,3 @@
-PRAGMA journal_mode = WAL;
-PRAGMA foreign_keys = ON;
-
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -8,8 +5,8 @@ CREATE TABLE IF NOT EXISTS projects (
   target TEXT,
   path TEXT,
   status TEXT NOT NULL DEFAULT 'planned',
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS job_queue (
@@ -17,15 +14,15 @@ CREATE TABLE IF NOT EXISTS job_queue (
   job_id TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'queued',
   priority INTEGER NOT NULL DEFAULT 100,
-  payload_json TEXT NOT NULL DEFAULT '{}',
+  payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
   attempts INTEGER NOT NULL DEFAULT 0,
   max_attempts INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL,
-  next_run_at TEXT,
-  locked_at TEXT,
+  created_at TIMESTAMPTZ NOT NULL,
+  next_run_at TIMESTAMPTZ,
+  locked_at TIMESTAMPTZ,
   locked_by TEXT,
-  started_at TEXT,
-  finished_at TEXT
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS job_runs (
@@ -34,9 +31,9 @@ CREATE TABLE IF NOT EXISTS job_runs (
   queue_id TEXT,
   status TEXT NOT NULL,
   duration_ms INTEGER,
-  result_json TEXT NOT NULL,
+  result_json JSONB NOT NULL,
   signature TEXT,
-  created_at TEXT NOT NULL
+  created_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS approvals (
@@ -44,9 +41,9 @@ CREATE TABLE IF NOT EXISTS approvals (
   action TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
   reason TEXT NOT NULL,
-  payload_json TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL,
-  decided_at TEXT
+  payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL,
+  decided_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS decisions (
@@ -54,13 +51,19 @@ CREATE TABLE IF NOT EXISTS decisions (
   title TEXT NOT NULL,
   summary TEXT NOT NULL,
   source TEXT,
-  created_at TEXT NOT NULL
+  created_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS artifacts (
   id TEXT PRIMARY KEY,
   kind TEXT NOT NULL,
   path TEXT NOT NULL,
-  metadata_json TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS job_queue_ready_idx
+  ON job_queue (status, priority, next_run_at, created_at);
+
+CREATE INDEX IF NOT EXISTS job_runs_job_idx
+  ON job_runs (job_id, created_at DESC);

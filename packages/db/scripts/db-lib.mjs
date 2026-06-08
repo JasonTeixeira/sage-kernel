@@ -19,6 +19,27 @@ export function runSql(root, sql) {
   return result.stdout.trim();
 }
 
+export function ensureKernelSchema(root) {
+  runSql(root, `.read packages/db/schema.sql`);
+  const columns = new Set(
+    runSql(root, `.mode json
+PRAGMA table_info(job_queue);`)
+      .split("\n")
+      .join("\n")
+      ? JSON.parse(runSql(root, `.mode json
+PRAGMA table_info(job_queue);`)).map((column) => column.name)
+      : []
+  );
+  const migrations = [
+    ["next_run_at", "ALTER TABLE job_queue ADD COLUMN next_run_at TEXT;"],
+    ["locked_at", "ALTER TABLE job_queue ADD COLUMN locked_at TEXT;"],
+    ["locked_by", "ALTER TABLE job_queue ADD COLUMN locked_by TEXT;"]
+  ];
+  for (const [column, sql] of migrations) {
+    if (!columns.has(column)) runSql(root, sql);
+  }
+}
+
 export function sqlString(value) {
   return `'${String(value ?? "").replaceAll("'", "''")}'`;
 }

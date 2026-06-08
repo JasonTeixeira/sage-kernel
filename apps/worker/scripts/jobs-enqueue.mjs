@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
-import { runSql, sqlJson, sqlString } from "../../../packages/db/scripts/db-lib.mjs";
+import { ensureKernelSchema, runSql, sqlJson, sqlString } from "../../../packages/db/scripts/db-lib.mjs";
 import { findJob } from "./lib.mjs";
 
 const root = process.cwd();
-const [jobId, rawPayload = "{}"] = process.argv.slice(2);
+const [jobId, rawPayload = "{}", delayArg = "0"] = process.argv.slice(2);
 if (!jobId) {
   console.error("Usage: npm run jobs:enqueue -- <job-id> ['{}']");
   process.exit(1);
@@ -17,11 +17,13 @@ try {
   throw new Error("Payload must be JSON");
 }
 
-runSql(root, `.read packages/db/schema.sql`);
+ensureKernelSchema(root);
 const id = crypto.randomUUID();
 const now = new Date().toISOString();
+const delayMs = Number(delayArg) || 0;
+const nextRunAt = delayMs > 0 ? new Date(Date.now() + delayMs).toISOString() : null;
 runSql(
   root,
-  `INSERT INTO job_queue (id, job_id, payload_json, created_at) VALUES (${sqlString(id)}, ${sqlString(jobId)}, ${sqlJson(payload)}, ${sqlString(now)});`
+  `INSERT INTO job_queue (id, job_id, payload_json, created_at, next_run_at) VALUES (${sqlString(id)}, ${sqlString(jobId)}, ${sqlJson(payload)}, ${sqlString(now)}, ${nextRunAt ? sqlString(nextRunAt) : "NULL"});`
 );
-console.log(JSON.stringify({ id, jobId, status: "queued" }, null, 2));
+console.log(JSON.stringify({ id, jobId, status: "queued", nextRunAt }, null, 2));

@@ -1,7 +1,9 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { sqlJson, sqlString, runSql } from "../../../packages/db/scripts/db-lib.mjs";
+import { ensureKernelSchema, sqlJson, sqlString, runSql } from "../../../packages/db/scripts/db-lib.mjs";
+import { assertToolAllowed, listApprovals, requestApproval } from "../../../packages/security/guard.mjs";
+import { dashboardSnapshot } from "../../dashboard/server.mjs";
 
 export function readJson(root, relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
@@ -143,23 +145,12 @@ function qaRun(root, projectPath = root, mode = "fast") {
   if (!absolute.startsWith(root) && !absolute.startsWith("/Users/Sage")) {
     throw new Error("Refusing to run QA outside allowed local workspace");
   }
-  const packagePath = path.join(absolute, "package.json");
-  const commands = [];
-  if (fs.existsSync(packagePath)) {
-    const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
-    for (const script of ["lint", "typecheck", "test"]) {
-      if (pkg.scripts?.[script]) commands.push(["npm", ["run", script]]);
-    }
-  } else {
-    commands.push(["node", ["--check", "bin/sage.mjs"]]);
-  }
-  const results = commands.map(([command, args]) => runCommand(absolute, command, args, 120000));
-  return {
-    projectPath: absolute,
-    mode,
-    status: results.every((item) => item.status === 0) ? "passed" : "failed",
-    results
-  };
+  const args = [absolute];
+  if (mode === "deep") args.push("--deep");
+  if (mode === "standard") args.push("--standard");
+  const result = runCommand(root, "node", ["packages/qa/scripts/qa-runner.mjs", ...args], 180000);
+  const parsed = result.stdout ? JSON.parse(result.stdout) : { status: "failed", result };
+  return parsed;
 }
 
 function deployPrepare(root, templateId, target = "vercel") {
@@ -190,6 +181,7 @@ function runCommand(cwd, command, args, timeoutMs) {
 }
 
 export async function callKernelTool(root, toolName, input = {}) {
+  assertToolAllowed(root, toolName.replace("kernel.", ""), input);
   switch (toolName) {
     case "kernel.phase.status":
       return readJson(root, "catalog/phases.json").phases;
@@ -267,11 +259,32 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.jobs.enqueue": {
       if (!input.job) throw new Error("kernel.jobs.enqueue requires input.job");
-      runSql(root, `.read packages/db/schema.sql`);
+      ensureKernelSchema(root);
       const id = cryptoRandomId();
       const now = new Date().toISOString();
-      runSql(root, `INSERT INTO job_queue (id, job_id, payload_json, created_at) VALUES (${sqlString(id)}, ${sqlString(input.job)}, ${sqlJson(input.payload || {})}, ${sqlString(now)});`);
-      return { id, job: input.job, status: "queued" };
+      const nextRunAt = input.delayMs ? new Date(Date.now() + Number(input.delayMs)).toISOString() : null;
+      runSql(root, `INSERT INTO job_queue (id, job_id, payload_json, created_at, next_run_at) VALUES (${sqlString(id)}, ${sqlString(input.job)}, ${sqlJson(input.payload || {})}, ${sqlString(now)}, ${nextRunAt ? sqlString(nextRunAt) : "NULL"});`);
+      return { id, job: input.job, status: "queued", nextRunAt };
+    }
+
+    case "kernel.worker.tick": {
+      const output = runNode(root, "apps/worker/scripts/worker-daemon.mjs", ["--once"]);
+      return { status: "ticked", output };
+    }
+
+    case "kernel.approvals.request":
+      if (!input.action || !input.reason) throw new Error("kernel.approvals.request requires input.action and input.reason");
+      return requestApproval(root, input.action, input.reason, input.payload || {});
+
+    case "kernel.approvals.list":
+      return listApprovals(root, input.status ?? null);
+
+    case "kernel.dashboard.snapshot":
+      return dashboardSnapshot();
+
+    case "kernel.dogfood.prod": {
+      const output = runNode(root, "scripts/dogfood-production-audit.mjs", input.repos || []);
+      return JSON.parse(output);
     }
 
     default:

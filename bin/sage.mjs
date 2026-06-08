@@ -41,9 +41,15 @@ Usage:
   sage deploy <template> [target]
   sage jobs
   sage enqueue <job-id>
+  sage tick
+  sage daemon
   sage run <job-id>
   sage runs
+  sage approvals [status]
   sage dashboard
+  sage dashboard-live
+  sage postgres-schema
+  sage dogfood-prod [repo...]
   sage doctor
   sage mcp
   sage db
@@ -192,12 +198,38 @@ switch (command) {
     break;
   }
 
+  case "tick":
+    runNode("apps/mcp-server/scripts/call-tool.mjs", ["kernel.worker.tick", "{}"]);
+    break;
+
+  case "daemon":
+    runNpm("worker:daemon");
+    break;
+
+  case "approvals": {
+    const [status] = args;
+    runNode("apps/mcp-server/scripts/call-tool.mjs", ["kernel.approvals.list", JSON.stringify({ status })]);
+    break;
+  }
+
   case "runs":
     runNpm("jobs:runs");
     break;
 
   case "dashboard":
     runNpm("dashboard:build");
+    break;
+
+  case "dashboard-live":
+    runNpm("dashboard:serve");
+    break;
+
+  case "postgres-schema":
+    runNpm("db:postgres:schema");
+    break;
+
+  case "dogfood-prod":
+    runNpm("dogfood:prod", args);
     break;
 
   case "doctor":
@@ -210,6 +242,8 @@ switch (command) {
     runNpm("jobs:validate");
     if (process.exitCode) break;
     runNpm("mcp:validate");
+    if (process.exitCode) break;
+    runNpm("v03:validate");
     if (process.exitCode) break;
     runNpm("security:scan");
     break;

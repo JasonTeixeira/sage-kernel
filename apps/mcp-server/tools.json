@@ -190,10 +190,65 @@
         "required": ["job"],
         "properties": {
           "job": { "type": "string" },
-          "payload": { "type": "object" }
+          "payload": { "type": "object" },
+          "delayMs": { "type": "number" }
         }
       },
       "sideEffects": "writes local SQLite queue state"
+    },
+    {
+      "name": "kernel.worker.tick",
+      "description": "Run one durable worker queue tick.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "sideEffects": "runs one local queued job if ready"
+    },
+    {
+      "name": "kernel.approvals.request",
+      "description": "Record an approval request in the local approval ledger.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["action", "reason"],
+        "properties": {
+          "action": { "type": "string" },
+          "reason": { "type": "string" },
+          "payload": { "type": "object" }
+        }
+      },
+      "sideEffects": "writes local SQLite approval state"
+    },
+    {
+      "name": "kernel.approvals.list",
+      "description": "List approval ledger entries.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "kernel.dashboard.snapshot",
+      "description": "Return DB-backed dashboard state for the live command center.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "kernel.dogfood.prod",
+      "description": "Audit three production repos against kernel QA readiness without mutating them.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repos": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
     }
   ]
 }

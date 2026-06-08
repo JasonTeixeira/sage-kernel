@@ -108,6 +108,23 @@ export function createServer() {
     "Enqueue a durable local job in SQLite.",
     z.object({ job: z.string(), payload: z.object({}).passthrough().optional() })
   );
+  register("kernel.worker.tick", "Run one durable worker queue tick.", z.object({}));
+  register(
+    "kernel.approvals.request",
+    "Record an approval request in the local ledger.",
+    z.object({ action: z.string(), reason: z.string(), payload: z.object({}).passthrough().optional() })
+  );
+  register(
+    "kernel.approvals.list",
+    "List approval ledger entries.",
+    z.object({ status: z.string().optional() })
+  );
+  register("kernel.dashboard.snapshot", "Return DB-backed dashboard snapshot.", z.object({}));
+  register(
+    "kernel.dogfood.prod",
+    "Audit three production repos against kernel QA readiness.",
+    z.object({ repos: z.array(z.string()).optional() })
+  );
 
   return server;
 }
