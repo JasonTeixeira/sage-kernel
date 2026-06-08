@@ -18,7 +18,7 @@ test("detectDbProvider defaults to sqlite and recognizes postgres urls", () => {
 
 test("sqlite adapter initializes schema and supports parameterized writes", () => {
   const root = tempRoot();
-  const db = createSqliteAdapter({ root });
+  const db = createSqliteAdapter({ root, schemaRoot: path.resolve(import.meta.dirname, "..") });
 
   db.init();
   db.execute(

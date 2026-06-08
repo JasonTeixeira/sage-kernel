@@ -1,5 +1,6 @@
 import fs from "node:fs";
-import { dbPath, runSql } from "./db-lib.mjs";
+import { createSqliteAdapter } from "../adapter.mjs";
+import { dbPath } from "./db-lib.mjs";
 
 const root = process.cwd();
 if (!fs.existsSync(dbPath(root))) {
@@ -9,8 +10,9 @@ if (!fs.existsSync(dbPath(root))) {
 
 const tables = ["projects", "job_queue", "job_runs", "approvals", "decisions", "artifacts"];
 const summary = { initialized: true, path: dbPath(root), tables: {} };
+const db = createSqliteAdapter({ root });
 for (const table of tables) {
-  const count = runSql(root, `SELECT COUNT(*) FROM ${table};`);
+  const count = db.scalar(`SELECT COUNT(*) FROM ${table};`);
   summary.tables[table] = Number(count);
 }
 console.log(JSON.stringify(summary, null, 2));
