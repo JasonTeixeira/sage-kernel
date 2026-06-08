@@ -50,3 +50,19 @@ node bin/sage.mjs dashboard
 ```
 
 After `npm link`, use `sage` from any terminal.
+
+## Local Secrets
+
+Local secrets go in `.env.local`, which is ignored by git.
+
+Required for Playwright MCP browser extension workflows:
+
+```bash
+PLAYWRIGHT_MCP_EXTENSION_TOKEN=
+```
+
+Check:
+
+```bash
+npm run playwright:check
+```

@@ -18,6 +18,7 @@
     "mcp:validate": "node apps/mcp-server/scripts/validate-mcp.mjs",
     "mcp:server": "node apps/mcp-server/src/server.mjs",
     "mcp:smoke": "node apps/mcp-server/scripts/smoke.mjs",
+    "playwright:check": "node scripts/check-playwright-env.mjs",
     "jobs:validate": "node apps/worker/scripts/validate-jobs.mjs",
     "jobs:list": "node apps/worker/scripts/jobs-list.mjs",
     "jobs:run": "node apps/worker/scripts/jobs-run.mjs",
