@@ -20,6 +20,7 @@
     "mcp:smoke": "node apps/mcp-server/scripts/smoke.mjs",
     "playwright:check": "node scripts/check-playwright-env.mjs",
     "security:scan": "node scripts/secret-scan.mjs",
+    "v03:validate": "node scripts/validate-v03.mjs",
     "db:init": "node packages/db/scripts/db-init.mjs",
     "db:summary": "node packages/db/scripts/db-summary.mjs",
     "jobs:validate": "node apps/worker/scripts/validate-jobs.mjs",
