@@ -21,6 +21,8 @@ jobs:
       - run: npm run infra:validate
       - run: npm run jobs:validate
       - run: npm run mcp:validate
+      - run: npm test
       - run: npm run mcp:smoke
+      - run: npm run v03:validate
       - run: npm run security:scan
       - run: npm audit --audit-level=moderate
