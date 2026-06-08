@@ -1,35 +1,31 @@
 import { spawnSync } from "node:child_process";
-import { ensureKernelSchema, runSql, sqlString } from "../../../packages/db/scripts/db-lib.mjs";
+import { createSqliteAdapter } from "../../../packages/db/adapter.mjs";
+import { createJobQueue } from "../../../packages/jobs/queue.mjs";
 
 const root = process.cwd();
 const workerArg = process.argv.includes("--worker") ? process.argv[process.argv.indexOf("--worker") + 1] : null;
 const workerId = workerArg || process.env.SAGE_WORKER_ID || `worker-${process.pid}`;
-ensureKernelSchema(root);
+const db = createSqliteAdapter({ root });
+db.init();
+const queue = createJobQueue({ db, workerId });
+const claimed = queue.claimNext();
 
-const row = runSql(
-  root,
-  `SELECT id || '|' || job_id FROM job_queue
-   WHERE status='queued' AND (next_run_at IS NULL OR next_run_at <= datetime('now'))
-   ORDER BY priority ASC, created_at ASC LIMIT 1;`
-);
-
-if (!row) {
+if (!claimed) {
   console.log("No queued jobs.");
   process.exit(0);
 }
 
-const [queueId, jobId] = row.split("|");
-const now = new Date().toISOString();
-runSql(root, `UPDATE job_queue SET status='running', started_at=${sqlString(now)}, locked_at=${sqlString(now)}, locked_by=${sqlString(workerId)}, attempts=attempts+1 WHERE id=${sqlString(queueId)};`);
-
-const result = spawnSync("node", ["apps/worker/scripts/jobs-run.mjs", jobId], {
+const result = spawnSync("node", ["apps/worker/scripts/jobs-run.mjs", claimed.jobId], {
   cwd: root,
   encoding: "utf8",
   maxBuffer: 1024 * 1024 * 8
 });
 
-const status = result.status === 0 ? "finished" : "failed";
-runSql(root, `UPDATE job_queue SET status=${sqlString(status)}, finished_at=${sqlString(new Date().toISOString())}, locked_at=NULL, locked_by=NULL WHERE id=${sqlString(queueId)};`);
+if (result.status === 0) {
+  queue.complete(claimed.id);
+} else {
+  queue.fail(claimed.id, { error: result.stderr || result.stdout || "job failed", backoffMs: 1000 });
+}
 
 if (result.stdout) process.stdout.write(result.stdout);
 if (result.stderr) process.stderr.write(result.stderr);

@@ -1,5 +1,5 @@
-import crypto from "node:crypto";
-import { ensureKernelSchema, runSql, sqlJson, sqlString } from "../../../packages/db/scripts/db-lib.mjs";
+import { createSqliteAdapter } from "../../../packages/db/adapter.mjs";
+import { createJobQueue } from "../../../packages/jobs/queue.mjs";
 import { findJob } from "./lib.mjs";
 
 const root = process.cwd();
@@ -17,13 +17,9 @@ try {
   throw new Error("Payload must be JSON");
 }
 
-ensureKernelSchema(root);
-const id = crypto.randomUUID();
-const now = new Date().toISOString();
 const delayMs = Number(delayArg) || 0;
-const nextRunAt = delayMs > 0 ? new Date(Date.now() + delayMs).toISOString() : null;
-runSql(
-  root,
-  `INSERT INTO job_queue (id, job_id, payload_json, created_at, next_run_at) VALUES (${sqlString(id)}, ${sqlString(jobId)}, ${sqlJson(payload)}, ${sqlString(now)}, ${nextRunAt ? sqlString(nextRunAt) : "NULL"});`
-);
-console.log(JSON.stringify({ id, jobId, status: "queued", nextRunAt }, null, 2));
+const db = createSqliteAdapter({ root });
+db.init();
+const queue = createJobQueue({ db });
+const queued = queue.enqueue({ jobId, payload, delayMs });
+console.log(JSON.stringify(queued, null, 2));
