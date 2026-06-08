@@ -10,10 +10,13 @@
       "timeoutMs": 120000,
       "retries": 0,
       "steps": [
+        { "type": "npm-script", "script": "db:init" },
         { "type": "npm-script", "script": "catalog:validate" },
         { "type": "npm-script", "script": "infra:validate" },
+        { "type": "npm-script", "script": "jobs:validate" },
         { "type": "npm-script", "script": "mcp:validate" },
-        { "type": "npm-script", "script": "mcp:smoke" }
+        { "type": "npm-script", "script": "mcp:smoke" },
+        { "type": "npm-script", "script": "security:scan" }
       ]
     },
     {

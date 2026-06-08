@@ -87,6 +87,8 @@ const html = `<!doctype html>
     ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
     li { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--muted); }
     code { color: var(--ok); }
+    input { width: 100%; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line); background: rgba(0,0,0,0.22); color: var(--text); font-size: 1rem; }
+    .hidden { display: none; }
     .status-complete { color: var(--ok); }
     .status-in-progress { color: var(--warn); }
     .status-planned { color: var(--muted); }
@@ -104,6 +106,7 @@ const html = `<!doctype html>
         <p class="badge">Sage Kernel OS · Local Command Center</p>
         <h1>Engineering Kernel</h1>
         <p>Federated, non-destructive control plane for templates, QA, infra, MCP tools, and local jobs.</p>
+        <input id="search" placeholder="Filter phases, jobs, templates, integrations, modules..." />
       </div>
       <div class="card">
         <h2>Terminal</h2>
@@ -121,35 +124,45 @@ const html = `<!doctype html>
 
       <div class="card span-6">
         <h2>Phase Status</h2>
-        <ul>${phases.map((phase) => `<li><strong>${phase.id}. ${escapeHtml(phase.name)}</strong> · <span class="status-${phase.status}">${phase.status}</span></li>`).join("")}</ul>
+        <ul>${phases.map((phase) => `<li data-search="${escapeHtml(`${phase.name} ${phase.status}`)}"><strong>${phase.id}. ${escapeHtml(phase.name)}</strong> · <span class="status-${phase.status}">${phase.status}</span></li>`).join("")}</ul>
       </div>
 
       <div class="card span-6">
         <h2>Recent Runs</h2>
-        <ul>${runs.length ? runs.map((run) => `<li><strong>${escapeHtml(run.jobId)}</strong> · <span class="status-${run.status}">${run.status}</span> · ${run.durationMs}ms</li>`).join("") : "<li>No runs yet.</li>"}</ul>
+        <ul>${runs.length ? runs.map((run) => `<li data-search="${escapeHtml(`${run.jobId} ${run.status}`)}"><strong>${escapeHtml(run.jobId)}</strong> · <span class="status-${run.status}">${run.status}</span> · ${run.durationMs}ms</li>`).join("") : "<li>No runs yet.</li>"}</ul>
       </div>
 
       <div class="card span-4">
         <h2>Jobs</h2>
-        <ul>${jobs.map((job) => `<li><strong>${escapeHtml(job.id)}</strong><br />${escapeHtml(job.kind)} · ${escapeHtml(job.risk)}</li>`).join("")}</ul>
+        <ul>${jobs.map((job) => `<li data-search="${escapeHtml(`${job.id} ${job.kind} ${job.risk}`)}"><strong>${escapeHtml(job.id)}</strong><br />${escapeHtml(job.kind)} · ${escapeHtml(job.risk)}<br /><code>sage run ${escapeHtml(job.id)}</code></li>`).join("")}</ul>
       </div>
 
       <div class="card span-4">
         <h2>Templates</h2>
-        <ul>${templates.map((template) => `<li><strong>${escapeHtml(template.id)}</strong><br />QA: ${escapeHtml(template.qaProfile)}</li>`).join("")}</ul>
+        <ul>${templates.map((template) => `<li data-search="${escapeHtml(`${template.id} ${template.qaProfile} ${template.coverage.join(" ")}`)}"><strong>${escapeHtml(template.id)}</strong><br />QA: ${escapeHtml(template.qaProfile)}<br /><code>sage plan ${escapeHtml(template.id)}</code></li>`).join("")}</ul>
       </div>
 
       <div class="card span-4">
         <h2>Integrations</h2>
-        <ul>${integrations.map((integration) => `<li><strong>${escapeHtml(integration.id)}</strong><br />${escapeHtml(integration.category)}</li>`).join("")}</ul>
+        <ul>${integrations.map((integration) => `<li data-search="${escapeHtml(`${integration.id} ${integration.category}`)}"><strong>${escapeHtml(integration.id)}</strong><br />${escapeHtml(integration.category)}</li>`).join("")}</ul>
       </div>
 
       <div class="card span-12">
         <h2>Modules</h2>
-        <ul>${modules.map((module) => `<li><strong>${escapeHtml(module.id)}</strong> · ${escapeHtml(module.package)} · ${module.scoreCurrent}→${module.scoreTarget}</li>`).join("")}</ul>
+        <ul>${modules.map((module) => `<li data-search="${escapeHtml(`${module.id} ${module.package} ${module.responsibilities.join(" ")}`)}"><strong>${escapeHtml(module.id)}</strong> · ${escapeHtml(module.package)} · ${module.scoreCurrent}→${module.scoreTarget}</li>`).join("")}</ul>
       </div>
     </section>
   </main>
+  <script>
+    const input = document.querySelector('#search');
+    const items = [...document.querySelectorAll('[data-search]')];
+    input.addEventListener('input', () => {
+      const q = input.value.toLowerCase().trim();
+      for (const item of items) {
+        item.classList.toggle('hidden', q && !item.dataset.search.toLowerCase().includes(q));
+      }
+    });
+  </script>
 </body>
 </html>`;
 

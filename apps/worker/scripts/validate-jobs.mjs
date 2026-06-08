@@ -6,8 +6,9 @@ const root = process.cwd();
 const registryPath = path.join(root, "apps/worker/jobs.json");
 const schedulesPath = path.join(root, "apps/worker/schedules.json");
 const approvalPath = path.join(root, "apps/worker/approval-policy.json");
+const dbSchemaPath = path.join(root, "packages/db/schema.sql");
 
-for (const file of [registryPath, schedulesPath, approvalPath]) {
+for (const file of [registryPath, schedulesPath, approvalPath, dbSchemaPath]) {
   if (!fs.existsSync(file)) throw new Error(`Missing ${file}`);
 }
 

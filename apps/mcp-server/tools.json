@@ -70,6 +70,19 @@
       }
     },
     {
+      "name": "kernel.warehouse.search",
+      "description": "Search the AI Warehouse index for tools, categories, tags, and verdicts.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string" },
+          "limit": { "type": "number" },
+          "verdict": { "type": "string" }
+        }
+      }
+    },
+    {
       "name": "kernel.qa.profile",
       "description": "Return the QA profile for a template.",
       "inputSchema": {
@@ -81,8 +94,55 @@
       }
     },
     {
+      "name": "kernel.qa.plan",
+      "description": "Plan QA gates for a template without executing them.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["template"],
+        "properties": {
+          "template": { "type": "string" },
+          "mode": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "kernel.qa.run",
+      "description": "Run safe local QA for the kernel or a generated project.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" },
+          "mode": { "type": "string" }
+        }
+      },
+      "sideEffects": "runs local commands only"
+    },
+    {
+      "name": "kernel.repo.inspect",
+      "description": "Inspect a cataloged source repo without mutating it.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repo"],
+        "properties": {
+          "repo": { "type": "string" }
+        }
+      }
+    },
+    {
       "name": "kernel.infra.plan",
       "description": "Return an infrastructure plan for a template and deploy target.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["template"],
+        "properties": {
+          "template": { "type": "string" },
+          "target": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "kernel.deploy.prepare",
+      "description": "Prepare a deploy readiness plan with QA, infra, env, rollback, and approval gates.",
       "inputSchema": {
         "type": "object",
         "required": ["template"],
@@ -121,6 +181,19 @@
           "limit": { "type": "number" }
         }
       }
+    },
+    {
+      "name": "kernel.jobs.enqueue",
+      "description": "Enqueue a durable local job in SQLite.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["job"],
+        "properties": {
+          "job": { "type": "string" },
+          "payload": { "type": "object" }
+        }
+      },
+      "sideEffects": "writes local SQLite queue state"
     }
   ]
 }

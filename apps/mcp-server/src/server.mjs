@@ -49,11 +49,31 @@ export function createServer() {
   );
   register("kernel.warehouse.summary", "Summarize AI Warehouse inventory.", z.object({}));
   register(
+    "kernel.warehouse.search",
+    "Search the AI Warehouse index for tools, categories, tags, and verdicts.",
+    z.object({ query: z.string(), limit: z.number().optional(), verdict: z.string().optional() })
+  );
+  register(
     "kernel.qa.profile",
     "Return the QA profile for a template.",
     z.object({
       template: z.string()
     })
+  );
+  register(
+    "kernel.qa.plan",
+    "Plan QA gates for a template without executing them.",
+    z.object({ template: z.string(), mode: z.string().optional() })
+  );
+  register(
+    "kernel.qa.run",
+    "Run safe local QA for the kernel or a generated project.",
+    z.object({ projectPath: z.string().optional(), mode: z.string().optional() })
+  );
+  register(
+    "kernel.repo.inspect",
+    "Inspect a cataloged source repo without mutating it.",
+    z.object({ repo: z.string() })
   );
   register(
     "kernel.infra.plan",
@@ -62,6 +82,11 @@ export function createServer() {
       template: z.string(),
       target: z.string().optional()
     })
+  );
+  register(
+    "kernel.deploy.prepare",
+    "Prepare a deploy readiness plan with QA, infra, env, rollback, and approval gates.",
+    z.object({ template: z.string(), target: z.string().optional() })
   );
   register("kernel.jobs.list", "List local safe jobs and approval boundaries.", z.object({}));
   register(
@@ -77,6 +102,11 @@ export function createServer() {
     z.object({
       limit: z.number().optional()
     })
+  );
+  register(
+    "kernel.jobs.enqueue",
+    "Enqueue a durable local job in SQLite.",
+    z.object({ job: z.string(), payload: z.object({}).passthrough().optional() })
   );
 
   return server;

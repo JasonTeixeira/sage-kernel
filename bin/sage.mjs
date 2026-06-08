@@ -35,12 +35,18 @@ Usage:
   sage plan <template> [target] [name]
   sage new <template> <name>
   sage infra <template> [target]
+  sage emit <template> <target> [name]
+  sage qa <template|projectPath>
+  sage repo <repo-name>
+  sage deploy <template> [target]
   sage jobs
+  sage enqueue <job-id>
   sage run <job-id>
   sage runs
   sage dashboard
   sage doctor
   sage mcp
+  sage db
 
 Examples:
   sage plan next-saas-app vercel contractor-dispatch-os
@@ -122,6 +128,46 @@ switch (command) {
     break;
   }
 
+  case "emit": {
+    const [template, target = "docker-compose", name = template] = args;
+    if (!template) {
+      console.error("Usage: sage emit <template> <target> [name]");
+      process.exit(1);
+    }
+    runNpm("infra:emit", ["--template", template, "--target", target, "--name", name]);
+    break;
+  }
+
+  case "qa": {
+    const [value = "next-saas-app"] = args;
+    if (value.includes("/") || value === ".") {
+      runNode("apps/mcp-server/scripts/call-tool.mjs", ["kernel.qa.run", JSON.stringify({ projectPath: value })]);
+    } else {
+      runNode("apps/mcp-server/scripts/call-tool.mjs", ["kernel.qa.plan", JSON.stringify({ template: value })]);
+    }
+    break;
+  }
+
+  case "repo": {
+    const [repo] = args;
+    if (!repo) {
+      console.error("Usage: sage repo <repo-name>");
+      process.exit(1);
+    }
+    runNode("apps/mcp-server/scripts/call-tool.mjs", ["kernel.repo.inspect", JSON.stringify({ repo })]);
+    break;
+  }
+
+  case "deploy": {
+    const [template, target = "vercel"] = args;
+    if (!template) {
+      console.error("Usage: sage deploy <template> [target]");
+      process.exit(1);
+    }
+    runNode("apps/mcp-server/scripts/call-tool.mjs", ["kernel.deploy.prepare", JSON.stringify({ template, target })]);
+    break;
+  }
+
   case "jobs":
     runNpm("jobs:list");
     break;
@@ -136,6 +182,16 @@ switch (command) {
     break;
   }
 
+  case "enqueue": {
+    const [job] = args;
+    if (!job) {
+      console.error("Usage: sage enqueue <job-id>");
+      process.exit(1);
+    }
+    runNpm("jobs:enqueue", [job]);
+    break;
+  }
+
   case "runs":
     runNpm("jobs:runs");
     break;
@@ -145,6 +201,8 @@ switch (command) {
     break;
 
   case "doctor":
+    runNpm("db:init");
+    if (process.exitCode) break;
     runNpm("catalog:validate");
     if (process.exitCode) break;
     runNpm("infra:validate");
@@ -152,6 +210,12 @@ switch (command) {
     runNpm("jobs:validate");
     if (process.exitCode) break;
     runNpm("mcp:validate");
+    if (process.exitCode) break;
+    runNpm("security:scan");
+    break;
+
+  case "db":
+    runNpm("db:summary");
     break;
 
   case "mcp":

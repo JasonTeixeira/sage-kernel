@@ -1,0 +1,26 @@
+name: Sage Kernel CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y sqlite3
+      - run: npm ci
+      - run: npm run db:init
+      - run: npm run catalog:validate
+      - run: npm run infra:validate
+      - run: npm run jobs:validate
+      - run: npm run mcp:validate
+      - run: npm run mcp:smoke
+      - run: npm run security:scan
+      - run: npm audit --audit-level=moderate

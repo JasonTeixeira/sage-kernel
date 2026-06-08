@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { findJob, makeRunId, nowIso, readJson, runCommand, runsDir, writeJson } from "./lib.mjs";
+import { runSql, sqlJson, sqlString } from "../../../packages/db/scripts/db-lib.mjs";
 
 const root = process.cwd();
 const [jobId] = process.argv.slice(2);
@@ -80,8 +82,20 @@ async function runJob(id, parentRunId = null) {
   run.finishedAt = nowIso();
   run.durationMs = Date.now() - started;
 
+  persistRun(run);
   writeJson(root, path.join(".sage-kernel", "runs", `${run.runId}.json`), run);
   return run;
+}
+
+function persistRun(run) {
+  runSql(root, `.read packages/db/schema.sql`);
+  const signature = crypto.createHash("sha256").update(JSON.stringify(run)).digest("hex");
+  run.signature = signature;
+  runSql(
+    root,
+    `INSERT OR REPLACE INTO job_runs (id, job_id, status, duration_ms, result_json, signature, created_at)
+     VALUES (${sqlString(run.runId)}, ${sqlString(run.jobId)}, ${sqlString(run.status)}, ${Number(run.durationMs ?? 0)}, ${sqlJson(run)}, ${sqlString(signature)}, ${sqlString(run.finishedAt || nowIso())});`
+  );
 }
 
 function repoHealth() {
