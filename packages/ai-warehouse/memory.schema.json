@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sage-kernel.local/schemas/kernel-memory.schema.json",
+  "title": "Sage Kernel Memory Entry",
+  "type": "object",
+  "required": ["id", "kind", "title", "summary", "source", "tags", "createdAt"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable unique id, preferably namespaced by kind."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "repo-summary",
+        "architecture-decision",
+        "tool-verdict",
+        "project-pattern",
+        "prompt",
+        "playbook",
+        "bug-fix",
+        "qa-finding",
+        "deployment-lesson",
+        "security-note",
+        "case-study"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "required": ["type", "ref"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["repo", "file", "url", "manual", "mcp", "qa-run", "deployment"]
+        },
+        "ref": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "repo": {
+          "type": "string"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["research", "used-once", "shipped-to-prod"],
+      "default": "research"
+    },
+    "related": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

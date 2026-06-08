@@ -1,0 +1,40 @@
+{
+  "name": "sage-kernel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sage Kernel OS: a personal MCP-powered engineering operating system for app, AI, infra, QA, and production workflows.",
+  "type": "module",
+  "bin": {
+    "sage": "bin/sage.mjs"
+  },
+  "scripts": {
+    "catalog:validate": "node scripts/validate-catalog.mjs",
+    "warehouse:summary": "node packages/ai-warehouse/scripts/warehouse-summary.mjs",
+    "qa:summary": "node packages/qa/scripts/qa-summary.mjs",
+    "infra:validate": "node packages/infra/scripts/validate-infra.mjs",
+    "infra:plan": "node packages/infra/scripts/infra-plan.mjs",
+    "mcp:tools": "node apps/mcp-server/scripts/list-tools.mjs",
+    "mcp:call": "node apps/mcp-server/scripts/call-tool.mjs",
+    "mcp:validate": "node apps/mcp-server/scripts/validate-mcp.mjs",
+    "mcp:server": "node apps/mcp-server/src/server.mjs",
+    "mcp:smoke": "node apps/mcp-server/scripts/smoke.mjs",
+    "jobs:validate": "node apps/worker/scripts/validate-jobs.mjs",
+    "jobs:list": "node apps/worker/scripts/jobs-list.mjs",
+    "jobs:run": "node apps/worker/scripts/jobs-run.mjs",
+    "jobs:runs": "node apps/worker/scripts/runs-list.mjs",
+    "jobs:show": "node apps/worker/scripts/runs-show.mjs",
+    "dashboard:build": "node apps/dashboard/scripts/build-dashboard.mjs",
+    "sage:smoke": "node bin/sage.mjs status",
+    "template:list": "node packages/templates/scripts/template-list.mjs",
+    "template:scaffold": "node packages/templates/scripts/template-scaffold.mjs",
+    "phase:status": "node scripts/phase-status.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
+    "zod": "^4.4.3"
+  }
+}

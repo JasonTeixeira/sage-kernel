@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "updated": "2026-06-07",
+  "sourceRoot": "/Users/Sage/.graphify/repos/JasonTeixeira",
+  "sourceRepoPolicy": "non-destructive federation: source repos remain intact; kernel may reference, query, adapt, or copy approved reusable artifacts, but must not rip apart, move, delete, or rewrite upstream repos without explicit approval",
+  "repos": [
+    {
+      "name": "nexural-platform-kits",
+      "role": "core-source",
+      "target": "packages/templates",
+      "score": 80,
+      "domains": ["templates", "frontend", "platform-patterns"],
+      "consolidation": "extract reusable scaffolds, UI patterns, and platform conventions"
+    },
+    {
+      "name": "nexural-qa-os",
+      "role": "core-source",
+      "target": "packages/qa",
+      "score": 78,
+      "domains": ["qa", "verification", "release-gates"],
+      "consolidation": "extract QA profiles, readiness checks, test orchestration, and reporting contracts"
+    },
+    {
+      "name": "sage-agents",
+      "role": "core-source",
+      "target": "packages/agents",
+      "score": 76,
+      "domains": ["agents", "tools", "automation"],
+      "consolidation": "extract agent runtime patterns, tool registry ideas, and execution boundaries"
+    },
+    {
+      "name": "ai-warehouse",
+      "role": "core-source",
+      "target": "packages/ai-warehouse",
+      "score": 68,
+      "domains": ["knowledge", "rag", "memory"],
+      "consolidation": "extract project memory, repo summaries, decision records, and retrieval interfaces"
+    },
+    {
+      "name": "nexural-voice-engine",
+      "role": "module-source",
+      "target": "packages/agents",
+      "score": 70,
+      "domains": ["voice", "ai", "automation"],
+      "consolidation": "extract voice workflow adapters as optional agent capabilities"
+    },
+    {
+      "name": "sagequant",
+      "role": "module-source",
+      "target": "packages/data",
+      "score": 72,
+      "domains": ["quant", "data", "analytics"],
+      "consolidation": "extract data pipeline and quant analytics reference patterns"
+    },
+    {
+      "name": "nexural-meta",
+      "role": "module-source",
+      "target": "apps/dashboard",
+      "score": 65,
+      "domains": ["meta", "orchestration", "platform"],
+      "consolidation": "mine orchestration and platform dashboard concepts"
+    },
+    {
+      "name": "nexural-studio",
+      "role": "module-source",
+      "target": "apps/dashboard",
+      "score": 74,
+      "domains": ["builder", "studio", "frontend"],
+      "consolidation": "extract studio UI concepts for the new app builder"
+    },
+    {
+      "name": "Nexural_Automation",
+      "role": "reference-source",
+      "target": "packages/jobs",
+      "score": 62,
+      "domains": ["automation", "jobs"],
+      "consolidation": "extract automation recipes after core jobs engine exists"
+    },
+    {
+      "name": "nexural-automation-starter",
+      "role": "template-source",
+      "target": "templates/worker-service",
+      "score": 58,
+      "domains": ["starter", "automation"],
+      "consolidation": "convert useful starter pieces into a worker-service template"
+    },
+    {
+      "name": "commerce-command-os",
+      "role": "example-app",
+      "target": "examples/commerce-command-os",
+      "score": 76,
+      "domains": ["commerce", "ops", "dashboard"],
+      "consolidation": "preserve as reference app and extract reusable ops dashboard patterns"
+    },
+    {
+      "name": "jobcopilot",
+      "role": "example-app",
+      "target": "examples/jobcopilot",
+      "score": 73,
+      "domains": ["ai-workflow", "rag", "product"],
+      "consolidation": "preserve as reference app and extract AI workflow patterns"
+    },
+    {
+      "name": "trayd",
+      "role": "example-app",
+      "target": "examples/trayd",
+      "score": 65,
+      "domains": ["product", "operations"],
+      "consolidation": "preserve as product reference, not a core dependency"
+    },
+    {
+      "name": "Voza",
+      "role": "example-app",
+      "target": "examples/voza",
+      "score": 68,
+      "domains": ["voice", "product", "frontend"],
+      "consolidation": "preserve as voice/product reference"
+    },
+    {
+      "name": "giggl",
+      "role": "example-app",
+      "target": "examples/giggl",
+      "score": 66,
+      "domains": ["social", "design", "frontend"],
+      "consolidation": "preserve as creative frontend reference"
+    },
+    {
+      "name": "Nexural_Website",
+      "role": "example-app",
+      "target": "examples/nexural-website",
+      "score": 64,
+      "domains": ["marketing", "frontend"],
+      "consolidation": "preserve as marketing/reference app"
+    },
+    {
+      "name": "sageideas.dev",
+      "role": "brand-docs",
+      "target": "apps/docs-site",
+      "score": 62,
+      "domains": ["brand", "docs", "portfolio"],
+      "consolidation": "extract portfolio and docs presentation patterns"
+    },
+    {
+      "name": "learning-os",
+      "role": "example-app",
+      "target": "examples/learning-os",
+      "score": 60,
+      "domains": ["learning", "product"],
+      "consolidation": "preserve as LMS/product reference"
+    },
+    {
+      "name": "Nexural_StrategyTracker_App",
+      "role": "example-app",
+      "target": "examples/strategy-tracker",
+      "score": 65,
+      "domains": ["trading", "desktop-or-backend"],
+      "consolidation": "preserve as trading workflow reference"
+    },
+    {
+      "name": "Nexural_StrategyTracker_Frontend",
+      "role": "example-app",
+      "target": "examples/strategy-tracker-frontend",
+      "score": 63,
+      "domains": ["trading", "frontend"],
+      "consolidation": "extract trading dashboard UI patterns"
+    },
+    {
+      "name": "Nexural-Research",
+      "role": "reference-source",
+      "target": "packages/ai-warehouse",
+      "score": 64,
+      "domains": ["research", "rag", "docs"],
+      "consolidation": "extract research ingestion and synthesis patterns"
+    },
+    {
+      "name": "trade-engine",
+      "role": "reference-source",
+      "target": "packages/data",
+      "score": 66,
+      "domains": ["trading", "backend", "data"],
+      "consolidation": "extract trading data and event processing references"
+    },
+    {
+      "name": "NexuralFlow",
+      "role": "reference-source",
+      "target": "packages/jobs",
+      "score": 58,
+      "domains": ["workflow", "automation"],
+      "consolidation": "mine workflow ideas after jobs engine contracts are defined"
+    },
+    {
+      "name": "Owly",
+      "role": "example-app",
+      "target": "examples/owly",
+      "score": 50,
+      "domains": ["product", "frontend"],
+      "consolidation": "reference only unless a reusable pattern is proven"
+    },
+    {
+      "name": "nexural-discord-bot",
+      "role": "connector-source",
+      "target": "packages/connectors",
+      "score": 48,
+      "domains": ["discord", "bot", "connector"],
+      "consolidation": "extract connector/bot adapter concepts"
+    }
+  ]
+}

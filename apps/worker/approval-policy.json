@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "default": "deny-external-mutations",
+  "safeLocalActions": [
+    "read local catalog files",
+    "read local source repos",
+    "run local validation scripts",
+    "write local run history",
+    "generate local reports",
+    "generate local scaffolds under requested output path"
+  ],
+  "approvalRequired": [
+    "push to git remote",
+    "create or delete GitHub repo",
+    "create or delete Vercel project",
+    "deploy to production",
+    "mutate DNS",
+    "write secrets",
+    "apply cloud infrastructure",
+    "apply database migrations",
+    "charge money or change billing",
+    "send external messages"
+  ],
+  "killSwitches": [
+    "SAGE_KERNEL_DISABLE_EXTERNAL=1",
+    "SAGE_KERNEL_READ_ONLY=1"
+  ]
+}

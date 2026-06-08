@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "targets": [
+    {
+      "id": "vercel",
+      "bestFor": ["next-saas-app", "next-dashboard", "next-ai-app", "internal-admin-tool"],
+      "strategy": "preview-first",
+      "services": ["edge/web hosting", "preview deployments", "environment variables", "domains"],
+      "requiredChecks": ["qa fast", "qa standard", "env contract", "preview health"],
+      "rollback": "promote previous successful deployment or rollback alias",
+      "approvalRequiredFor": ["production domain changes", "secret changes", "project deletion"]
+    },
+    {
+      "id": "docker",
+      "bestFor": ["fastapi-service", "node-api-service", "worker-service", "data-pipeline", "agent-workflow-app"],
+      "strategy": "image-build",
+      "services": ["container image", "healthcheck", "non-root runtime", "runtime env injection"],
+      "requiredChecks": ["qa fast", "qa standard", "docker build", "container health"],
+      "rollback": "redeploy previous image digest",
+      "approvalRequiredFor": ["production deploy", "registry publish", "secret changes"]
+    },
+    {
+      "id": "supabase",
+      "bestFor": ["next-saas-app", "next-ai-app", "internal-admin-tool", "data-pipeline"],
+      "strategy": "managed-postgres",
+      "services": ["postgres", "auth", "storage", "realtime", "edge functions"],
+      "requiredChecks": ["migration dry-run", "rls review", "backup policy", "qa db"],
+      "rollback": "restore from backup or apply down migration when safe",
+      "approvalRequiredFor": ["schema migration", "rls changes", "production data access"]
+    },
+    {
+      "id": "aws-starter",
+      "bestFor": ["api-service", "worker-service", "data-pipeline", "agent-workflow-app"],
+      "strategy": "terraform-plan-first",
+      "services": ["ecs or lambda", "rds", "elasticache", "s3", "sqs", "secrets manager", "cloudwatch"],
+      "requiredChecks": ["terraform plan", "iam least privilege", "cost estimate", "qa standard"],
+      "rollback": "terraform state rollback is not enough; use versioned deploy artifacts and database restore plan",
+      "approvalRequiredFor": ["terraform apply", "iam changes", "network changes", "production deploy"]
+    },
+    {
+      "id": "cloudflare",
+      "bestFor": ["browser-extension", "next-dashboard", "internal-admin-tool"],
+      "strategy": "edge-first",
+      "services": ["dns", "workers", "r2", "queues", "waf", "zero trust"],
+      "requiredChecks": ["dns diff", "waf review", "worker preview", "qa fast"],
+      "rollback": "rollback worker version or restore DNS record",
+      "approvalRequiredFor": ["dns mutation", "waf mutation", "production worker deploy"]
+    }
+  ]
+}

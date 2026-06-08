@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "id": "env-contract",
+      "category": "configuration",
+      "required": true,
+      "description": "Required variables are named and secrets are not committed."
+    },
+    {
+      "id": "health-endpoint",
+      "category": "runtime",
+      "required": true,
+      "description": "Service exposes a health endpoint or equivalent runtime probe."
+    },
+    {
+      "id": "non-root-container",
+      "category": "container",
+      "requiredFor": ["docker", "aws-starter"],
+      "description": "Containers run as a non-root user."
+    },
+    {
+      "id": "ci-quality-gate",
+      "category": "ci",
+      "required": true,
+      "description": "CI runs lint/typecheck/tests/QA profile before deploy."
+    },
+    {
+      "id": "rollback-plan",
+      "category": "operations",
+      "required": true,
+      "description": "Release has a documented rollback procedure."
+    },
+    {
+      "id": "backup-policy",
+      "category": "data",
+      "requiredForCapabilities": ["db", "storage", "data", "ingestion"],
+      "description": "Data-bearing systems define backup and restore expectations."
+    },
+    {
+      "id": "observability-minimum",
+      "category": "observability",
+      "required": true,
+      "description": "Logs, errors, and uptime path are defined."
+    },
+    {
+      "id": "human-approval-production",
+      "category": "release-control",
+      "required": true,
+      "description": "Production deploys and destructive mutations require human approval."
+    }
+  ]
+}

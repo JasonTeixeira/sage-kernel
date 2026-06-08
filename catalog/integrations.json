@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "integrations": [
+    {
+      "id": "github",
+      "category": "source-control",
+      "boundary": "read/write with explicit approval for external mutations",
+      "capabilities": ["repo inventory", "issues", "pull requests", "actions", "code search"]
+    },
+    {
+      "id": "vercel",
+      "category": "deployment",
+      "boundary": "read by default, destructive deployment/project actions require explicit approval",
+      "capabilities": ["projects", "deployments", "domains", "logs", "env metadata"]
+    },
+    {
+      "id": "stripe",
+      "category": "billing",
+      "boundary": "read/draft by default, money movement requires explicit approval",
+      "capabilities": ["customers", "subscriptions", "products", "prices", "webhooks"]
+    },
+    {
+      "id": "supabase",
+      "category": "database-platform",
+      "boundary": "schema and data mutations require explicit approval",
+      "capabilities": ["postgres", "auth", "storage", "edge functions", "realtime"]
+    },
+    {
+      "id": "aws",
+      "category": "cloud",
+      "boundary": "plan locally first, provision only with explicit approval",
+      "capabilities": ["compute", "networking", "storage", "iam", "queues", "secrets"]
+    },
+    {
+      "id": "gcp",
+      "category": "cloud",
+      "boundary": "plan locally first, provision only with explicit approval",
+      "capabilities": ["compute", "cloud run", "storage", "iam", "pubsub", "secrets"]
+    },
+    {
+      "id": "azure",
+      "category": "cloud",
+      "boundary": "plan locally first, provision only with explicit approval",
+      "capabilities": ["app service", "functions", "storage", "identity", "queues", "secrets"]
+    },
+    {
+      "id": "slack",
+      "category": "communication",
+      "boundary": "draft by default, posting requires explicit approval",
+      "capabilities": ["notifications", "approvals", "incident channels"]
+    },
+    {
+      "id": "google-workspace",
+      "category": "productivity",
+      "boundary": "read/draft by default, send/share/mutate requires explicit approval",
+      "capabilities": ["gmail", "calendar", "drive", "docs", "sheets"]
+    },
+    {
+      "id": "openai",
+      "category": "ai-provider",
+      "boundary": "cost-aware calls, never expose secrets",
+      "capabilities": ["chat", "embeddings", "evals", "agents", "structured outputs"]
+    },
+    {
+      "id": "anthropic",
+      "category": "ai-provider",
+      "boundary": "cost-aware calls, never expose secrets",
+      "capabilities": ["chat", "tool-use", "batch", "eval workflows"]
+    },
+    {
+      "id": "cloudflare",
+      "category": "edge-platform",
+      "boundary": "plan locally first, DNS/security mutations require explicit approval",
+      "capabilities": ["dns", "workers", "r2", "queues", "waf", "zero-trust"]
+    }
+  ]
+}

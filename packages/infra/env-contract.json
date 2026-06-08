@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "environments": ["local", "preview", "staging", "production"],
+  "rules": [
+    {
+      "id": "no-secrets-in-git",
+      "severity": "blocker",
+      "description": "Secrets must live in environment providers, not committed files."
+    },
+    {
+      "id": "env-example-required",
+      "severity": "required",
+      "description": "Every generated project must include .env.example with names only."
+    },
+    {
+      "id": "production-approval-required",
+      "severity": "blocker",
+      "description": "Production deploys require an explicit human approval gate."
+    },
+    {
+      "id": "rollback-required",
+      "severity": "required",
+      "description": "Every deploy target needs a rollback path."
+    }
+  ],
+  "commonVariables": [
+    {
+      "name": "APP_ENV",
+      "required": true,
+      "secret": false,
+      "description": "local, preview, staging, or production"
+    },
+    {
+      "name": "APP_URL",
+      "required": true,
+      "secret": false,
+      "description": "Canonical app URL for the environment"
+    },
+    {
+      "name": "DATABASE_URL",
+      "requiredFor": ["db", "backend", "api", "jobs"],
+      "secret": true,
+      "description": "Primary database connection string"
+    },
+    {
+      "name": "REDIS_URL",
+      "requiredFor": ["jobs", "queues", "cache", "workers"],
+      "secret": true,
+      "description": "Redis/queue/cache connection string"
+    },
+    {
+      "name": "AUTH_SECRET",
+      "requiredFor": ["auth"],
+      "secret": true,
+      "description": "Auth/session signing secret"
+    },
+    {
+      "name": "STRIPE_SECRET_KEY",
+      "requiredFor": ["billing"],
+      "secret": true,
+      "description": "Stripe server-side secret key"
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "requiredFor": ["ai", "rag", "agents", "evals"],
+      "secret": true,
+      "description": "AI provider key"
+    },
+    {
+      "name": "SENTRY_DSN",
+      "requiredFor": ["observability"],
+      "secret": false,
+      "description": "Error reporting DSN"
+    }
+  ]
+}

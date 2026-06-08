@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Kernel Registry",
+      "status": "complete",
+      "goal": "Create the source of truth for repos, modules, templates, integrations, and roadmap.",
+      "completionCriteria": ["repos cataloged", "modules cataloged", "templates cataloged", "integrations cataloged", "catalog validation passes"]
+    },
+    {
+      "id": 2,
+      "name": "AI Warehouse Integration",
+      "status": "complete",
+      "goal": "Connect project memory, repo summaries, decisions, and retrieval contracts.",
+      "completionCriteria": ["memory schema defined", "repo summary format defined", "search interface defined", "initial warehouse import plan complete"]
+    },
+    {
+      "id": 3,
+      "name": "QA OS Integration",
+      "status": "complete",
+      "goal": "Make QA OS the quality gate for every generated or maintained project.",
+      "completionCriteria": ["qa profiles defined", "runner interface defined", "readiness checks defined", "report format defined"]
+    },
+    {
+      "id": 4,
+      "name": "Template Engine",
+      "status": "complete",
+      "goal": "Generate project scaffolds by app type and module selection.",
+      "completionCriteria": ["template manifest format", "first scaffold command", "module composition rules", "generated README"]
+    },
+    {
+      "id": 5,
+      "name": "Infra Engine",
+      "status": "complete",
+      "goal": "Add production infrastructure patterns across Docker, CI/CD, cloud, secrets, environments, and deploys.",
+      "completionCriteria": ["docker templates", "github actions templates", "vercel profile", "aws starter profile", "environment contract"]
+    },
+    {
+      "id": 6,
+      "name": "MCP Server",
+      "status": "complete",
+      "goal": "Expose kernel capabilities as MCP tools and resources.",
+      "completionCriteria": ["stdio server", "catalog tools", "planning tools", "scaffold tool", "qa dispatch tool"]
+    },
+    {
+      "id": 7,
+      "name": "Orchestration and Jobs",
+      "status": "complete",
+      "goal": "Run durable jobs, scans, retries, approvals, and scheduled audits.",
+      "completionCriteria": ["job model", "worker process", "run history", "retry policy", "approval gates"]
+    },
+    {
+      "id": 8,
+      "name": "Command Center Dashboard",
+      "status": "complete",
+      "goal": "Visualize projects, templates, jobs, QA runs, deployments, infra, security, and docs.",
+      "completionCriteria": ["dashboard shell", "catalog viewer", "new project wizard", "run history", "health panels"]
+    }
+  ]
+}

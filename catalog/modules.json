@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "id": "kernel-registry",
+      "package": "catalog",
+      "status": "phase-1",
+      "scoreCurrent": 20,
+      "scoreTarget": 95,
+      "responsibilities": ["repo inventory", "template registry", "module registry", "integration registry", "phase roadmap"]
+    },
+    {
+      "id": "ai-warehouse",
+      "package": "packages/ai-warehouse",
+      "status": "planned",
+      "scoreCurrent": 35,
+      "scoreTarget": 90,
+      "responsibilities": ["project memory", "repo summaries", "architecture decisions", "retrieval contracts", "pattern search"]
+    },
+    {
+      "id": "qa-os",
+      "package": "packages/qa",
+      "status": "planned",
+      "scoreCurrent": 50,
+      "scoreTarget": 90,
+      "responsibilities": ["lint", "typecheck", "unit tests", "integration tests", "e2e tests", "security checks", "release readiness"]
+    },
+    {
+      "id": "template-engine",
+      "package": "packages/templates",
+      "status": "planned",
+      "scoreCurrent": 45,
+      "scoreTarget": 95,
+      "responsibilities": ["project scaffolding", "stack selection", "module composition", "starter generation"]
+    },
+    {
+      "id": "infra-engine",
+      "package": "packages/infra",
+      "status": "planned",
+      "scoreCurrent": 15,
+      "scoreTarget": 85,
+      "responsibilities": ["docker", "ci-cd", "terraform-pulumi", "cloud targets", "secrets", "domains", "environments"]
+    },
+    {
+      "id": "auth-engine",
+      "package": "packages/auth",
+      "status": "planned",
+      "scoreCurrent": 25,
+      "scoreTarget": 90,
+      "responsibilities": ["oauth", "sso-ready patterns", "rbac", "abac", "orgs", "api keys", "audit logs"]
+    },
+    {
+      "id": "api-engine",
+      "package": "packages/api",
+      "status": "planned",
+      "scoreCurrent": 45,
+      "scoreTarget": 90,
+      "responsibilities": ["rest", "openapi", "webhooks", "sdk generation", "rate limits", "idempotency"]
+    },
+    {
+      "id": "db-engine",
+      "package": "packages/db",
+      "status": "planned",
+      "scoreCurrent": 40,
+      "scoreTarget": 90,
+      "responsibilities": ["postgres", "migrations", "seed data", "redis", "vector search", "analytics events"]
+    },
+    {
+      "id": "jobs-engine",
+      "package": "packages/jobs",
+      "status": "planned",
+      "scoreCurrent": 25,
+      "scoreTarget": 90,
+      "responsibilities": ["queues", "workers", "cron", "retries", "dead letters", "workflow state"]
+    },
+    {
+      "id": "agent-engine",
+      "package": "packages/agents",
+      "status": "planned",
+      "scoreCurrent": 55,
+      "scoreTarget": 90,
+      "responsibilities": ["tool registry", "memory", "rag", "evals", "cost tracking", "approval gates", "permission scopes"]
+    },
+    {
+      "id": "observability-engine",
+      "package": "packages/observability",
+      "status": "planned",
+      "scoreCurrent": 15,
+      "scoreTarget": 90,
+      "responsibilities": ["logs", "metrics", "traces", "alerts", "uptime", "deployment health", "incidents"]
+    },
+    {
+      "id": "security-engine",
+      "package": "packages/security",
+      "status": "planned",
+      "scoreCurrent": 25,
+      "scoreTarget": 85,
+      "responsibilities": ["secret scanning", "dependency audits", "threat models", "auth checks", "input validation", "permission review"]
+    },
+    {
+      "id": "connector-engine",
+      "package": "packages/connectors",
+      "status": "planned",
+      "scoreCurrent": 25,
+      "scoreTarget": 85,
+      "responsibilities": ["github", "vercel", "stripe", "slack", "google", "notion", "crm", "webhooks"]
+    },
+    {
+      "id": "mcp-server",
+      "package": "apps/mcp-server",
+      "status": "planned",
+      "scoreCurrent": 20,
+      "scoreTarget": 95,
+      "responsibilities": ["tool surface", "resource discovery", "planning", "scaffolding", "qa dispatch", "docs generation"]
+    }
+  ]
+}

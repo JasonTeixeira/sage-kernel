@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sage-kernel.local/schemas/qa-run-report.schema.json",
+  "title": "Sage Kernel QA Run Report",
+  "type": "object",
+  "required": ["id", "project", "profile", "mode", "status", "score", "startedAt", "runners"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "path"],
+      "properties": {
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "template": { "type": "string" }
+      }
+    },
+    "profile": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["fast", "standard", "thorough", "deep", "smart"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["queued", "running", "passed", "failed", "blocked", "cancelled"]
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "hardBlockers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "runners": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["passed", "failed", "skipped", "not-installed", "blocked"]
+          },
+          "summary": { "type": "string" },
+          "evidencePath": { "type": "string" }
+        }
+      }
+    },
+    "evidenceBundle": {
+      "type": "string"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finishedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

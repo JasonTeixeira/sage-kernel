@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "server": {
+    "name": "sage-kernel",
+    "description": "MCP control surface for Sage Kernel OS.",
+    "defaultTransport": "stdio"
+  },
+  "tools": [
+    {
+      "name": "kernel.phase.status",
+      "description": "List kernel phase status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "kernel.catalog.search",
+      "description": "Search repos, modules, templates, integrations, and phases.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string" },
+          "limit": { "type": "number" }
+        }
+      }
+    },
+    {
+      "name": "kernel.template.list",
+      "description": "List available project templates and QA profile mappings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "kernel.project.plan",
+      "description": "Create a project plan from a template, deployment target, QA profile, and infra profile.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["template"],
+        "properties": {
+          "template": { "type": "string" },
+          "target": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "kernel.project.scaffold",
+      "description": "Scaffold a local project skeleton from a kernel template.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["template", "name"],
+        "properties": {
+          "template": { "type": "string" },
+          "name": { "type": "string" },
+          "out": { "type": "string" }
+        }
+      },
+      "sideEffects": "writes local files only"
+    },
+    {
+      "name": "kernel.warehouse.summary",
+      "description": "Summarize the connected AI Warehouse inventory.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "kernel.qa.profile",
+      "description": "Return the QA profile for a template.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["template"],
+        "properties": {
+          "template": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "kernel.infra.plan",
+      "description": "Return an infrastructure plan for a template and deploy target.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["template"],
+        "properties": {
+          "template": { "type": "string" },
+          "target": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "kernel.jobs.list",
+      "description": "List local safe jobs and approval boundaries.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "kernel.jobs.run",
+      "description": "Run a local safe job and write run history.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["job"],
+        "properties": {
+          "job": { "type": "string" }
+        }
+      },
+      "sideEffects": "writes local run history"
+    },
+    {
+      "name": "kernel.jobs.runs",
+      "description": "List recent local job runs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "number" }
+        }
+      }
+    }
+  ]
+}

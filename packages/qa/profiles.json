@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "profiles": [
+    {
+      "id": "saas-app",
+      "appliesTo": ["next-saas-app"],
+      "risk": ["handlesAuth", "handlesPII", "handlesMoney", "publicInternet"],
+      "fast": ["gitleaks", "dependency-audit", "vitest"],
+      "standard": ["semgrep", "api", "security-headers", "playwright", "axe"],
+      "thorough": ["openapi", "pact", "lighthouse", "k6", "visual-diff"],
+      "deep": ["zap", "nuclei", "ai-prompt-injection", "fuzz-http-api"],
+      "hardBlockers": ["secrets-detected", "test-suite-failure", "critical-auth-finding"]
+    },
+    {
+      "id": "dashboard",
+      "appliesTo": ["next-dashboard"],
+      "risk": ["publicInternet", "handlesPII"],
+      "fast": ["gitleaks", "vitest"],
+      "standard": ["semgrep", "playwright", "axe"],
+      "thorough": ["lighthouse", "visual-diff", "k6"],
+      "deep": ["zap", "nuclei"],
+      "hardBlockers": ["secrets-detected", "test-suite-failure", "critical-security-finding"]
+    },
+    {
+      "id": "trading-dashboard",
+      "appliesTo": ["trading-dashboard"],
+      "risk": ["marketData", "alerts", "dataIntegrity", "publicInternet"],
+      "fast": ["gitleaks", "dependency-audit", "vitest"],
+      "standard": ["semgrep", "playwright", "api", "db"],
+      "thorough": ["k6", "lighthouse", "visual-diff", "synthetic"],
+      "deep": ["chaos-network-latency", "chaos-clock-skew", "fuzz-http-api"],
+      "hardBlockers": ["secrets-detected", "data-corruption-risk", "alert-delivery-risk"]
+    },
+    {
+      "id": "ai-app",
+      "appliesTo": ["next-ai-app"],
+      "risk": ["handlesPII", "publicInternet", "aiOutputRisk"],
+      "fast": ["gitleaks", "vitest", "ai-cost-tracker"],
+      "standard": ["semgrep", "ai-evals", "ai-latency-budget", "ai-pii-leak"],
+      "thorough": ["ai-hallucination", "ai-consistency", "ai-prompt-injection"],
+      "deep": ["ai-redteam", "ai-jailbreak", "ai-toxicity"],
+      "hardBlockers": ["secrets-detected", "test-suite-failure", "pii-leak", "unsafe-ai-output"]
+    },
+    {
+      "id": "agent-app",
+      "appliesTo": ["agent-workflow-app"],
+      "risk": ["toolUse", "handlesPII", "sideEffects", "aiOutputRisk"],
+      "fast": ["gitleaks", "vitest", "ai-cost-tracker"],
+      "standard": ["semgrep", "ai-evals", "ai-latency-budget", "ai-pii-leak", "ai-prompt-injection"],
+      "thorough": ["ai-consistency", "ai-hallucination", "api", "auth"],
+      "deep": ["ai-redteam", "ai-jailbreak", "chaos-process-kill", "fuzz-http-api"],
+      "hardBlockers": ["secrets-detected", "unsafe-tool-use", "pii-leak", "unapproved-side-effect"]
+    },
+    {
+      "id": "api-service",
+      "appliesTo": ["fastapi-service", "node-api-service"],
+      "risk": ["publicInternet", "handlesAuth", "handlesPII"],
+      "fast": ["gitleaks", "dependency-audit", "vitest"],
+      "standard": ["semgrep", "api", "openapi", "security-headers"],
+      "thorough": ["schemathesis", "pact", "k6"],
+      "deep": ["zap", "nuclei", "fuzz-http-api", "chaos-network-latency"],
+      "hardBlockers": ["secrets-detected", "contract-break", "critical-api-finding"]
+    },
+    {
+      "id": "mobile-app",
+      "appliesTo": ["expo-mobile-app"],
+      "risk": ["mobile", "handlesPII"],
+      "fast": ["gitleaks", "dependency-audit"],
+      "standard": ["appium", "maestro"],
+      "thorough": ["android-lint", "xcodebuild", "apple-privacy"],
+      "deep": ["device-farm", "monkey", "masvs"],
+      "hardBlockers": ["secrets-detected", "privacy-risk", "critical-mobile-finding"]
+    },
+    {
+      "id": "extension",
+      "appliesTo": ["browser-extension"],
+      "risk": ["browserPermissions", "publicInternet"],
+      "fast": ["gitleaks", "dependency-audit", "vitest"],
+      "standard": ["semgrep", "playwright"],
+      "thorough": ["security-headers", "visual-diff"],
+      "deep": ["fuzz-cli-args"],
+      "hardBlockers": ["secrets-detected", "unsafe-browser-permission"]
+    },
+    {
+      "id": "data-pipeline",
+      "appliesTo": ["data-pipeline"],
+      "risk": ["dataIntegrity", "handlesPII"],
+      "fast": ["gitleaks", "dependency-audit"],
+      "standard": ["semgrep", "db"],
+      "thorough": ["fuzz-json-schema", "chaos-disk-fill"],
+      "deep": ["chaos-process-kill", "chaos-clock-skew"],
+      "hardBlockers": ["secrets-detected", "data-corruption-risk"]
+    },
+    {
+      "id": "worker-service",
+      "appliesTo": ["worker-service"],
+      "risk": ["asyncJobs", "sideEffects"],
+      "fast": ["gitleaks", "dependency-audit", "vitest"],
+      "standard": ["semgrep", "api"],
+      "thorough": ["chaos-process-kill", "chaos-network-latency"],
+      "deep": ["chaos-memory-pressure", "chaos-cpu-stress"],
+      "hardBlockers": ["secrets-detected", "unbounded-retry-risk", "unsafe-side-effect"]
+    },
+    {
+      "id": "admin-tool",
+      "appliesTo": ["internal-admin-tool"],
+      "risk": ["handlesAuth", "handlesPII", "privilegedActions"],
+      "fast": ["gitleaks", "dependency-audit", "vitest"],
+      "standard": ["semgrep", "auth", "security-headers", "playwright"],
+      "thorough": ["axe", "api", "audit-log"],
+      "deep": ["zap", "nuclei"],
+      "hardBlockers": ["secrets-detected", "auth-bypass", "missing-audit-log"]
+    }
+  ]
+}

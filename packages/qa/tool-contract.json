@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "source": "nexural-qa-os",
+  "expectedTools": [
+    {
+      "name": "qa.recommend_profile",
+      "description": "Choose the QA profile for a project template, risk profile, and stack.",
+      "input": {
+        "templateId": "string",
+        "stack": "object optional",
+        "risk": "string[] optional"
+      },
+      "output": {
+        "profile": "profile id with required runners and hard blockers"
+      }
+    },
+    {
+      "name": "qa.plan_run",
+      "description": "Preview the QA DAG without executing it.",
+      "input": {
+        "projectPath": "string",
+        "profile": "string",
+        "mode": "fast | standard | thorough | deep | smart"
+      },
+      "output": {
+        "plan": "runner DAG, estimated time, missing tools, and risks"
+      }
+    },
+    {
+      "name": "qa.run",
+      "description": "Run QA gates against a project and return a normalized report.",
+      "input": {
+        "projectPath": "string",
+        "profile": "string",
+        "mode": "fast | standard | thorough | deep | smart",
+        "ci": "boolean optional"
+      },
+      "output": {
+        "report": "QA run report matching run-report.schema.json"
+      }
+    },
+    {
+      "name": "qa.explain_score",
+      "description": "Explain why a project received its readiness score.",
+      "input": {
+        "runId": "string"
+      },
+      "output": {
+        "explanation": "score explanation, blockers, next action"
+      }
+    },
+    {
+      "name": "qa.evidence",
+      "description": "Return or package evidence for a completed run.",
+      "input": {
+        "runId": "string"
+      },
+      "output": {
+        "bundlePath": "string",
+        "summary": "string"
+      }
+    }
+  ],
+  "kernelUsage": [
+    "every generated template must map to a QA profile",
+    "deploy.prepare must fail if required QA blockers remain",
+    "case studies should include QA evidence when available",
+    "deep QA modes should require explicit user intent for costly external actions"
+  ]
+}

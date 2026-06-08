@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "kernel-self-check",
+      "description": "Run core Sage Kernel validation checks.",
+      "kind": "validation",
+      "risk": "safe-local",
+      "approval": "not-required",
+      "timeoutMs": 120000,
+      "retries": 0,
+      "steps": [
+        { "type": "npm-script", "script": "catalog:validate" },
+        { "type": "npm-script", "script": "infra:validate" },
+        { "type": "npm-script", "script": "mcp:validate" },
+        { "type": "npm-script", "script": "mcp:smoke" }
+      ]
+    },
+    {
+      "id": "repo-health",
+      "description": "Check that cataloged local source repos exist and summarize package metadata.",
+      "kind": "repo-scan",
+      "risk": "safe-local",
+      "approval": "not-required",
+      "timeoutMs": 120000,
+      "retries": 0,
+      "steps": [
+        { "type": "builtin", "name": "repo-health" }
+      ]
+    },
+    {
+      "id": "warehouse-summary",
+      "description": "Summarize AI Warehouse availability and inventory.",
+      "kind": "knowledge-sync",
+      "risk": "safe-local",
+      "approval": "not-required",
+      "timeoutMs": 60000,
+      "retries": 0,
+      "steps": [
+        { "type": "npm-script", "script": "warehouse:summary" }
+      ]
+    },
+    {
+      "id": "qa-os-summary",
+      "description": "Summarize QA OS runners and packages.",
+      "kind": "qa-sync",
+      "risk": "safe-local",
+      "approval": "not-required",
+      "timeoutMs": 60000,
+      "retries": 0,
+      "steps": [
+        { "type": "npm-script", "script": "qa:summary" }
+      ]
+    },
+    {
+      "id": "template-smoke",
+      "description": "Verify template and QA mappings without generating files.",
+      "kind": "template-check",
+      "risk": "safe-local",
+      "approval": "not-required",
+      "timeoutMs": 60000,
+      "retries": 0,
+      "steps": [
+        { "type": "npm-script", "script": "template:list" }
+      ]
+    },
+    {
+      "id": "nightly-local-audit",
+      "description": "Local nightly audit bundle: kernel checks, repo health, warehouse summary, QA OS summary.",
+      "kind": "scheduled-bundle",
+      "risk": "safe-local",
+      "approval": "not-required",
+      "timeoutMs": 300000,
+      "retries": 0,
+      "steps": [
+        { "type": "job", "job": "kernel-self-check" },
+        { "type": "job", "job": "repo-health" },
+        { "type": "job", "job": "warehouse-summary" },
+        { "type": "job", "job": "qa-os-summary" }
+      ]
+    },
+    {
+      "id": "external-deploy-placeholder",
+      "description": "Placeholder for future external deploy jobs. Exists to enforce approval boundaries.",
+      "kind": "external-mutation",
+      "risk": "external-write",
+      "approval": "required",
+      "timeoutMs": 60000,
+      "retries": 0,
+      "steps": [
+        { "type": "approval-required", "reason": "External deploy/provisioning jobs require explicit approval and are not implemented in Phase 7." }
+      ]
+    }
+  ]
+}

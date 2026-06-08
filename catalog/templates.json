@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "next-saas-app",
+      "coverage": ["frontend", "backend", "auth", "db", "billing", "jobs", "qa", "deploy"],
+      "defaultStack": ["Next.js", "Postgres", "Redis", "Stripe", "GitHub Actions", "Vercel"],
+      "qaProfile": "saas-app"
+    },
+    {
+      "id": "next-dashboard",
+      "coverage": ["frontend", "auth", "charts", "tables", "api", "qa", "deploy"],
+      "defaultStack": ["Next.js", "Postgres", "Recharts", "TanStack Table", "Vercel"],
+      "qaProfile": "dashboard"
+    },
+    {
+      "id": "next-ai-app",
+      "coverage": ["frontend", "api", "ai", "rag", "memory", "evals", "qa", "deploy"],
+      "defaultStack": ["Next.js", "Postgres", "Vector Store", "AI SDK", "Vercel"],
+      "qaProfile": "ai-app"
+    },
+    {
+      "id": "fastapi-service",
+      "coverage": ["api", "db", "auth", "jobs", "docker", "observability", "qa"],
+      "defaultStack": ["Python", "FastAPI", "Postgres", "Redis", "Docker"],
+      "qaProfile": "api-service"
+    },
+    {
+      "id": "node-api-service",
+      "coverage": ["api", "db", "auth", "jobs", "docker", "observability", "qa"],
+      "defaultStack": ["Node.js", "TypeScript", "Postgres", "Redis", "Docker"],
+      "qaProfile": "api-service"
+    },
+    {
+      "id": "expo-mobile-app",
+      "coverage": ["mobile", "auth", "api-client", "offline-state", "qa"],
+      "defaultStack": ["Expo", "React Native", "TypeScript"],
+      "qaProfile": "mobile-app"
+    },
+    {
+      "id": "browser-extension",
+      "coverage": ["extension", "content-scripts", "api", "auth", "qa"],
+      "defaultStack": ["TypeScript", "Vite", "Chrome Extension"],
+      "qaProfile": "extension"
+    },
+    {
+      "id": "agent-workflow-app",
+      "coverage": ["agents", "tools", "memory", "jobs", "approvals", "evals", "observability"],
+      "defaultStack": ["TypeScript", "MCP", "Postgres", "Queue", "Worker"],
+      "qaProfile": "agent-app"
+    },
+    {
+      "id": "trading-dashboard",
+      "coverage": ["frontend", "data", "charts", "alerts", "workers", "qa"],
+      "defaultStack": ["Next.js", "Python", "Postgres", "Redis", "WebSockets"],
+      "qaProfile": "trading-dashboard"
+    },
+    {
+      "id": "internal-admin-tool",
+      "coverage": ["frontend", "auth", "rbac", "audit", "db", "qa"],
+      "defaultStack": ["Next.js", "Postgres", "RBAC", "Vercel"],
+      "qaProfile": "admin-tool"
+    },
+    {
+      "id": "data-pipeline",
+      "coverage": ["ingestion", "validation", "storage", "jobs", "observability", "qa"],
+      "defaultStack": ["Python", "Postgres", "Object Storage", "Worker"],
+      "qaProfile": "data-pipeline"
+    },
+    {
+      "id": "worker-service",
+      "coverage": ["jobs", "queues", "retries", "dead-letters", "docker", "observability"],
+      "defaultStack": ["Node.js", "TypeScript", "Redis", "Docker"],
+      "qaProfile": "worker-service"
+    }
+  ]
+}

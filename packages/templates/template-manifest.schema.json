@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sage-kernel.local/schemas/template-manifest.schema.json",
+  "title": "Sage Kernel Template Manifest",
+  "type": "object",
+  "required": ["id", "coverage", "defaultStack", "qaProfile"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "coverage": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "defaultStack": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "qaProfile": {
+      "type": "string"
+    }
+  }
+}

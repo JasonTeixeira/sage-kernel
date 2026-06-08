@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "schedules": [
+    {
+      "id": "daily-local-health",
+      "job": "nightly-local-audit",
+      "cadence": "daily",
+      "suggestedLocalTime": "08:00",
+      "enabledByDefault": false,
+      "description": "Run local kernel, repo, warehouse, and QA health checks."
+    },
+    {
+      "id": "weekly-repo-health",
+      "job": "repo-health",
+      "cadence": "weekly",
+      "suggestedLocalTime": "Monday 09:00",
+      "enabledByDefault": false,
+      "description": "Review source repo availability and metadata drift."
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "source": "ai-warehouse",
+  "expectedTools": [
+    {
+      "name": "warehouse.search",
+      "description": "Search curated tools, frameworks, SDKs, stacks, and repo patterns.",
+      "input": {
+        "query": "string",
+        "limit": "number optional",
+        "verdict": "USE | TRY | WATCH | SKIP optional",
+        "category": "string optional",
+        "minScore": "number optional"
+      },
+      "output": {
+        "matches": "array of tool summaries with verdicts, categories, alternatives, and rationale"
+      }
+    },
+    {
+      "name": "warehouse.get_tool",
+      "description": "Return full curated entry for a specific tool slug.",
+      "input": {
+        "slug": "string"
+      },
+      "output": {
+        "tool": "full tool entry"
+      }
+    },
+    {
+      "name": "warehouse.compare_tools",
+      "description": "Compare tools by use case, maturity, cost, lock-in, and alternatives.",
+      "input": {
+        "slugs": "string[]",
+        "useCase": "string"
+      },
+      "output": {
+        "comparison": "ranked comparison with recommended default"
+      }
+    },
+    {
+      "name": "warehouse.recommend_stack",
+      "description": "Recommend a full app/system stack using curated warehouse entries.",
+      "input": {
+        "projectType": "string",
+        "constraints": "string[] optional",
+        "scale": "prototype | production | enterprise optional"
+      },
+      "output": {
+        "stack": "recommended stack with alternatives and tradeoffs"
+      }
+    },
+    {
+      "name": "warehouse.record_usage",
+      "description": "Record real usage evidence so research verdicts can become used-once or shipped-to-prod.",
+      "input": {
+        "slug": "string",
+        "project": "string",
+        "confidence": "used-once | shipped-to-prod",
+        "notes": "string"
+      },
+      "output": {
+        "status": "drafted | applied"
+      }
+    }
+  ],
+  "kernelUsage": [
+    "project planning must query warehouse before recommending unfamiliar tools",
+    "template selection should include warehouse alternatives when confidence is low",
+    "post-project review should update usage evidence",
+    "MCP tools must preserve external-action approval boundaries"
+  ]
+}
