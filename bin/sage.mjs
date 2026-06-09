@@ -245,6 +245,8 @@ switch (command) {
     if (process.exitCode) break;
     runNpm("test");
     if (process.exitCode) break;
+    runNpm("qa:gate");
+    if (process.exitCode) break;
     runNpm("v03:validate");
     if (process.exitCode) break;
     runNpm("security:scan");
