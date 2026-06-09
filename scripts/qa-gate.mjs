@@ -9,6 +9,7 @@ const requiredTests = [
   "tests/security-kernel.test.mjs",
   "tests/mcp-integration.test.mjs",
   "tests/scaffold-integration.test.mjs",
+  "tests/mcp-contracts.test.mjs",
   "tests/cli-flows.test.mjs"
 ];
 
@@ -26,8 +27,12 @@ for (const file of requiredTests) {
 }
 
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-for (const script of ["test", "test:coverage", "qa:gate"]) {
+for (const script of ["test", "test:coverage", "qa:gate", "mcp:contracts", "template:validate-blueprints"]) {
   if (!pkg.scripts?.[script]) failures.push(`Missing package script: ${script}`);
+}
+
+for (const file of ["apps/mcp-server/contracts/tools.snapshot.json", "docs/mcp-tools.md"]) {
+  if (!fs.existsSync(path.join(root, file))) failures.push(`Missing generated MCP contract artifact: ${file}`);
 }
 
 if (failures.length) {

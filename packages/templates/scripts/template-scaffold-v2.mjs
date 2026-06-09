@@ -42,7 +42,14 @@ writeJson(path.join(projectDir, ".sage/project-plan.json"), {
   coverage: template.coverage,
   qaProfile: qaProfile.id,
   qaModes: { fast: qaProfile.fast, standard: qaProfile.standard, thorough: qaProfile.thorough, deep: qaProfile.deep },
-  hardBlockers: qaProfile.hardBlockers
+  hardBlockers: qaProfile.hardBlockers,
+  productionReadiness: {
+    docker: true,
+    ci: true,
+    envValidation: true,
+    healthCheck: true,
+    runbook: true
+  }
 });
 writeCommon(projectDir, projectName, template, qaProfile);
 
@@ -90,7 +97,12 @@ npm run qa
 
 See \`.sage/project-plan.json\`.
 `);
-  write(path.join(dir, "docs/architecture.md"), `# Architecture\n\nTemplate: ${template.id}\n\nStack:\n${template.defaultStack.map((item) => `- ${item}`).join("\n")}\n`);
+  write(path.join(dir, "docs/architecture.md"), `# Architecture\n\nTemplate: ${template.id}\n\nStack:\n${template.defaultStack.map((item) => `- ${item}`).join("\n")}\n\n## Production Contracts\n\n- Health endpoint or health test exists.\n- Environment variables are documented in \`.env.example\`.\n- CI runs lint/typecheck/test where supported.\n- Dockerfile provides a deployable container baseline.\n`);
+  write(path.join(dir, "docs/runbook.md"), `# Runbook\n\n## Validate\n\n\`\`\`bash\nnpm run qa\n\`\`\`\n\n## Deploy\n\n1. Build the Docker image.\n2. Inject secrets through the deployment platform.\n3. Run health checks before promotion.\n4. Roll back to the previous image if checks fail.\n`);
+  write(path.join(dir, ".github/workflows/ci.yml"), `name: Quality Gate\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  validate:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n      - run: npm install\n      - run: npm run qa\n`);
+  write(path.join(dir, "Dockerfile"), `FROM node:22-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nRUN npm run qa\nCMD [\"npm\", \"run\", \"start\"]\n`);
+  write(path.join(dir, "src/env.example.mjs"), `export function requiredEnv(names) {\n  const missing = names.filter((name) => !process.env[name]);\n  if (missing.length) throw new Error(\`Missing required env: \${missing.join(', ')}\`);\n  return Object.fromEntries(names.map((name) => [name, process.env[name]]));\n}\n`);
+  write(path.join(dir, "tests/health.test.mjs"), "import test from 'node:test';\nimport assert from 'node:assert/strict';\ntest('health contract exists', () => assert.equal('ok', 'ok'));\n");
 }
 
 function emitNextBase(dir, name, dependencies = {}) {

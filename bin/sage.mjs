@@ -243,6 +243,10 @@ switch (command) {
     if (process.exitCode) break;
     runNpm("mcp:validate");
     if (process.exitCode) break;
+    runNpm("mcp:contracts");
+    if (process.exitCode) break;
+    runNpm("template:validate-blueprints");
+    if (process.exitCode) break;
     runNpm("test");
     if (process.exitCode) break;
     runNpm("qa:gate");

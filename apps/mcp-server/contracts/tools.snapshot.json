@@ -1,0 +1,268 @@
+{
+  "generatedAt": "stable",
+  "server": {
+    "name": "sage-kernel",
+    "description": "MCP control surface for Sage Kernel OS.",
+    "defaultTransport": "stdio"
+  },
+  "tools": [
+    {
+      "name": "kernel.phase.status",
+      "description": "List kernel phase status.",
+      "risk": "safe",
+      "permission": "phase:status",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.catalog.search",
+      "description": "Search repos, modules, templates, integrations, and phases.",
+      "risk": "safe",
+      "permission": "catalog:search",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "4f3f4af7a381ffe492dffcfe775e4c50a47a605f3641aae2797e374c82d10e8e",
+      "required": [
+        "query"
+      ]
+    },
+    {
+      "name": "kernel.template.list",
+      "description": "List available project templates and QA profile mappings.",
+      "risk": "safe",
+      "permission": "template:list",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.project.plan",
+      "description": "Create a project plan from a template, deployment target, QA profile, and infra profile.",
+      "risk": "safe",
+      "permission": "project:plan",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "1f1a3fd64489165120d73d6c3f21aeacdd74490cf42aab1a0c8c5f62027e1408",
+      "required": [
+        "template"
+      ]
+    },
+    {
+      "name": "kernel.project.scaffold",
+      "description": "Scaffold a local project skeleton from a kernel template.",
+      "risk": "mutating",
+      "permission": "project:write",
+      "approvalRequired": false,
+      "sideEffects": "writes local files only",
+      "inputHash": "73006305f17b63e6c2f36d28fff418957fff6d144606ecbcad9ec059095c4362",
+      "required": [
+        "template",
+        "name"
+      ]
+    },
+    {
+      "name": "kernel.warehouse.summary",
+      "description": "Summarize the connected AI Warehouse inventory.",
+      "risk": "safe",
+      "permission": "warehouse:summary",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.warehouse.search",
+      "description": "Search the AI Warehouse index for tools, categories, tags, and verdicts.",
+      "risk": "safe",
+      "permission": "warehouse:search",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "a8ffea6f214b06aff2bd6310ad9cbf3ebfe5414cc3a0938841bcc9fed2073aa5",
+      "required": [
+        "query"
+      ]
+    },
+    {
+      "name": "kernel.qa.profile",
+      "description": "Return the QA profile for a template.",
+      "risk": "safe",
+      "permission": "qa:profile",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "421660ccf7a787b6a2ac2a54c29a78ca3046bdf407ef116b8ad53d4bd3df0f62",
+      "required": [
+        "template"
+      ]
+    },
+    {
+      "name": "kernel.qa.plan",
+      "description": "Plan QA gates for a template without executing them.",
+      "risk": "safe",
+      "permission": "qa:plan",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "e30dcda6c89308ff6e0f97b74c4330de319424814b330f57bb733dc18200f3a4",
+      "required": [
+        "template"
+      ]
+    },
+    {
+      "name": "kernel.qa.run",
+      "description": "Run safe local QA for the kernel or a generated project.",
+      "risk": "mutating",
+      "permission": "qa:run",
+      "approvalRequired": false,
+      "sideEffects": "runs local commands only",
+      "inputHash": "a6da4a6c658362c5d57f543a216bfe360d087d41322f91dd1377b634a5eb7e90",
+      "required": []
+    },
+    {
+      "name": "kernel.repo.inspect",
+      "description": "Inspect a cataloged source repo without mutating it.",
+      "risk": "safe",
+      "permission": "repo:inspect",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "7c3a22ce91e3400ecda52a2aab5401f9f0e22f2f7ceabeafcc935ffe438273a1",
+      "required": [
+        "repo"
+      ]
+    },
+    {
+      "name": "kernel.infra.plan",
+      "description": "Return an infrastructure plan for a template and deploy target.",
+      "risk": "safe",
+      "permission": "infra:plan",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "441c71421b84991730da888ff100d4e9a61decc5a7898d7fb8463d2d56509f9d",
+      "required": [
+        "template"
+      ]
+    },
+    {
+      "name": "kernel.deploy.prepare",
+      "description": "Prepare a deploy readiness plan with QA, infra, env, rollback, and approval gates.",
+      "risk": "safe",
+      "permission": "deploy:prepare",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "441c71421b84991730da888ff100d4e9a61decc5a7898d7fb8463d2d56509f9d",
+      "required": [
+        "template"
+      ]
+    },
+    {
+      "name": "kernel.jobs.list",
+      "description": "List local safe jobs and approval boundaries.",
+      "risk": "safe",
+      "permission": "jobs:list",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.jobs.run",
+      "description": "Run a local safe job and write run history.",
+      "risk": "mutating",
+      "permission": "jobs:run",
+      "approvalRequired": true,
+      "sideEffects": "writes local run history",
+      "inputHash": "cbc274474778e5f7bb954b20f1a3421b2fa8a9067f47197280293452eae7d02d",
+      "required": [
+        "job"
+      ]
+    },
+    {
+      "name": "kernel.jobs.runs",
+      "description": "List recent local job runs.",
+      "risk": "safe",
+      "permission": "jobs:runs",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "f473f0fd2d0085b9ecb591336fbdc27e3e28b50ca8aab0c93c50f70fc10132ac",
+      "required": []
+    },
+    {
+      "name": "kernel.jobs.enqueue",
+      "description": "Enqueue a durable local job in SQLite.",
+      "risk": "mutating",
+      "permission": "jobs:write",
+      "approvalRequired": false,
+      "sideEffects": "writes local SQLite queue state",
+      "inputHash": "27f36be98b01e523942da8383d765a46738cea7f5ee7861486d632bd8fbf9fa5",
+      "required": [
+        "job"
+      ]
+    },
+    {
+      "name": "kernel.worker.tick",
+      "description": "Run one durable worker queue tick.",
+      "risk": "mutating",
+      "permission": "worker:tick",
+      "approvalRequired": false,
+      "sideEffects": "runs one local queued job if ready",
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.approvals.request",
+      "description": "Record an approval request in the local approval ledger.",
+      "risk": "mutating",
+      "permission": "approvals:write",
+      "approvalRequired": false,
+      "sideEffects": "writes local SQLite approval state",
+      "inputHash": "9452d4420fd26547dd784a8733d0a4e348e4efa87051aa8fd952ab4f8ba1958e",
+      "required": [
+        "action",
+        "reason"
+      ]
+    },
+    {
+      "name": "kernel.approvals.list",
+      "description": "List approval ledger entries.",
+      "risk": "safe",
+      "permission": "approvals:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "8514b788a5dac0e036b0e31d54f9f26efd51b0fc0a96689934ceb633683b2788",
+      "required": []
+    },
+    {
+      "name": "kernel.approvals.approve",
+      "description": "Approve and sign a pending approval request in the local approval ledger.",
+      "risk": "mutating",
+      "permission": "approvals:write",
+      "approvalRequired": false,
+      "sideEffects": "writes signed local SQLite approval state",
+      "inputHash": "a825a6e94694e540708b5f42afe9371aabbf7a2094c0d913ab64777e70d76fbc",
+      "required": [
+        "id"
+      ]
+    },
+    {
+      "name": "kernel.dashboard.snapshot",
+      "description": "Return DB-backed dashboard state for the live command center.",
+      "risk": "safe",
+      "permission": "dashboard:snapshot",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.dogfood.prod",
+      "description": "Audit three production repos against kernel QA readiness without mutating them.",
+      "risk": "safe",
+      "permission": "dogfood:prod",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "inputHash": "bfb98bbaff8d6b7b53aa0fa80edad8f3d6944536d2382919edef0337a7be7765",
+      "required": []
+    }
+  ]
+}

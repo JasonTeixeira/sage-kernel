@@ -21,6 +21,8 @@ jobs:
       - run: npm run infra:validate
       - run: npm run jobs:validate
       - run: npm run mcp:validate
+      - run: npm run mcp:contracts
+      - run: npm run template:validate-blueprints
       - run: npm test
       - run: npm run test:coverage
       - run: npm run qa:gate
