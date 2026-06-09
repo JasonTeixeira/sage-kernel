@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { ensureKernelSchema, sqlJson, sqlString, runSql } from "../../../packages/db/scripts/db-lib.mjs";
 import { assertToolAllowed, listApprovals, requestApproval } from "../../../packages/security/guard.mjs";
+import { createSqliteAdapter } from "../../../packages/db/adapter.mjs";
+import { createApprovalLedger } from "../../../packages/security/approvals.mjs";
 import { dashboardSnapshot } from "../../dashboard/server.mjs";
 
 export function readJson(root, relativePath) {
@@ -278,6 +280,13 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.approvals.list":
       return listApprovals(root, input.status ?? null);
+
+    case "kernel.approvals.approve": {
+      if (!input.id) throw new Error("kernel.approvals.approve requires input.id");
+      const db = createSqliteAdapter({ root });
+      db.init();
+      return createApprovalLedger({ db }).approve({ id: input.id, decidedBy: input.decidedBy || "local-user" });
+    }
 
     case "kernel.dashboard.snapshot":
       return dashboardSnapshot();

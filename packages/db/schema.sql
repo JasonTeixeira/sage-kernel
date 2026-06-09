@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS approvals (
   status TEXT NOT NULL DEFAULT 'pending',
   reason TEXT NOT NULL,
   payload_json TEXT NOT NULL DEFAULT '{}',
+  signature TEXT,
+  decided_by TEXT,
   created_at TEXT NOT NULL,
   decided_at TEXT
 );

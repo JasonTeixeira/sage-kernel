@@ -1,4 +1,4 @@
-import { callKernelTool } from "../src/kernel-tools.mjs";
+import { createKernelRuntime } from "../../../packages/core/runtime.mjs";
 
 const [toolName, rawInput = "{}"] = process.argv.slice(2);
 
@@ -14,5 +14,7 @@ try {
   throw new Error(`Tool input must be JSON: ${error.message}`);
 }
 
-const result = await callKernelTool(process.cwd(), toolName, input);
+const runtime = createKernelRuntime({ root: process.cwd() });
+await runtime.loadBuiltInTools();
+const result = await runtime.call(toolName, input);
 console.log(JSON.stringify(result, null, 2));

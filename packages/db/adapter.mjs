@@ -50,6 +50,14 @@ export function createSqliteAdapter(options = {}) {
       for (const [column, sql] of migrations) {
         if (!columns.has(column)) run(sql);
       }
+      const approvalColumns = new Set(adapter.query("PRAGMA table_info(approvals);").map((column) => column.name));
+      const approvalMigrations = [
+        ["signature", "ALTER TABLE approvals ADD COLUMN signature TEXT;"],
+        ["decided_by", "ALTER TABLE approvals ADD COLUMN decided_by TEXT;"]
+      ];
+      for (const [column, sql] of approvalMigrations) {
+        if (!approvalColumns.has(column)) run(sql);
+      }
     },
     execute(sql, params = []) {
       return run(sql, params);

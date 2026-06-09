@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS approvals (
   status TEXT NOT NULL DEFAULT 'pending',
   reason TEXT NOT NULL,
   payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  signature TEXT,
+  decided_by TEXT,
   created_at TIMESTAMPTZ NOT NULL,
   decided_at TIMESTAMPTZ
 );

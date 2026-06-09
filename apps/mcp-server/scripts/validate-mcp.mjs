@@ -25,6 +25,9 @@ for (const tool of manifest.tools) {
   seen.add(tool.name);
   if (!tool.description) throw new Error(`MCP tool ${tool.name} missing description`);
   if (!tool.inputSchema?.type) throw new Error(`MCP tool ${tool.name} missing inputSchema.type`);
+  if ((tool.sideEffects || tool.approvalRequired) && !tool.permission) {
+    throw new Error(`MCP tool ${tool.name} with side effects must declare permission`);
+  }
 }
 
 console.log("MCP manifest validation passed.");

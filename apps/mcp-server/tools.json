@@ -50,6 +50,7 @@
     {
       "name": "kernel.project.scaffold",
       "description": "Scaffold a local project skeleton from a kernel template.",
+      "permission": "project:write",
       "inputSchema": {
         "type": "object",
         "required": ["template", "name"],
@@ -108,6 +109,7 @@
     {
       "name": "kernel.qa.run",
       "description": "Run safe local QA for the kernel or a generated project.",
+      "permission": "qa:run",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -163,11 +165,14 @@
     {
       "name": "kernel.jobs.run",
       "description": "Run a local safe job and write run history.",
+      "permission": "jobs:run",
+      "approvalRequired": true,
       "inputSchema": {
         "type": "object",
         "required": ["job"],
         "properties": {
-          "job": { "type": "string" }
+          "job": { "type": "string" },
+          "approvalId": { "type": "string" }
         }
       },
       "sideEffects": "writes local run history"
@@ -185,6 +190,7 @@
     {
       "name": "kernel.jobs.enqueue",
       "description": "Enqueue a durable local job in SQLite.",
+      "permission": "jobs:write",
       "inputSchema": {
         "type": "object",
         "required": ["job"],
@@ -199,6 +205,7 @@
     {
       "name": "kernel.worker.tick",
       "description": "Run one durable worker queue tick.",
+      "permission": "worker:tick",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -208,6 +215,7 @@
     {
       "name": "kernel.approvals.request",
       "description": "Record an approval request in the local approval ledger.",
+      "permission": "approvals:write",
       "inputSchema": {
         "type": "object",
         "required": ["action", "reason"],
@@ -222,12 +230,27 @@
     {
       "name": "kernel.approvals.list",
       "description": "List approval ledger entries.",
+      "permission": "approvals:read",
       "inputSchema": {
         "type": "object",
         "properties": {
           "status": { "type": "string" }
         }
       }
+    },
+    {
+      "name": "kernel.approvals.approve",
+      "description": "Approve and sign a pending approval request in the local approval ledger.",
+      "permission": "approvals:write",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "decidedBy": { "type": "string" }
+        }
+      },
+      "sideEffects": "writes signed local SQLite approval state"
     },
     {
       "name": "kernel.dashboard.snapshot",

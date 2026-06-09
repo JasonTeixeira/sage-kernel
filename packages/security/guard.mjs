@@ -1,5 +1,5 @@
-import crypto from "node:crypto";
-import { ensureKernelSchema, runSql, sqlJson, sqlString } from "../db/scripts/db-lib.mjs";
+import { createSqliteAdapter } from "../db/adapter.mjs";
+import { createApprovalLedger } from "./approvals.mjs";
 
 const SAFE_ACTIONS = new Set([
   "phase.status",
@@ -26,7 +26,8 @@ const MUTATING_ACTIONS = new Set([
   "jobs.run",
   "jobs.enqueue",
   "worker.tick",
-  "approvals.request"
+  "approvals.request",
+  "approvals.approve"
 ]);
 
 export function isReadOnlyMode() {
@@ -44,26 +45,15 @@ export function assertToolAllowed(root, action, payload = {}) {
 }
 
 export function requestApproval(root, action, reason, payload = {}) {
-  ensureKernelSchema(root);
-  const now = new Date().toISOString();
-  const id = `approval_${crypto.randomUUID()}`;
-  runSql(
-    root,
-    `INSERT INTO approvals (id, action, status, reason, payload_json, created_at)
-     VALUES (${sqlString(id)}, ${sqlString(action)}, 'pending', ${sqlString(reason)}, ${sqlJson(payload)}, ${sqlString(now)});`
-  );
-  return { id, action, status: "pending", reason, payload, createdAt: now };
+  const db = createSqliteAdapter({ root });
+  db.init();
+  return createApprovalLedger({ db }).request({ action, reason, payload });
 }
 
 export function listApprovals(root, status = null) {
-  ensureKernelSchema(root);
-  const where = status ? ` WHERE status = ${sqlString(status)}` : "";
-  const output = runSql(
-    root,
-    `.mode json
-SELECT id, action, status, reason, payload_json, created_at, decided_at FROM approvals${where} ORDER BY created_at DESC LIMIT 50;`
-  );
-  return output ? JSON.parse(output).map((row) => ({ ...row, payload: JSON.parse(row.payload_json || "{}") })) : [];
+  const db = createSqliteAdapter({ root });
+  db.init();
+  return createApprovalLedger({ db }).list(status);
 }
 
 export function signRecord(record) {
