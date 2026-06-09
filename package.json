@@ -16,6 +16,7 @@
     "mcp:tools": "node apps/mcp-server/scripts/list-tools.mjs",
     "mcp:call": "node apps/mcp-server/scripts/call-tool.mjs",
     "mcp:validate": "node apps/mcp-server/scripts/validate-mcp.mjs",
+    "mcp:contracts": "node apps/mcp-server/scripts/generate-contracts.mjs",
     "mcp:server": "node apps/mcp-server/src/server.mjs",
     "mcp:smoke": "node apps/mcp-server/scripts/smoke.mjs",
     "playwright:check": "node scripts/check-playwright-env.mjs",
@@ -45,6 +46,7 @@
     "sage:smoke": "node bin/sage.mjs status",
     "template:list": "node packages/templates/scripts/template-list.mjs",
     "template:scaffold": "node packages/templates/scripts/template-scaffold-v2.mjs",
+    "template:validate-blueprints": "node packages/templates/scripts/validate-blueprints.mjs",
     "phase:status": "node scripts/phase-status.mjs"
   },
   "engines": {
