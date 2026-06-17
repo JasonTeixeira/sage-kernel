@@ -61,6 +61,23 @@ test("scope creep detector flags out-of-policy paths, denied patterns, and missi
   assert.deepEqual(emptyReport.inspectedFiles, []);
 });
 
+test("scope creep detector uses git-visible files and ignores local excluded files", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "sage-drift-git-scope-"));
+  fs.writeFileSync(path.join(sandbox, ".gitignore"), ".env.local\n");
+  fs.writeFileSync(path.join(sandbox, ".env.local"), "SECRET=local\n");
+  fs.writeFileSync(path.join(sandbox, "package.json"), JSON.stringify({ name: "git-scope-fixture" }));
+  const init = spawnSync("git", ["init"], { cwd: sandbox, encoding: "utf8" });
+  assert.equal(init.status, 0, init.stderr || init.stdout);
+
+  const report = detectScopeCreep({
+    root: sandbox,
+    allowedScopes: [".gitignore", "package.json"],
+    deniedPatterns: [".env.*"]
+  });
+  assert.equal(report.status, "passed");
+  assert.deepEqual(report.inspectedFiles, [".gitignore", "package.json"]);
+});
+
 test("self-audit compares implementation against docs, contracts, scripts, and permissions", () => {
   const audit = runSelfAudit({ root });
   assert.equal(audit.status, "passed");

@@ -171,6 +171,25 @@ test("dashboard daily workflow execution reports live degraded state", async () 
   assert.equal(payload.recentRuns[0].status, "failed");
 });
 
+test("dashboard daily workflow execution reports healthy ready state", async () => {
+  const sandbox = createDashboardFixture();
+  const db = createSqliteAdapter({ root: sandbox });
+  db.init();
+  db.execute(
+    "INSERT INTO job_runs (id, job_id, status, duration_ms, result_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ["run_passed", "fixture", "passed", 1, "{}", "2026-01-01T00:00:00.000Z"]
+  );
+
+  const result = await runDashboardWorkflow({ id: "daily-summary" }, { root: sandbox });
+  assert.equal(result.status, "executed");
+  const payload = JSON.parse(result.result.stdout);
+  assert.equal(payload.status, "ready");
+  assert.equal(payload.dashboard.status, "ok");
+  assert.equal(payload.dashboard.summary, "No failed recent runs.");
+  assert.equal(payload.pendingApprovals, 0);
+  assert.equal(payload.recentRuns[0].status, "passed");
+});
+
 test("dashboard HTTP workflow routes validate input and preserve approval boundaries", async () => {
   const sandbox = createDashboardFixture();
   const server = createDashboardServer({ root: sandbox, ttlMs: 0 });

@@ -181,6 +181,9 @@ test("MCP dispatcher handles optional source roots and warehouse configuration",
     const results = await callKernelTool(sandbox, "kernel.warehouse.search", { query: "agent", verdict: "use" });
     assert.equal(results.length, 1);
     assert.equal(results[0].name, "Agent Tool");
+    const defaulted = await callKernelTool(sandbox, "kernel.warehouse.search", { query: "helper" });
+    assert.equal(defaulted[0].tags.length, 1);
+    assert.equal(defaulted[0].summary, "Agent helper");
     const summary = await callKernelTool(sandbox, "kernel.warehouse.summary", {});
     assert.equal(summary.count, 1);
     assert.equal(summary.verdicts.use, 1);
@@ -328,6 +331,13 @@ test("MCP dispatcher exposes daily workflow tools for app-building operations", 
   assert.equal(explained.status, "failed");
   assert.equal(explained.failures.length, 1);
   assert.match(explained.failures[0].recommendation, /npm:test/);
+
+  const cleanExplanation = await callKernelTool(sandbox, "kernel.workflow.explain_failures", {
+    report: { status: "passed", checks: [{ name: "npm:test", status: "passed" }] }
+  });
+  assert.equal(cleanExplanation.status, "passed");
+  assert.deepEqual(cleanExplanation.failures, []);
+  assert.deepEqual(cleanExplanation.nextActions, ["No failed checks found in the provided report."]);
 
   const created = await callKernelTool(sandbox, "kernel.workflow.create_app", {
     template: "worker-service",

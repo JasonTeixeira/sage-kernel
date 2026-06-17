@@ -33,6 +33,7 @@ const REQUIRED_DOCS = [
 
 const DEFAULT_ALLOWED_SCOPES = [
   ".github/**",
+  ".gitignore",
   "agents/**",
   "apps/**",
   "assets/**",
@@ -51,6 +52,7 @@ const DEFAULT_ALLOWED_SCOPES = [
   "LICENSE",
   "README.md",
   "SECURITY.md",
+  "docker-compose.postgres.yml",
   "package.json",
   "package-lock.json"
 ];
@@ -144,7 +146,7 @@ export function detectScopeCreep(options = {}) {
   const allowedScopes = options.allowedScopes || DEFAULT_ALLOWED_SCOPES;
   const deniedPatterns = options.deniedPatterns || DEFAULT_DENIED_PATTERNS;
   const changed = options.changedFiles || changedFiles(root);
-  const files = changed.length > 0 ? changed : listFiles(root);
+  const files = changed.length > 0 ? changed : listScopeFiles(root);
   const testFiles = files.filter((file) => isTestFile(file));
   const findings = [];
 
@@ -307,6 +309,19 @@ function changedFiles(root) {
     .filter((line) => line.trim())
     .map((line) => line.slice(3).trim().split(" -> ").pop())
     .filter(Boolean);
+}
+
+function listScopeFiles(root) {
+  const result = spawnSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  if (result.status !== 0) return listFiles(root);
+  return result.stdout
+    .split("\n")
+    .map((file) => file.trim())
+    .filter(Boolean)
+    .sort();
 }
 
 function listFiles(dir, base = dir) {
