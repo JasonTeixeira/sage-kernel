@@ -33,6 +33,7 @@ jobs:
           npm run jobs:validate
           npm run mcp:validate
           npm run mcp:contracts
+          npm run public:validate
           npm run template:validate-blueprints
           npm run v03:validate
 

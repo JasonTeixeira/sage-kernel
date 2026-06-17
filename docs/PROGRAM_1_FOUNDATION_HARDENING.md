@@ -57,13 +57,53 @@ Residual risks:
 
 ## Phase 1.2: CI Quality Gates Expansion
 
-Status: pending.
+Status: complete.
 
 Goal:
 
 - Add or tighten CI gates for package contents, docs links, action hygiene, and release artifacts.
 - Keep Node 22 project runtime and current GitHub Actions majors.
 - Make CI fail on missing public assets, broken generated contracts, and release packaging regressions.
+
+Implemented:
+
+- Added `npm run public:validate`.
+- Added `scripts/validate-public-surface.mjs`.
+- Wired `public:validate` into GitHub Actions.
+- Wired `public:validate` into `npm run release:check`.
+- Added regression tests for:
+  - missing public files
+  - missing package allowlist entries
+  - broken relative markdown links
+  - links escaping the workspace
+  - invalid `package.json`
+  - invalid public package metadata
+
+Verification:
+
+```bash
+npm run public:validate
+node --test tests/release-quality.test.mjs
+npm run release:check
+npm run test:coverage
+git diff --check
+```
+
+Baseline results:
+
+- Public surface validation: passed.
+- Release-quality tests: passed.
+- Release check: passed.
+- Coverage gate: passed.
+  - Lines: 99.24%
+  - Branches: 90.23%
+  - Functions: 97.82%
+
+Residual risks:
+
+- The markdown validator checks local file existence, not every anchor target inside markdown files.
+- External links are intentionally not crawled in CI to avoid network flake.
+- The package is still dry-run verified, not yet published with npm provenance.
 
 ## Phase 1.3: Fresh-Install Verification Hardening
 
@@ -80,4 +120,3 @@ Status: pending.
 Goal:
 
 - Prepare npm release automation, provenance, signed tags, version policy, and release candidate checklist.
-

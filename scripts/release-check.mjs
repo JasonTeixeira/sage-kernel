@@ -12,6 +12,7 @@ const checks = [
   ["npm", ["run", "v03:validate"]],
   ["npm", ["run", "security:scan"]],
   ["npm", ["audit"]],
+  ["npm", ["run", "public:validate"]],
   ["npm", ["run", "qa:gate"]],
   ["npm", ["pack", "--dry-run"]]
 ];
