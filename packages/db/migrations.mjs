@@ -72,6 +72,48 @@ export const KERNEL_MIGRATIONS = [
         postgres: "CREATE INDEX IF NOT EXISTS audit_events_type_idx ON audit_events (type, created_at DESC);"
       }
     ]
+  },
+  {
+    id: "0006_memory_records",
+    description: "Add durable project memory records",
+    statements: [
+      {
+        sqlite: `CREATE TABLE IF NOT EXISTS memory_records (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  confidence REAL NOT NULL,
+  observed_at TEXT NOT NULL,
+  supersedes_json TEXT NOT NULL DEFAULT '[]',
+  content_json TEXT NOT NULL,
+  provenance_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);`,
+        postgres: `CREATE TABLE IF NOT EXISTS memory_records (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  confidence DOUBLE PRECISION NOT NULL,
+  observed_at TIMESTAMPTZ NOT NULL,
+  supersedes_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+  content_json JSONB NOT NULL,
+  provenance_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);`
+      },
+      {
+        sqlite: "CREATE INDEX IF NOT EXISTS memory_records_project_idx ON memory_records (project_id, observed_at DESC);",
+        postgres: "CREATE INDEX IF NOT EXISTS memory_records_project_idx ON memory_records (project_id, observed_at DESC);"
+      },
+      {
+        sqlite: "CREATE INDEX IF NOT EXISTS memory_records_kind_idx ON memory_records (kind, observed_at DESC);",
+        postgres: "CREATE INDEX IF NOT EXISTS memory_records_kind_idx ON memory_records (kind, observed_at DESC);"
+      }
+    ]
   }
 ];
 

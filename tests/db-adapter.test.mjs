@@ -232,7 +232,7 @@ test("postgres migrations cover skipped columns and statement selection", async 
     now: () => "2026-01-01T00:00:00.000Z"
   });
 
-  assert.equal(result.applied, 5);
+  assert.equal(result.applied, 6);
   assert.equal(result.provider, "postgres");
   assert.equal(calls.some((call) => call[0] === "batch"), true);
   assert.equal(calls.some((call) => call[1]?.includes?.("ALTER TABLE")), false);
@@ -378,17 +378,18 @@ test("sqlite migrations are tracked and idempotent", async () => {
 
   const first = await migrateKernelDb({ root, schemaRoot });
   assert.equal(first.provider, "sqlite");
-  assert.equal(first.applied, 5);
+  assert.equal(first.applied, 6);
   assert.equal(first.skipped, 0);
 
   const second = await migrateKernelDb({ root, schemaRoot });
   assert.equal(second.applied, 0);
-  assert.equal(second.skipped, 5);
+  assert.equal(second.skipped, 6);
 
   const db = createSqliteAdapter({ root, schemaRoot });
   db.init();
-  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM schema_migrations;")), 5);
+  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM schema_migrations;")), 6);
   assert.equal(Number(db.scalar("SELECT COUNT(*) FROM audit_events;")), 0);
+  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM memory_records;")), 0);
 });
 
 test("sqlite migration failures roll back statements and migration records", async () => {

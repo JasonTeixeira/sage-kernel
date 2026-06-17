@@ -135,7 +135,7 @@ export async function runDashboardWorkflow(request = {}, options = {}) {
 
 export function dashboardSnapshot(options = {}) {
   const root = options.root || defaultRoot;
-  const db = createSqliteAdapter({ root });
+  const db = createSqliteAdapter({ root, schemaRoot: options.schemaRoot });
   db.init();
 
   const packageJson = readJson(root, "package.json", { version: "0.0.0" });

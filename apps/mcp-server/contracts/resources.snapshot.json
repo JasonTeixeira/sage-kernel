@@ -81,8 +81,16 @@
     {
       "name": "sage.intelligence.memory",
       "uri": "sage://intelligence/memory",
-      "title": "Sage Intelligence Memory Fixture",
-      "description": "Validated memory-record fixture showing provenance, confidence, and supersession structure.",
+      "title": "Sage Intelligence Memory",
+      "description": "Recent durable memory records and memory audit summary.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.project-state",
+      "uri": "sage://intelligence/project-state",
+      "title": "Sage Intelligence Project State",
+      "description": "Durable project state summary grounded in git, eval reports, memory, dashboard health, and approvals.",
       "mimeType": "application/json",
       "access": "read-only"
     },

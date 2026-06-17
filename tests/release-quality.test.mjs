@@ -32,6 +32,9 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.scripts["eval:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
   assert.equal(pkg.scripts["eval:run"], "node packages/intelligence/scripts/eval-runner.mjs");
   assert.equal(pkg.scripts["eval:report"], "node packages/intelligence/scripts/eval-report.mjs");
+  assert.equal(pkg.scripts["memory:smoke"], "node packages/intelligence/scripts/memory-smoke.mjs");
+  assert.equal(pkg.scripts["memory:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
+  assert.equal(pkg.scripts["memory:state"], "node packages/intelligence/scripts/project-state.mjs");
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-lines=98/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-branches=90/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-functions=97/);
@@ -101,7 +104,7 @@ test("intelligence contracts validate fixtures and reject unsafe shapes", () => 
   assert.equal(passing.status, "passed");
   assert.equal(passing.checked.schemas, 5);
   assert.equal(passing.checked.fixtures, 5);
-  assert.equal(passing.checked.evals, 5);
+  assert.equal(passing.checked.evals, 6);
   assert.deepEqual(passing.failures, []);
 
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-intelligence-"));

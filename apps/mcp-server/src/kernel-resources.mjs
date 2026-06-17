@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { dashboardSnapshot, renderMetrics } from "../../dashboard/server.mjs";
+import { createMemoryStore } from "../../../packages/intelligence/memory-store.mjs";
+import { createProjectState } from "../../../packages/intelligence/project-state.mjs";
 
 export const kernelResources = [
   {
@@ -82,10 +84,18 @@ export const kernelResources = [
   {
     name: "sage.intelligence.memory",
     uri: "sage://intelligence/memory",
-    title: "Sage Intelligence Memory Fixture",
-    description: "Validated memory-record fixture showing provenance, confidence, and supersession structure.",
+    title: "Sage Intelligence Memory",
+    description: "Recent durable memory records and memory audit summary.",
     mimeType: "application/json",
-    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/memory-record.json", {})
+    read: (root) => readMemorySnapshot(root)
+  },
+  {
+    name: "sage.intelligence.project-state",
+    uri: "sage://intelligence/project-state",
+    title: "Sage Intelligence Project State",
+    description: "Durable project state summary grounded in git, eval reports, memory, dashboard health, and approvals.",
+    mimeType: "application/json",
+    read: (root) => createProjectState({ root })
   },
   {
     name: "sage.intelligence.evals",
@@ -196,6 +206,24 @@ function readLatestEvalReport(root) {
   });
 }
 
+function readMemorySnapshot(root) {
+  try {
+    const store = createMemoryStore({ root });
+    return {
+      status: "available",
+      audit: store.audit(),
+      records: store.search({ limit: 20 })
+    };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      audit: { total: 0, kinds: [], sources: [], latest: [] },
+      records: [],
+      error: error.message
+    };
+  }
+}
+
 function readJson(root, relativePath, fallback = null) {
   const fullPath = path.join(root, relativePath);
   if (!fs.existsSync(fullPath)) return fallback;
@@ -213,6 +241,7 @@ export const __resourceTestInternals = {
   readEvalDefinitions,
   readIntelligenceContracts,
   readLatestEvalReport,
+  readMemorySnapshot,
   readJson,
   resourceText
 };

@@ -31,6 +31,7 @@ test("MCP server exposes read-only kernel resources", async () => {
       "sage://intelligence/evals",
       "sage://intelligence/experiments",
       "sage://intelligence/memory",
+      "sage://intelligence/project-state",
       "sage://intelligence/runbooks",
       "sage://intelligence/semantic-adapters",
       "sage://jobs",
@@ -60,7 +61,7 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   }
   copyDir(path.join(root, "packages/intelligence"), path.join(sandbox, "packages/intelligence"));
   fs.copyFileSync(path.join(root, "packages/db/schema.sql"), path.join(sandbox, "packages/db/schema.sql"));
-  fs.writeFileSync(path.join(sandbox, "package.json"), JSON.stringify({ version: "fixture" }));
+  fs.writeFileSync(path.join(sandbox, "package.json"), JSON.stringify({ name: "fixture", version: "fixture" }));
   fs.writeFileSync(path.join(sandbox, "catalog/phases.json"), JSON.stringify({ phases: null }));
   fs.writeFileSync(path.join(sandbox, "catalog/repos.json"), JSON.stringify({ repos: null }));
   fs.writeFileSync(path.join(sandbox, "catalog/modules.json"), JSON.stringify({ modules: null }));
@@ -90,7 +91,10 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   assert.equal(Boolean(contracts.schemas["memory-record.schema.json"]), true);
   assert.equal(contracts.securityBoundaries.some((boundary) => boundary.action === "semantic_code.apply_refactor"), true);
   const memory = kernelResources.find((resource) => resource.uri === "sage://intelligence/memory").read(sandbox);
-  assert.equal(memory.id, "mem_release_ci_passed");
+  assert.equal(memory.status, "available");
+  assert.equal(memory.audit.total, 0);
+  const projectState = kernelResources.find((resource) => resource.uri === "sage://intelligence/project-state").read(sandbox);
+  assert.equal(projectState.project.name, "fixture");
   const evals = kernelResources.find((resource) => resource.uri === "sage://intelligence/evals").read(sandbox);
   assert.equal(evals.length > 0, true);
   const evalReport = kernelResources.find((resource) => resource.uri === "sage://intelligence/eval-report").read(sandbox);

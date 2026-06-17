@@ -106,6 +106,12 @@ export function validateEvalDefinitionFile(definition, label = "eval-definition.
   return failures;
 }
 
+export function validateMemoryRecordData(record, label = "memory-record.json") {
+  const failures = [];
+  validateMemoryRecord(record, label, failures);
+  return failures;
+}
+
 function validateSchema(contract, schema, failures) {
   if (schema.$schema !== "https://json-schema.org/draft/2020-12/schema") {
     failures.push(`${contract.schema} must use JSON Schema draft 2020-12`);

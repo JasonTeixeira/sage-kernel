@@ -347,7 +347,7 @@ Exit criteria:
 
 ### Phase 2.3: Durable Memory And Project State
 
-Status: planned.
+Status: complete.
 
 Tasks:
 
@@ -367,11 +367,48 @@ Tasks:
   - expiration/supersession
   - confidence scores
 
+Implemented:
+
+- Added `memory_records` to SQLite and Postgres schemas.
+- Added migration `0006_memory_records`.
+- Added durable memory store APIs for:
+  - write
+  - search
+  - audit
+  - normalization
+  - validation against the memory-record contract
+- Added project-state summarizer grounded in:
+  - git branch, commit, cleanliness, changed files
+  - latest eval report
+  - durable memory audit
+  - dashboard health
+  - pending approvals
+- Added CLI scripts:
+  - `npm run memory:write`
+  - `npm run memory:search`
+  - `npm run memory:audit`
+  - `npm run memory:state`
+  - `npm run memory:smoke`
+- Added read-only MCP resources:
+  - `sage://intelligence/memory`
+  - `sage://intelligence/project-state`
+- Added deterministic eval `eval_memory_project_state`.
+- Added tests for memory writes, invalid memory records, search filters,
+  audit summaries, project-state summaries, migration idempotency, MCP
+  resource exposure, and CLI smoke execution.
+
+Deferred:
+
+- Graphiti integration remains optional adapter work for a later pass.
+- Memory supersession tools are not exposed as mutating MCP tools yet.
+
 Verification:
 
 ```bash
 npm run memory:validate
 npm run memory:smoke
+npm run memory:state
+npm run eval:run
 npm test
 npm run security:scan
 ```

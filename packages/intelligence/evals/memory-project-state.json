@@ -1,0 +1,19 @@
+{
+  "id": "eval_memory_project_state",
+  "name": "Memory and project state",
+  "scope": "memory",
+  "version": 1,
+  "description": "Proves durable memory and project-state summary can run from a clean temp workspace.",
+  "graders": [
+    {
+      "id": "memory_smoke",
+      "type": "command",
+      "command": "npm run memory:smoke"
+    }
+  ],
+  "successCriteria": [
+    "Memory smoke exits with status 0.",
+    "The smoke writes, searches, audits, and reads project state from durable memory."
+  ],
+  "requiresApproval": false
+}

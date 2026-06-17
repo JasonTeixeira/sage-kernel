@@ -51,6 +51,7 @@ test("MCP contracts and docs are generated from the manifest", () => {
     "sage://intelligence/evals",
     "sage://intelligence/experiments",
     "sage://intelligence/memory",
+    "sage://intelligence/project-state",
     "sage://intelligence/runbooks",
     "sage://intelligence/semantic-adapters",
     "sage://jobs",

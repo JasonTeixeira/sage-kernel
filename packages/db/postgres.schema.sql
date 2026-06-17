@@ -78,6 +78,20 @@ CREATE TABLE IF NOT EXISTS audit_events (
   created_at TIMESTAMPTZ NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS memory_records (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  confidence DOUBLE PRECISION NOT NULL,
+  observed_at TIMESTAMPTZ NOT NULL,
+  supersedes_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+  content_json JSONB NOT NULL,
+  provenance_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS job_queue_ready_idx
   ON job_queue (status, priority, next_run_at, created_at);
 
@@ -86,3 +100,9 @@ CREATE INDEX IF NOT EXISTS job_runs_job_idx
 
 CREATE INDEX IF NOT EXISTS audit_events_type_idx
   ON audit_events (type, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS memory_records_project_idx
+  ON memory_records (project_id, observed_at DESC);
+
+CREATE INDEX IF NOT EXISTS memory_records_kind_idx
+  ON memory_records (kind, observed_at DESC);
