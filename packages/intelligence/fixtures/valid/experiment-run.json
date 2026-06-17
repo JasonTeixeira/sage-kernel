@@ -1,0 +1,23 @@
+{
+  "id": "exp_release_gate_probe",
+  "hypothesis": "Adding intelligence contracts should not weaken release gates.",
+  "status": "passed",
+  "startedAt": "2026-06-17T13:13:38.000Z",
+  "endedAt": "2026-06-17T13:14:13.000Z",
+  "limits": {
+    "maxIterations": 1,
+    "maxRuntimeSeconds": 300,
+    "allowMutation": false
+  },
+  "evaluation": {
+    "command": "npm run release:check",
+    "metric": "exit_status",
+    "baseline": 0,
+    "result": 0
+  },
+  "decision": {
+    "outcome": "accept",
+    "reason": "The release gate passed without regression."
+  }
+}
+

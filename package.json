@@ -52,6 +52,7 @@
     "catalog:validate": "node scripts/validate-catalog.mjs",
     "warehouse:summary": "node packages/ai-warehouse/scripts/warehouse-summary.mjs",
     "qa:summary": "node packages/qa/scripts/qa-summary.mjs",
+    "intelligence:validate": "node packages/intelligence/scripts/validate-intelligence.mjs",
     "infra:validate": "node packages/infra/scripts/validate-infra.mjs",
     "infra:plan": "node packages/infra/scripts/infra-plan.mjs",
     "mcp:tools": "node apps/mcp-server/scripts/list-tools.mjs",

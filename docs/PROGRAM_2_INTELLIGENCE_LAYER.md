@@ -224,7 +224,7 @@ Add dependencies only through one of these paths:
 
 ### Phase 2.1: Intelligence Architecture And Contracts
 
-Status: planned.
+Status: complete.
 
 Tasks:
 
@@ -237,6 +237,30 @@ Tasks:
 - Add validator scripts for those contracts.
 - Add MCP resources for planned contracts before adding mutating tools.
 - Add docs explaining optional adapter policy.
+
+Implemented:
+
+- Added `packages/intelligence`.
+- Added JSON Schema contract files for:
+  - memory records
+  - eval definitions
+  - experiment runs
+  - runbooks
+  - semantic-code adapters
+- Added valid fixtures for every contract.
+- Added `packages/intelligence/security-boundaries.json`.
+- Added `npm run intelligence:validate`.
+- Wired `intelligence:validate` into `npm run release:check`.
+- Added read-only MCP resources:
+  - `sage://intelligence/contracts`
+  - `sage://intelligence/memory`
+  - `sage://intelligence/evals`
+  - `sage://intelligence/experiments`
+  - `sage://intelligence/runbooks`
+  - `sage://intelligence/semantic-adapters`
+- Regenerated MCP resource contracts and docs.
+- Added tests for valid fixtures, invalid fixture shapes, schema regressions,
+  security boundaries, and MCP resource reads through the MCP transport.
 
 Verification:
 
@@ -252,6 +276,8 @@ Exit criteria:
 
 - New intelligence artifacts validate locally and in CI.
 - No optional framework is required for clean install.
+- MCP clients can inspect intelligence contracts without invoking mutating
+  tools.
 
 ### Phase 2.2: Eval Harness And Feedback Loops
 
@@ -403,4 +429,3 @@ kernel and a genuinely world-class engineering system:
 - Better long-term context through temporal memory and provenance.
 - Better code understanding through semantic retrieval.
 - Better improvement loops through measured experiments and rollback.
-

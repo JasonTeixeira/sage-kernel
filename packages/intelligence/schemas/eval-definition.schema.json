@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sage-kernel.dev/schemas/intelligence/eval-definition.schema.json",
+  "title": "Sage Kernel Eval Definition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "scope", "version", "graders", "successCriteria"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^eval_[a-z0-9][a-z0-9_-]*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "scope": { "type": "string", "enum": ["mcp", "cli", "dashboard", "memory", "release", "template", "security"] },
+    "version": { "type": "integer", "minimum": 1 },
+    "description": { "type": "string" },
+    "graders": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "type": { "type": "string", "enum": ["command", "json_schema", "file_exists", "coverage", "mcp_contract"] },
+          "command": { "type": "string" },
+          "schema": { "type": "string" },
+          "path": { "type": "string" },
+          "threshold": { "type": "number" }
+        }
+      }
+    },
+    "successCriteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requiresApproval": { "type": "boolean", "default": false }
+  }
+}
+

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sage-kernel.dev/schemas/intelligence/runbook.schema.json",
+  "title": "Sage Kernel Runbook",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "risk", "steps", "verification"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^runbook_[a-z0-9][a-z0-9_-]*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "risk": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+    "requiresApproval": { "type": "boolean", "default": false },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "action"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "action": { "type": "string", "minLength": 1 },
+          "command": { "type": "string" },
+          "expected": { "type": "string" }
+        }
+      }
+    },
+    "verification": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
+

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sage-kernel.dev/schemas/intelligence/experiment-run.schema.json",
+  "title": "Sage Kernel Experiment Run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "hypothesis", "status", "startedAt", "limits", "evaluation", "decision"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^exp_[a-z0-9][a-z0-9_-]*$" },
+    "hypothesis": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["planned", "running", "passed", "failed", "accepted", "rejected", "needs_review"] },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt": { "type": "string", "format": "date-time" },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxIterations", "maxRuntimeSeconds", "allowMutation"],
+      "properties": {
+        "maxIterations": { "type": "integer", "minimum": 1 },
+        "maxRuntimeSeconds": { "type": "integer", "minimum": 1 },
+        "allowMutation": { "type": "boolean" }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "metric"],
+      "properties": {
+        "command": { "type": "string", "minLength": 1 },
+        "metric": { "type": "string", "minLength": 1 },
+        "baseline": { "type": "number" },
+        "result": { "type": "number" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome"],
+      "properties": {
+        "outcome": { "type": "string", "enum": ["pending", "accept", "reject", "review"] },
+        "reason": { "type": "string" },
+        "rollbackRef": { "type": "string" }
+      }
+    }
+  }
+}
+

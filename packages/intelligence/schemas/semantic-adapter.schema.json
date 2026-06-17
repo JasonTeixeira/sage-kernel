@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sage-kernel.dev/schemas/intelligence/semantic-adapter.schema.json",
+  "title": "Sage Kernel Semantic Code Adapter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "mode", "status", "capabilities"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^semantic_[a-z0-9][a-z0-9_-]*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "mode": { "type": "string", "enum": ["local", "mcp", "external"] },
+    "status": { "type": "string", "enum": ["available", "missing", "degraded", "disabled"] },
+    "server": { "type": "string" },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["index_project", "search_symbol", "find_references", "summarize_module", "plan_refactor", "apply_refactor"]
+      }
+    },
+    "mutationPolicy": {
+      "type": "string",
+      "enum": ["read_only", "approval_required", "disabled"],
+      "default": "read_only"
+    }
+  }
+}
+

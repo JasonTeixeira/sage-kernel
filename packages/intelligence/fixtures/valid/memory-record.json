@@ -1,0 +1,22 @@
+{
+  "id": "mem_release_ci_passed",
+  "projectId": "sage-kernel",
+  "kind": "test_result",
+  "source": "ci",
+  "actor": "github-actions",
+  "confidence": 1,
+  "observedAt": "2026-06-17T13:13:38.000Z",
+  "supersedes": [],
+  "content": {
+    "summary": "Main CI passed after intelligence roadmap commit.",
+    "details": {
+      "runId": "27691570785"
+    },
+    "tags": ["ci", "release"]
+  },
+  "provenance": {
+    "evidenceType": "ci_run",
+    "evidenceRef": "27691570785"
+  }
+}
+

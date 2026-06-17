@@ -1,0 +1,13 @@
+{
+  "id": "semantic_local_baseline",
+  "name": "Local structured search baseline",
+  "mode": "local",
+  "status": "available",
+  "capabilities": [
+    "index_project",
+    "search_symbol",
+    "summarize_module"
+  ],
+  "mutationPolicy": "read_only"
+}
+

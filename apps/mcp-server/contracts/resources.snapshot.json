@@ -69,6 +69,54 @@
       "description": "Full DB-backed dashboard snapshot.",
       "mimeType": "application/json",
       "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.contracts",
+      "uri": "sage://intelligence/contracts",
+      "title": "Sage Intelligence Contracts",
+      "description": "Read-only intelligence schemas and security boundaries for memory, evals, experiments, runbooks, and semantic code.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.memory",
+      "uri": "sage://intelligence/memory",
+      "title": "Sage Intelligence Memory Fixture",
+      "description": "Validated memory-record fixture showing provenance, confidence, and supersession structure.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.evals",
+      "uri": "sage://intelligence/evals",
+      "title": "Sage Intelligence Eval Fixture",
+      "description": "Validated eval-definition fixture showing deterministic grader structure.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.experiments",
+      "uri": "sage://intelligence/experiments",
+      "title": "Sage Intelligence Experiment Fixture",
+      "description": "Validated experiment-run fixture showing bounded feedback-loop structure.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.runbooks",
+      "uri": "sage://intelligence/runbooks",
+      "title": "Sage Intelligence Runbook Fixture",
+      "description": "Validated runbook fixture showing steps and verification commands.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.semantic-adapters",
+      "uri": "sage://intelligence/semantic-adapters",
+      "title": "Sage Intelligence Semantic Adapter Fixture",
+      "description": "Validated semantic-code adapter fixture showing read-only capability metadata.",
+      "mimeType": "application/json",
+      "access": "read-only"
     }
   ]
 }

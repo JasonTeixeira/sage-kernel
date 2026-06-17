@@ -1,0 +1,47 @@
+{
+  "boundaries": [
+    {
+      "action": "memory.write_episode",
+      "risk": "mutating",
+      "permission": "memory:write",
+      "approvalRequired": false,
+      "notes": "Writes provenance-bearing memory only; destructive deletion is not allowed."
+    },
+    {
+      "action": "memory.supersede_fact",
+      "risk": "mutating",
+      "permission": "memory:write",
+      "approvalRequired": true,
+      "notes": "Supersedes existing memory and must preserve the previous record."
+    },
+    {
+      "action": "evals.run",
+      "risk": "command",
+      "permission": "evals:run",
+      "approvalRequired": false,
+      "notes": "Runs bounded deterministic graders."
+    },
+    {
+      "action": "experiments.run_once",
+      "risk": "command",
+      "permission": "experiments:run",
+      "approvalRequired": true,
+      "notes": "Experiment execution is bounded and must record rollback evidence."
+    },
+    {
+      "action": "semantic_code.apply_refactor",
+      "risk": "local-write",
+      "permission": "semantic:write",
+      "approvalRequired": true,
+      "notes": "Semantic edits require approval, diff preview, and rollback notes."
+    },
+    {
+      "action": "runbooks.execute_step",
+      "risk": "command",
+      "permission": "runbooks:execute",
+      "approvalRequired": true,
+      "notes": "Runbook steps may execute local commands and must be approved unless read-only."
+    }
+  ]
+}
+

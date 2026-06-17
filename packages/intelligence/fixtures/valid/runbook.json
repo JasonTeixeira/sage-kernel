@@ -1,0 +1,26 @@
+{
+  "id": "runbook_release_verification",
+  "title": "Release verification",
+  "risk": "medium",
+  "requiresApproval": false,
+  "steps": [
+    {
+      "id": "local_release_check",
+      "title": "Run local release gate",
+      "action": "execute_command",
+      "command": "npm run release:check",
+      "expected": "The command exits with status 0."
+    },
+    {
+      "id": "remote_ci_check",
+      "title": "Verify remote CI",
+      "action": "inspect_ci",
+      "expected": "Quality, fresh-install, and Postgres jobs are green."
+    }
+  ],
+  "verification": [
+    "npm run release:check",
+    "gh run watch <run-id> --repo JasonTeixeira/sage-kernel"
+  ]
+}
+

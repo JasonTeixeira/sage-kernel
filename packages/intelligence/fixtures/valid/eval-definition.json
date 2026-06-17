@@ -1,0 +1,20 @@
+{
+  "id": "eval_release_readiness",
+  "name": "Release readiness gate",
+  "scope": "release",
+  "version": 1,
+  "description": "Verifies the release check command still passes.",
+  "graders": [
+    {
+      "id": "release_check",
+      "type": "command",
+      "command": "npm run release:check"
+    }
+  ],
+  "successCriteria": [
+    "Release check exits with status 0.",
+    "Release package dry run is included in the gate."
+  ],
+  "requiresApproval": false
+}
+

@@ -26,6 +26,12 @@ test("MCP server exposes read-only kernel resources", async () => {
       "sage://catalog",
       "sage://dashboard/snapshot",
       "sage://docs/mcp-server",
+      "sage://intelligence/contracts",
+      "sage://intelligence/evals",
+      "sage://intelligence/experiments",
+      "sage://intelligence/memory",
+      "sage://intelligence/runbooks",
+      "sage://intelligence/semantic-adapters",
       "sage://jobs",
       "sage://metrics",
       "sage://runs",
@@ -51,6 +57,7 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   for (const dir of ["catalog", "packages/qa", "apps/worker", "docs", "apps/mcp-server", "packages/db"]) {
     fs.mkdirSync(path.join(sandbox, dir), { recursive: true });
   }
+  copyDir(path.join(root, "packages/intelligence"), path.join(sandbox, "packages/intelligence"));
   fs.copyFileSync(path.join(root, "packages/db/schema.sql"), path.join(sandbox, "packages/db/schema.sql"));
   fs.writeFileSync(path.join(sandbox, "package.json"), JSON.stringify({ version: "fixture" }));
   fs.writeFileSync(path.join(sandbox, "catalog/phases.json"), JSON.stringify({ phases: null }));
@@ -78,6 +85,11 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   assert.match(docs, /Fixture MCP Docs/);
   const metrics = kernelResources.find((resource) => resource.uri === "sage://metrics").read(sandbox);
   assert.match(metrics, /sage_kernel_tools_total/);
+  const contracts = kernelResources.find((resource) => resource.uri === "sage://intelligence/contracts").read(sandbox);
+  assert.equal(Boolean(contracts.schemas["memory-record.schema.json"]), true);
+  assert.equal(contracts.securityBoundaries.some((boundary) => boundary.action === "semantic_code.apply_refactor"), true);
+  const memory = kernelResources.find((resource) => resource.uri === "sage://intelligence/memory").read(sandbox);
+  assert.equal(memory.id, "mem_release_ci_passed");
 
   const registered = [];
   registerKernelResources({
@@ -98,3 +110,16 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   assert.match(__resourceTestInternals.resourceText({ ok: true }, "application/json"), /"ok": true/);
   assert.equal(__resourceTestInternals.resourceText(null, "text/plain"), "");
 });
+
+function copyDir(source, destination) {
+  fs.mkdirSync(destination, { recursive: true });
+  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+    const from = path.join(source, entry.name);
+    const to = path.join(destination, entry.name);
+    if (entry.isDirectory()) {
+      copyDir(from, to);
+    } else {
+      fs.copyFileSync(from, to);
+    }
+  }
+}

@@ -10,6 +10,7 @@ import { createDogfoodReport, inspectRepo, sourceRootForCatalog } from "../scrip
 import { createDashboardStressReport, parseDashboardStressArgs } from "../scripts/stress-dashboard.mjs";
 import { createQueueStressReport, parseQueueStressArgs } from "../scripts/stress-queue.mjs";
 import { createWarehouseSummary } from "../packages/ai-warehouse/scripts/warehouse-summary.mjs";
+import { validateIntelligence } from "../packages/intelligence/scripts/validate-intelligence.mjs";
 import { validateMarkdownLinks, validatePublicSurface } from "../scripts/validate-public-surface.mjs";
 import { validateReleaseProvenance } from "../scripts/validate-release-provenance.mjs";
 
@@ -27,6 +28,7 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.files.includes("assets"), true);
   assert.equal(pkg.scripts["stress:queue"], "node scripts/stress-queue.mjs");
   assert.equal(pkg.scripts["stress:dashboard"], "node scripts/stress-dashboard.mjs");
+  assert.equal(pkg.scripts["intelligence:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-lines=98/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-branches=90/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-functions=97/);
@@ -53,6 +55,12 @@ test("package metadata is ready for public OSS distribution", () => {
     "assets/sage-kernel-architecture.svg",
     "assets/sage-kernel-workflow.svg",
     "docker-compose.postgres.yml",
+    "packages/intelligence/scripts/validate-intelligence.mjs",
+    "packages/intelligence/schemas/memory-record.schema.json",
+    "packages/intelligence/schemas/eval-definition.schema.json",
+    "packages/intelligence/schemas/experiment-run.schema.json",
+    "packages/intelligence/schemas/runbook.schema.json",
+    "packages/intelligence/schemas/semantic-adapter.schema.json",
     "scripts/release-check.mjs",
     "scripts/validate-release-provenance.mjs",
     "scripts/verify-fresh-install.mjs",
@@ -83,6 +91,132 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.match(securityModel, /Approval Rules/);
   assert.match(securityModel, /Filesystem Rules/);
   assert.match(securityModel, /Secret Handling/);
+});
+
+test("intelligence contracts validate fixtures and reject unsafe shapes", () => {
+  const passing = validateIntelligence({ root });
+  assert.equal(passing.status, "passed");
+  assert.equal(passing.checked.schemas, 5);
+  assert.equal(passing.checked.fixtures, 5);
+  assert.deepEqual(passing.failures, []);
+
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-intelligence-"));
+  copyDir(path.join(root, "packages/intelligence"), path.join(workspace, "packages/intelligence"));
+  const fixtureDir = path.join(workspace, "packages/intelligence/fixtures/valid");
+
+  fs.writeFileSync(path.join(fixtureDir, "memory-record.json"), JSON.stringify({
+    id: "bad",
+    projectId: "",
+    kind: "rumor",
+    source: "agent",
+    actor: "",
+    confidence: 2,
+    observedAt: "not-a-date",
+    content: { summary: "" },
+    provenance: { evidenceType: "unknown", evidenceRef: "" }
+  }));
+  let failures = validateIntelligence({ root: workspace }).failures.join("\n");
+  assert.match(failures, /memory-record\.json\.id has invalid format/);
+  assert.match(failures, /memory-record\.json\.confidence must be a number between 0 and 1/);
+  assert.match(failures, /memory-record\.json\.observedAt must be a valid date-time/);
+
+  fs.writeFileSync(path.join(fixtureDir, "eval-definition.json"), JSON.stringify({
+    id: "eval_bad",
+    name: "Bad eval",
+    scope: "release",
+    version: 1,
+    graders: [{ id: "coverage", type: "coverage", threshold: 120 }],
+    successCriteria: []
+  }));
+  failures = validateIntelligence({ root: workspace }).failures.join("\n");
+  assert.match(failures, /eval-definition\.json\.graders\[0]\.threshold must be a number between 0 and 100/);
+  assert.match(failures, /eval-definition\.json\.successCriteria must contain at least 1 item/);
+
+  fs.writeFileSync(path.join(fixtureDir, "semantic-adapter.json"), JSON.stringify({
+    id: "semantic_bad",
+    name: "Bad adapter",
+    mode: "mcp",
+    status: "available",
+    capabilities: ["apply_refactor"],
+    mutationPolicy: "read_only"
+  }));
+  failures = validateIntelligence({ root: workspace }).failures.join("\n");
+  assert.match(failures, /semantic-adapter\.json\.mutationPolicy must be approval_required when apply_refactor is enabled/);
+
+  fs.writeFileSync(path.join(workspace, "packages/intelligence/schemas/runbook.schema.json"), JSON.stringify({
+    "$schema": "https://example.com/wrong",
+    "$id": "wrong",
+    "type": "array",
+    "additionalProperties": true,
+    "required": []
+  }));
+  failures = validateIntelligence({ root: workspace }).failures.join("\n");
+  assert.match(failures, /runbook\.schema\.json must use JSON Schema draft 2020-12/);
+  assert.match(failures, /runbook\.schema\.json must use the canonical intelligence schema id/);
+  assert.match(failures, /runbook\.schema\.json root type must be object/);
+  assert.match(failures, /runbook\.schema\.json must disallow unknown root properties/);
+  assert.match(failures, /runbook\.schema\.json must define required fields/);
+  assert.match(failures, /runbook\.schema\.json must define properties/);
+
+  fs.writeFileSync(path.join(fixtureDir, "experiment-run.json"), JSON.stringify({
+    id: "bad",
+    hypothesis: "",
+    status: "unknown",
+    startedAt: "later",
+    endedAt: "also-later",
+    limits: {
+      maxIterations: 0,
+      maxRuntimeSeconds: 0,
+      allowMutation: "yes"
+    },
+    evaluation: {
+      command: "",
+      metric: ""
+    },
+    decision: {
+      outcome: "maybe"
+    }
+  }));
+  failures = validateIntelligence({ root: workspace }).failures.join("\n");
+  assert.match(failures, /experiment-run\.json\.id has invalid format/);
+  assert.match(failures, /experiment-run\.json\.limits\.allowMutation must be boolean/);
+  assert.match(failures, /experiment-run\.json\.decision\.outcome must be one of/);
+
+  fs.writeFileSync(path.join(fixtureDir, "runbook.json"), JSON.stringify({
+    id: "runbook_bad",
+    title: "Bad",
+    risk: "critical",
+    steps: "not-array",
+    verification: "not-array"
+  }));
+  failures = validateIntelligence({ root: workspace }).failures.join("\n");
+  assert.match(failures, /runbook\.json\.steps must be a non-empty array/);
+  assert.match(failures, /runbook\.json\.verification must be an array of strings/);
+
+  fs.writeFileSync(path.join(workspace, "packages/intelligence/security-boundaries.json"), JSON.stringify({
+    boundaries: [
+      {
+        action: "duplicate.action",
+        risk: "local-write",
+        permission: "bad-permission",
+        approvalRequired: false
+      },
+      {
+        action: "duplicate.action",
+        risk: "mutating",
+        permission: "memory:write",
+        approvalRequired: "yes"
+      }
+    ]
+  }));
+  failures = validateIntelligence({ root: workspace }).failures.join("\n");
+  assert.match(failures, /security-boundaries\.json\.boundaries\[0]\.permission has invalid format/);
+  assert.match(failures, /security-boundaries\.json\.boundaries\[0]\.approvalRequired must be true for local-write risk/);
+  assert.match(failures, /security-boundaries\.json\.boundaries\[1]\.action duplicates duplicate\.action/);
+  assert.match(failures, /security-boundaries\.json\.boundaries\[1]\.approvalRequired must be boolean/);
+
+  fs.writeFileSync(path.join(fixtureDir, "runbook.json"), "{");
+  assert.match(validateIntelligence({ root: workspace }).failures.join("\n"), /Invalid fixture runbook\.json/);
 });
 
 test("release provenance validator enforces npm publishing safety requirements", () => {
@@ -130,6 +264,19 @@ test("release provenance validator enforces npm publishing safety requirements",
   fs.writeFileSync(path.join(workspace, "package.json"), "{");
   assert.match(validateReleaseProvenance({ root: workspace }).failures.join("\n"), /Invalid package.json/);
 });
+
+function copyDir(source, destination) {
+  fs.mkdirSync(destination, { recursive: true });
+  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+    const from = path.join(source, entry.name);
+    const to = path.join(destination, entry.name);
+    if (entry.isDirectory()) {
+      copyDir(from, to);
+    } else {
+      fs.copyFileSync(from, to);
+    }
+  }
+}
 
 test("public surface validator catches package and markdown regressions", () => {
   const passing = validatePublicSurface({ root });

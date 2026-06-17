@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 const root = process.cwd();
 const checks = [
   ["npm", ["run", "catalog:validate"]],
+  ["npm", ["run", "intelligence:validate"]],
   ["npm", ["run", "infra:validate"]],
   ["npm", ["run", "jobs:validate"]],
   ["npm", ["run", "mcp:validate"]],

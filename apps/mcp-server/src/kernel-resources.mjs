@@ -70,6 +70,54 @@ export const kernelResources = [
     description: "Full DB-backed dashboard snapshot.",
     mimeType: "application/json",
     read: (root) => dashboardSnapshot({ root })
+  },
+  {
+    name: "sage.intelligence.contracts",
+    uri: "sage://intelligence/contracts",
+    title: "Sage Intelligence Contracts",
+    description: "Read-only intelligence schemas and security boundaries for memory, evals, experiments, runbooks, and semantic code.",
+    mimeType: "application/json",
+    read: (root) => readIntelligenceContracts(root)
+  },
+  {
+    name: "sage.intelligence.memory",
+    uri: "sage://intelligence/memory",
+    title: "Sage Intelligence Memory Fixture",
+    description: "Validated memory-record fixture showing provenance, confidence, and supersession structure.",
+    mimeType: "application/json",
+    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/memory-record.json", {})
+  },
+  {
+    name: "sage.intelligence.evals",
+    uri: "sage://intelligence/evals",
+    title: "Sage Intelligence Eval Fixture",
+    description: "Validated eval-definition fixture showing deterministic grader structure.",
+    mimeType: "application/json",
+    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/eval-definition.json", {})
+  },
+  {
+    name: "sage.intelligence.experiments",
+    uri: "sage://intelligence/experiments",
+    title: "Sage Intelligence Experiment Fixture",
+    description: "Validated experiment-run fixture showing bounded feedback-loop structure.",
+    mimeType: "application/json",
+    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/experiment-run.json", {})
+  },
+  {
+    name: "sage.intelligence.runbooks",
+    uri: "sage://intelligence/runbooks",
+    title: "Sage Intelligence Runbook Fixture",
+    description: "Validated runbook fixture showing steps and verification commands.",
+    mimeType: "application/json",
+    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/runbook.json", {})
+  },
+  {
+    name: "sage.intelligence.semantic-adapters",
+    uri: "sage://intelligence/semantic-adapters",
+    title: "Sage Intelligence Semantic Adapter Fixture",
+    description: "Validated semantic-code adapter fixture showing read-only capability metadata.",
+    mimeType: "application/json",
+    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/semantic-adapter.json", {})
   }
 ];
 
@@ -107,6 +155,20 @@ function readCatalog(root) {
   };
 }
 
+function readIntelligenceContracts(root) {
+  const schemasDir = path.join(root, "packages/intelligence/schemas");
+  const schemas = {};
+  if (fs.existsSync(schemasDir)) {
+    for (const file of fs.readdirSync(schemasDir).filter((item) => item.endsWith(".schema.json")).sort()) {
+      schemas[file] = JSON.parse(fs.readFileSync(path.join(schemasDir, file), "utf8"));
+    }
+  }
+  return {
+    schemas,
+    securityBoundaries: readJson(root, "packages/intelligence/security-boundaries.json", { boundaries: [] }).boundaries || []
+  };
+}
+
 function readJson(root, relativePath, fallback = null) {
   const fullPath = path.join(root, relativePath);
   if (!fs.existsSync(fullPath)) return fallback;
@@ -121,6 +183,7 @@ function resourceText(value, mimeType) {
 
 export const __resourceTestInternals = {
   readCatalog,
+  readIntelligenceContracts,
   readJson,
   resourceText
 };
