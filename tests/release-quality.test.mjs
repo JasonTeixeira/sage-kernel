@@ -11,6 +11,7 @@ import { createDashboardStressReport, parseDashboardStressArgs } from "../script
 import { createQueueStressReport, parseQueueStressArgs } from "../scripts/stress-queue.mjs";
 import { createWarehouseSummary } from "../packages/ai-warehouse/scripts/warehouse-summary.mjs";
 import { validateMarkdownLinks, validatePublicSurface } from "../scripts/validate-public-surface.mjs";
+import { validateReleaseProvenance } from "../scripts/validate-release-provenance.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -20,6 +21,8 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.private, undefined);
   assert.equal(pkg.license, "MIT");
   assert.equal(pkg.repository.type, "git");
+  assert.equal(pkg.publishConfig.access, "public");
+  assert.equal(pkg.publishConfig.provenance, true);
   assert.equal(Array.isArray(pkg.files), true);
   assert.equal(pkg.files.includes("assets"), true);
   assert.equal(pkg.scripts["stress:queue"], "node scripts/stress-queue.mjs");
@@ -28,6 +31,7 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-branches=90/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-functions=97/);
   assert.equal(pkg.scripts["release:check"], "node scripts/release-check.mjs");
+  assert.equal(pkg.scripts["release:provenance"], "node scripts/validate-release-provenance.mjs");
   assert.equal(pkg.scripts["public:validate"], "node scripts/validate-public-surface.mjs");
   assert.equal(pkg.scripts["verify:fresh-install"], "node scripts/verify-fresh-install.mjs");
   assert.equal(pkg.scripts["dashboard:e2e"], "node scripts/dashboard-e2e.mjs");
@@ -40,6 +44,7 @@ test("package metadata is ready for public OSS distribution", () => {
     "CODE_OF_CONDUCT.md",
     "CHANGELOG.md",
     ".github/workflows/ci.yml",
+    ".github/workflows/release.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/ISSUE_TEMPLATE/bug_report.md",
     ".github/ISSUE_TEMPLATE/feature_request.md",
@@ -49,6 +54,7 @@ test("package metadata is ready for public OSS distribution", () => {
     "assets/sage-kernel-workflow.svg",
     "docker-compose.postgres.yml",
     "scripts/release-check.mjs",
+    "scripts/validate-release-provenance.mjs",
     "scripts/verify-fresh-install.mjs",
     "scripts/dashboard-e2e.mjs",
     "tests/postgres-integration.test.mjs"
@@ -64,10 +70,61 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.match(ci, /SAGE_RUN_POSTGRES_TESTS/);
   assert.match(ci, /npm run verify:fresh-install/);
 
+  const release = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
+  assert.match(release, /id-token:\s*write/);
+  assert.match(release, /package-manager-cache:\s*false/);
+  assert.match(release, /npm run verify:fresh-install/);
+  assert.match(release, /npm run release:check/);
+  assert.match(release, /npm publish --provenance --access public/);
+
   const securityModel = fs.readFileSync(path.join(root, "docs/SECURITY_MODEL.md"), "utf8");
   assert.match(securityModel, /Approval Rules/);
   assert.match(securityModel, /Filesystem Rules/);
   assert.match(securityModel, /Secret Handling/);
+});
+
+test("release provenance validator enforces npm publishing safety requirements", () => {
+  const passing = validateReleaseProvenance({ root });
+  assert.equal(passing.status, "passed");
+  assert.equal(passing.failures.length, 0);
+
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-release-provenance-"));
+  fs.mkdirSync(path.join(workspace, ".github/workflows"), { recursive: true });
+  fs.writeFileSync(path.join(workspace, "package.json"), JSON.stringify({
+    name: "fixture",
+    version: "1.0.0",
+    license: "MIT",
+    repository: { url: "git+https://github.com/example/wrong.git" },
+    publishConfig: { access: "restricted", provenance: false },
+    scripts: {}
+  }));
+  fs.writeFileSync(path.join(workspace, ".github/workflows/release.yml"), [
+    "name: Release",
+    "on:",
+    "  release:",
+    "    types: [published]",
+    "jobs:",
+    "  npm:",
+    "    runs-on: ubuntu-latest",
+    "    permissions:",
+    "      contents: read",
+    "    steps:",
+    "      - run: npm publish"
+  ].join("\n"));
+
+  const failures = validateReleaseProvenance({ root: workspace }).failures.join("\n");
+  assert.match(failures, /repository.url must match/);
+  assert.match(failures, /publishConfig.access must be public/);
+  assert.match(failures, /publishConfig.provenance must be true/);
+  assert.match(failures, /Missing verify:fresh-install script/);
+  assert.match(failures, /id-token: write/);
+  assert.match(failures, /publish with provenance and public access/);
+
+  fs.rmSync(path.join(workspace, ".github/workflows/release.yml"));
+  assert.match(validateReleaseProvenance({ root: workspace }).failures.join("\n"), /Missing release workflow/);
+
+  fs.writeFileSync(path.join(workspace, "package.json"), "{");
+  assert.match(validateReleaseProvenance({ root: workspace }).failures.join("\n"), /Invalid package.json/);
 });
 
 test("public surface validator catches package and markdown regressions", () => {
@@ -97,6 +154,7 @@ test("public surface validator catches package and markdown regressions", () => 
   fs.writeFileSync(path.join(workspace, "CHANGELOG.md"), "# Changelog\n");
   fs.mkdirSync(path.join(workspace, ".github/workflows"), { recursive: true });
   fs.writeFileSync(path.join(workspace, ".github/workflows/ci.yml"), "name: CI\n");
+  fs.writeFileSync(path.join(workspace, ".github/workflows/release.yml"), "name: Release\n");
   fs.writeFileSync(path.join(workspace, ".github/PULL_REQUEST_TEMPLATE.md"), "- [ ] test\n");
   fs.writeFileSync(path.join(workspace, ".github/ISSUE_TEMPLATE/bug_report.md"), "# Bug\n");
   fs.writeFileSync(path.join(workspace, ".github/ISSUE_TEMPLATE/feature_request.md"), "# Feature\n");

@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  npm:
+    name: Publish npm Package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Install system SQLite
+        run: sudo apt-get update && sudo apt-get install -y sqlite3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify release provenance configuration
+        run: npm run release:provenance
+
+      - name: Verify fresh install
+        run: npm run verify:fresh-install
+
+      - name: Run release checks
+        run: npm run release:check
+
+      - name: Publish with provenance
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

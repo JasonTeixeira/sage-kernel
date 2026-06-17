@@ -21,6 +21,7 @@ const requiredFiles = [
   "assets/sage-kernel-architecture.svg",
   "assets/sage-kernel-workflow.svg",
   ".github/workflows/ci.yml",
+  ".github/workflows/release.yml",
   ".github/PULL_REQUEST_TEMPLATE.md",
   ".github/ISSUE_TEMPLATE/bug_report.md",
   ".github/ISSUE_TEMPLATE/feature_request.md"

@@ -7,6 +7,10 @@
     "type": "git",
     "url": "git+https://github.com/JasonTeixeira/sage-kernel.git"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "bugs": {
     "url": "https://github.com/JasonTeixeira/sage-kernel/issues"
   },
@@ -94,6 +98,7 @@
     "dogfood:prod": "node scripts/dogfood-production-audit.mjs",
     "release:pack": "npm pack --dry-run",
     "release:check": "node scripts/release-check.mjs",
+    "release:provenance": "node scripts/validate-release-provenance.mjs",
     "public:validate": "node scripts/validate-public-surface.mjs",
     "verify:fresh-install": "node scripts/verify-fresh-install.mjs",
     "sage:smoke": "node bin/sage.mjs status",

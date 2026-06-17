@@ -148,8 +148,42 @@ Residual risks:
 
 ## Phase 1.4: Release Packaging And Provenance
 
-Status: pending.
+Status: complete.
 
 Goal:
 
 - Prepare npm release automation, provenance, signed tags, version policy, and release candidate checklist.
+
+Implemented:
+
+- Added package `publishConfig`:
+  - `access: public`
+  - `provenance: true`
+- Added `npm run release:provenance`.
+- Added `scripts/validate-release-provenance.mjs`.
+- Added `.github/workflows/release.yml`.
+- Release workflow runs only on published GitHub Releases.
+- Release workflow requests `id-token: write` for npm provenance.
+- Release workflow disables package-manager cache for release builds.
+- Release workflow runs fresh-install verification and release checks before publish.
+- Release workflow publishes with `npm publish --provenance --access public`.
+- Added release-quality tests for the workflow and validator.
+- Updated release process documentation with provenance and release steps.
+
+Verification:
+
+```bash
+npm run release:provenance
+npm run public:validate
+node --test tests/release-quality.test.mjs
+npm run release:check
+npm run test:coverage
+git diff --check
+```
+
+Residual setup required before first real npm publish:
+
+- Configure npm trusted publishing for `JasonTeixeira/sage-kernel`.
+- Confirm npm package name availability or choose a scoped package name before publishing.
+- Create a signed `vX.Y.Z` tag and a published GitHub Release.
+- Watch the `Release` workflow publish the package and verify npm provenance appears.
