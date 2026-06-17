@@ -6,6 +6,7 @@ import { createMemoryStore } from "../../../packages/intelligence/memory-store.m
 import { createProjectState } from "../../../packages/intelligence/project-state.mjs";
 import { listAdapters } from "../../../packages/intelligence/adapters.mjs";
 import { createOperatingSnapshot, listRunbooks } from "../../../packages/intelligence/runbooks.mjs";
+import { getAgentPack, listAgentProfiles, validateAgentPack } from "../../../packages/agents/agent-pack.mjs";
 
 export const kernelResources = [
   {
@@ -154,6 +155,30 @@ export const kernelResources = [
     description: "Discovered optional Serena, Graphiti, and local adapter status with safe degradation metadata.",
     mimeType: "application/json",
     read: (root) => listAdapters({ root })
+  },
+  {
+    name: "sage.agents.global",
+    uri: "sage://agents/global",
+    title: "Sage Global Agents",
+    description: "Canonical global AGENTS.md operating rules for evidence-first engineering sessions.",
+    mimeType: "text/markdown",
+    read: (root) => getAgentPack({ root }).canonical.text
+  },
+  {
+    name: "sage.agents.profiles",
+    uri: "sage://agents/profiles",
+    title: "Sage Agent Profiles",
+    description: "Role-specific web, mobile, backend, MCP, security, and release SDLC profiles.",
+    mimeType: "application/json",
+    read: (root) => listAgentProfiles({ root })
+  },
+  {
+    name: "sage.agents.checks",
+    uri: "sage://agents/checks",
+    title: "Sage Agent Pack Checks",
+    description: "Validation report for global agent rules, profile coverage, and required operating policies.",
+    mimeType: "application/json",
+    read: (root) => validateAgentPack({ root })
   }
 ];
 

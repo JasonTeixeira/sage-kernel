@@ -5,8 +5,32 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { callToolCli } from "../apps/mcp-server/scripts/call-tool.mjs";
+import {
+  createAgentsDoctorReport,
+  formatAgentsText,
+  installGlobalAgentPack,
+  listAgentProfiles,
+  validateAgentPack
+} from "../packages/agents/agent-pack.mjs";
 import { createDoctorReport, formatDoctorReport } from "../packages/core/doctor.mjs";
 import { formatMcpClientConfig } from "../packages/core/mcp-client-config.mjs";
+import {
+  createDriftMap,
+  createDriftProof,
+  detectScopeCreep,
+  formatDriftOutput,
+  runSelfAudit
+} from "../packages/drift/drift-engine.mjs";
+import {
+  auditArchitecture,
+  auditCleanCode,
+  auditSecurity,
+  auditTests,
+  createReleaseProof,
+  createReviewScore,
+  formatReviewOutput,
+  inspectRepository
+} from "../packages/review/review-engine.mjs";
 
 const currentFile = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(currentFile), "..");
@@ -72,6 +96,9 @@ Usage:
   sage postgres-schema
   sage dogfood-prod [repo...]
   sage doctor [--json] [--fast] [--client=codex|claude|cursor|all]
+  sage agents [list|validate|install|doctor] [--json] [--force] [--home=/path]
+  sage review [inspect|architecture|clean-code|tests|security|score|prove] [projectPath] [--json]
+  sage drift [map|scope|audit|prove] [--json]
   sage mcp [start|config|smoke]
   sage daily
   sage audit [projectPath]
@@ -271,6 +298,97 @@ switch (command) {
       process.exitCode = report.status === "passed" ? 0 : 1;
     }
     break;
+
+  case "agents": {
+    const [subcommand = "list"] = args.filter((arg) => !arg.startsWith("--"));
+    const json = args.includes("--json");
+    const home = valueArg(args, "--home") || process.env.SAGE_AGENT_HOME || null;
+    try {
+      if (subcommand === "list") {
+        console.log(formatAgentsText(listAgentProfiles({ root }), { json }));
+        break;
+      }
+      if (subcommand === "validate") {
+        const report = validateAgentPack({ root });
+        console.log(formatAgentsText(report, { json }));
+        process.exitCode = report.status === "passed" ? 0 : 1;
+        break;
+      }
+      if (subcommand === "install") {
+        const result = installGlobalAgentPack({ root, home, force: args.includes("--force") });
+        console.log(formatAgentsText(result, { json }));
+        break;
+      }
+      if (subcommand === "doctor") {
+        const report = createAgentsDoctorReport({ root, home });
+        console.log(formatAgentsText(report, { json }));
+        process.exitCode = report.status === "passed" ? 0 : 1;
+        break;
+      }
+      console.error(`Unknown agents subcommand: ${subcommand}`);
+      process.exitCode = 1;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "review": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "inspect", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = subcommand === "inspect"
+        ? inspectRepository({ root, projectPath })
+        : subcommand === "architecture"
+          ? auditArchitecture({ root, projectPath })
+          : subcommand === "clean-code"
+            ? auditCleanCode({ root, projectPath })
+            : subcommand === "tests"
+              ? auditTests({ root, projectPath })
+              : subcommand === "security"
+                ? auditSecurity({ root, projectPath })
+                : subcommand === "score"
+                  ? createReviewScore({ root, projectPath })
+                  : subcommand === "prove"
+                    ? createReleaseProof({ root, projectPath })
+                    : null;
+      if (!value) {
+        console.error(`Unknown review subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatReviewOutput(value, { json }));
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "drift": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "prove"] = positional;
+    const json = args.includes("--json");
+    const value = subcommand === "map"
+      ? createDriftMap({ root })
+      : subcommand === "scope"
+        ? detectScopeCreep({ root })
+        : subcommand === "audit"
+          ? runSelfAudit({ root })
+          : subcommand === "prove"
+            ? createDriftProof({ root })
+            : null;
+    if (!value) {
+      console.error(`Unknown drift subcommand: ${subcommand}`);
+      process.exitCode = 1;
+      break;
+    }
+    console.log(formatDriftOutput(value, { json }));
+    process.exitCode = value.status === "passed" ? 0 : 1;
+    break;
+  }
 
   case "db":
     runNpm("db:summary");

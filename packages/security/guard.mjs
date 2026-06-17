@@ -31,7 +31,21 @@ const SAFE_ACTIONS = new Set([
   "adapters.list",
   "runbooks.list",
   "runbooks.plan_day",
-  "runbooks.generate_adr"
+  "runbooks.generate_adr",
+  "agents.list",
+  "agents.validate",
+  "agents.doctor",
+  "review.inspect_repo",
+  "review.architecture_audit",
+  "review.clean_code_audit",
+  "review.test_audit",
+  "review.security_audit",
+  "review.quality_score",
+  "review.release_proof",
+  "drift.map",
+  "drift.scope",
+  "drift.self_audit",
+  "drift.proof"
 ]);
 
 const MUTATING_ACTIONS = new Set([
@@ -44,7 +58,8 @@ const MUTATING_ACTIONS = new Set([
   "approvals.approve",
   "workflow.audit_repo",
   "workflow.run_full_qa",
-  "workflow.create_app"
+  "workflow.create_app",
+  "agents.install_global"
 ]);
 
 export function isReadOnlyMode() {

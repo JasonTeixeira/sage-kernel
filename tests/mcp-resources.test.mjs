@@ -22,6 +22,9 @@ test("MCP server exposes read-only kernel resources", async () => {
     const listed = await client.listResources();
     const uris = listed.resources.map((resource) => resource.uri).sort();
     assert.deepEqual(uris, [
+      "sage://agents/checks",
+      "sage://agents/global",
+      "sage://agents/profiles",
       "sage://approvals",
       "sage://catalog",
       "sage://dashboard/snapshot",
@@ -62,6 +65,7 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
     fs.mkdirSync(path.join(sandbox, dir), { recursive: true });
   }
   copyDir(path.join(root, "packages/intelligence"), path.join(sandbox, "packages/intelligence"));
+  copyDir(path.join(root, "agents"), path.join(sandbox, "agents"));
   fs.copyFileSync(path.join(root, "packages/db/schema.sql"), path.join(sandbox, "packages/db/schema.sql"));
   fs.writeFileSync(path.join(sandbox, "package.json"), JSON.stringify({ name: "fixture", version: "fixture" }));
   fs.writeFileSync(path.join(sandbox, "catalog/phases.json"), JSON.stringify({ phases: null }));
@@ -114,6 +118,12 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   const adapters = kernelResources.find((resource) => resource.uri === "sage://intelligence/adapters").read(sandbox);
   assert.equal(adapters.adapters.some((adapter) => adapter.id === "adapter_semantic_local"), true);
   assert.equal(adapters.summary.total, 3);
+  const agentChecks = kernelResources.find((resource) => resource.uri === "sage://agents/checks").read(sandbox);
+  assert.equal(agentChecks.status, "passed");
+  const agentProfiles = kernelResources.find((resource) => resource.uri === "sage://agents/profiles").read(sandbox);
+  assert.equal(agentProfiles.profiles.length, 6);
+  const agentGlobal = kernelResources.find((resource) => resource.uri === "sage://agents/global").read(sandbox);
+  assert.match(agentGlobal, /Sage Global Agent Operating System/);
 
   const registered = [];
   registerKernelResources({

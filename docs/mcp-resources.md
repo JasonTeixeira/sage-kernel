@@ -24,3 +24,6 @@ These resources are read-only. Use resources when an MCP client needs to inspect
 | Sage Intelligence Operating Cockpit | `sage://intelligence/operating-cockpit` | `application/json` | Daily plan, runbooks, eval status, and experiment fixture for cockpit workflows. |
 | Sage Intelligence Semantic Adapter Fixture | `sage://intelligence/semantic-adapters` | `application/json` | Validated semantic-code adapter fixture showing read-only capability metadata. |
 | Sage Intelligence Optional Adapters | `sage://intelligence/adapters` | `application/json` | Discovered optional Serena, Graphiti, and local adapter status with safe degradation metadata. |
+| Sage Global Agents | `sage://agents/global` | `text/markdown` | Canonical global AGENTS.md operating rules for evidence-first engineering sessions. |
+| Sage Agent Profiles | `sage://agents/profiles` | `application/json` | Role-specific web, mobile, backend, MCP, security, and release SDLC profiles. |
+| Sage Agent Pack Checks | `sage://agents/checks` | `application/json` | Validation report for global agent rules, profile coverage, and required operating policies. |

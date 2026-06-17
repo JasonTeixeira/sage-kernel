@@ -1,0 +1,55 @@
+{
+  "id": "review_sage_kernel_baseline",
+  "version": 1,
+  "generatedAt": "2026-06-17T00:00:00.000Z",
+  "project": {
+    "name": "sage-kernel",
+    "root": ".",
+    "branch": "main"
+  },
+  "objective": "Baseline senior engineering review report contract.",
+  "status": "passed",
+  "score": 92,
+  "categories": [
+    {
+      "id": "architecture",
+      "score": 92,
+      "findings": []
+    },
+    {
+      "id": "clean_code",
+      "score": 91,
+      "findings": []
+    },
+    {
+      "id": "testing",
+      "score": 94,
+      "findings": []
+    },
+    {
+      "id": "security",
+      "score": 90,
+      "findings": []
+    },
+    {
+      "id": "release",
+      "score": 93,
+      "findings": []
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "command",
+      "ref": "npm test",
+      "status": "passed",
+      "summary": "Full test suite passed when fixture was authored."
+    },
+    {
+      "kind": "command",
+      "ref": "npm run test:coverage",
+      "status": "passed",
+      "summary": "Coverage gate passed when fixture was authored."
+    }
+  ],
+  "remaining": []
+}

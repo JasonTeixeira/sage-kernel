@@ -1166,6 +1166,345 @@
         "Approval ledger query fails.",
         "Run history is malformed."
       ]
+    },
+    {
+      "name": "kernel.agents.list",
+      "description": "List installed source agent profiles from the Sage global agent pack.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "agents:read",
+      "outputShape": "Agent profile list with id, title, source path, byte size, and content hash.",
+      "examples": [
+        {
+          "description": "List source agent profiles.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Agent manifest is missing or malformed.",
+        "A profile file is missing."
+      ]
+    },
+    {
+      "name": "kernel.agents.validate",
+      "description": "Validate the source global agent pack and SDLC profile coverage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "agents:read",
+      "outputShape": "Validation report with status, coverage counts, and failures.",
+      "examples": [
+        {
+          "description": "Validate the agent pack.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Required global rules are missing.",
+        "Required profile sections are missing."
+      ]
+    },
+    {
+      "name": "kernel.agents.doctor",
+      "description": "Check whether the Sage global agent pack is installed into the active user home.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "home": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "agents:read",
+      "outputShape": "Doctor report with source pack, global file, manifest, and installed profile checks.",
+      "examples": [
+        {
+          "description": "Check the default agent home.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Global AGENTS.md is not installed.",
+        "Install manifest is missing.",
+        "One or more installed profiles are missing."
+      ]
+    },
+    {
+      "name": "kernel.agents.install_global",
+      "description": "Install the Sage global agent pack into the active user home with backup handling.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "home": { "type": "string" },
+          "force": { "type": "boolean" },
+          "approvalId": { "type": "string" }
+        }
+      },
+      "risk": "mutating",
+      "permission": "agents:write",
+      "approvalRequired": true,
+      "sideEffects": "writes AGENTS.md and profile files under the selected user home",
+      "outputShape": "Install result with target path, manifest path, profile directory, and backup paths.",
+      "examples": [
+        {
+          "description": "Install after obtaining approval.",
+          "input": { "force": true, "approvalId": "approval_id" }
+        }
+      ],
+      "failureModes": [
+        "Approval is missing or invalid.",
+        "Agent pack validation fails.",
+        "Existing AGENTS.md requires --force.",
+        "Selected home is not writable."
+      ]
+    },
+    {
+      "name": "kernel.review.inspect_repo",
+      "description": "Inspect a project for scripts, docs, tests, CI, package metadata, and engineering surfaces.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Repository inspection summary with project metadata, counts, scripts, docs, CI, surfaces, and findings.",
+      "examples": [
+        {
+          "description": "Inspect the current repo.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Project files cannot be read."
+      ]
+    },
+    {
+      "name": "kernel.review.architecture_audit",
+      "description": "Score architecture readiness from detected project surfaces and structure.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Architecture category score with findings and evidence references.",
+      "examples": [
+        {
+          "description": "Audit current repo architecture.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Project metadata cannot be read."
+      ]
+    },
+    {
+      "name": "kernel.review.clean_code_audit",
+      "description": "Score clean-code readiness from scripts, file size signals, and validation coverage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Clean-code category score with findings and evidence references.",
+      "examples": [
+        {
+          "description": "Audit current repo clean-code posture.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Source files cannot be scanned."
+      ]
+    },
+    {
+      "name": "kernel.review.test_audit",
+      "description": "Score testing readiness from test files, test scripts, coverage gates, and E2E signals.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Testing category score with findings and evidence references.",
+      "examples": [
+        {
+          "description": "Audit current repo test posture.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Test metadata cannot be scanned."
+      ]
+    },
+    {
+      "name": "kernel.review.security_audit",
+      "description": "Score security readiness from policy docs, security scripts, and audit signals.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Security category score with findings and evidence references.",
+      "examples": [
+        {
+          "description": "Audit current repo security posture.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Security metadata cannot be scanned."
+      ]
+    },
+    {
+      "name": "kernel.review.quality_score",
+      "description": "Create a full senior engineering quality score report for a project.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Inspection plus validated review report with architecture, clean-code, testing, security, and release scores.",
+      "examples": [
+        {
+          "description": "Score the current repo.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Review report cannot be constructed."
+      ]
+    },
+    {
+      "name": "kernel.review.release_proof",
+      "description": "Create a release-proof review report with expected command evidence references.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Release-proof review report with release evidence, score, remaining work, and status.",
+      "examples": [
+        {
+          "description": "Create release proof for the current repo.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Release proof cannot be constructed."
+      ]
+    },
+    {
+      "name": "kernel.drift.map",
+      "description": "Create a drift map for scope, architecture, routes, MCP tools, docs, tests, and permissions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "drift:read",
+      "outputShape": "Drift map with architecture directories, MCP parity counts, dashboard routes, docs, tests, permissions, and findings.",
+      "examples": [
+        {
+          "description": "Map current repository drift surfaces.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Repository files cannot be scanned.",
+        "MCP manifest or dispatcher files are malformed."
+      ]
+    },
+    {
+      "name": "kernel.drift.scope",
+      "description": "Detect scope creep against allowed repository areas, denied patterns, and test-coverage expectations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "drift:read",
+      "outputShape": "Scope report with inspected files, allowed scopes, denied patterns, and blocking findings.",
+      "examples": [
+        {
+          "description": "Check current working tree scope.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Git status is unavailable and filesystem fallback cannot be scanned.",
+        "Denied files are present in the inspected scope."
+      ]
+    },
+    {
+      "name": "kernel.drift.self_audit",
+      "description": "Compare implementation against generated docs, MCP contracts, package scripts, release gates, and permissions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "drift:read",
+      "outputShape": "Self-audit report with parity checks for MCP dispatcher, contracts, docs, permissions, scripts, and release gates.",
+      "examples": [
+        {
+          "description": "Run implementation/documentation parity audit.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Generated docs or contracts are stale.",
+        "Permission guard does not match MCP risk metadata."
+      ]
+    },
+    {
+      "name": "kernel.drift.proof",
+      "description": "Run the complete drift proof by combining drift map, scope-creep detection, and self-audit checks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "drift:read",
+      "outputShape": "Complete drift proof with status, map, scope report, self-audit report, findings, and remaining work.",
+      "examples": [
+        {
+          "description": "Prove the repo has not drifted from its control-plane contracts.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Any drift map, scope, contract, documentation, or permission check has a blocking finding."
+      ]
     }
   ]
 }

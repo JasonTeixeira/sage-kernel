@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "id": "sage-global-agents",
+  "name": "Sage Global Agent Pack",
+  "description": "Global AGENTS.md and profile pack for MCP-native, evidence-first engineering sessions.",
+  "canonical": "agents/AGENTS.md",
+  "profiles": [
+    "agents/profiles/web.md",
+    "agents/profiles/mobile.md",
+    "agents/profiles/backend.md",
+    "agents/profiles/mcp.md",
+    "agents/profiles/security.md",
+    "agents/profiles/release.md"
+  ],
+  "mustHaveRules": [
+    "evidence-before-claim",
+    "read-code-first",
+    "small-falsifiable-steps",
+    "approval-before-risk",
+    "security-at-boundaries",
+    "tests-own-the-contract",
+    "agile-operating-loop"
+  ],
+  "requiredProfiles": [
+    "web",
+    "mobile",
+    "backend",
+    "mcp",
+    "security",
+    "release"
+  ]
+}

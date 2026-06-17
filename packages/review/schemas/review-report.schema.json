@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sage-kernel.local/schemas/review/review-report.schema.json",
+  "title": "Sage Review Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "generatedAt",
+    "project",
+    "objective",
+    "status",
+    "score",
+    "categories",
+    "evidence",
+    "remaining"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^review_[a-z0-9][a-z0-9_-]*$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "root"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "root": { "type": "string", "minLength": 1 },
+        "commit": { "type": "string", "minLength": 1 },
+        "branch": { "type": "string", "minLength": 1 }
+      }
+    },
+    "objective": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["passed", "needs_work", "blocked", "failed"] },
+    "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "score", "findings"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": ["architecture", "clean_code", "testing", "security", "release"]
+          },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["severity", "message", "evidence"],
+              "properties": {
+                "severity": { "type": "string", "enum": ["info", "low", "medium", "high", "critical"] },
+                "message": { "type": "string", "minLength": 1 },
+                "evidence": { "type": "string", "minLength": 1 },
+                "recommendation": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "ref", "status"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["command", "file", "mcp_call", "ci_run", "manual", "url"] },
+          "ref": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["passed", "failed", "skipped", "warning"] },
+          "summary": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "remaining": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

@@ -149,6 +149,30 @@
       "description": "Discovered optional Serena, Graphiti, and local adapter status with safe degradation metadata.",
       "mimeType": "application/json",
       "access": "read-only"
+    },
+    {
+      "name": "sage.agents.global",
+      "uri": "sage://agents/global",
+      "title": "Sage Global Agents",
+      "description": "Canonical global AGENTS.md operating rules for evidence-first engineering sessions.",
+      "mimeType": "text/markdown",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.agents.profiles",
+      "uri": "sage://agents/profiles",
+      "title": "Sage Agent Profiles",
+      "description": "Role-specific web, mobile, backend, MCP, security, and release SDLC profiles.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.agents.checks",
+      "uri": "sage://agents/checks",
+      "title": "Sage Agent Pack Checks",
+      "description": "Validation report for global agent rules, profile coverage, and required operating policies.",
+      "mimeType": "application/json",
+      "access": "read-only"
     }
   ]
 }

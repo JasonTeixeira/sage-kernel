@@ -44,6 +44,21 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.workflow.pending_approvals` | safe | `workflow:read` | No | none |
 | `kernel.workflow.stress_dashboard` | safe | `workflow:read` | No | none |
 | `kernel.workflow.daily_summary` | safe | `workflow:read` | No | none |
+| `kernel.agents.list` | safe | `agents:read` | No | none |
+| `kernel.agents.validate` | safe | `agents:read` | No | none |
+| `kernel.agents.doctor` | safe | `agents:read` | No | none |
+| `kernel.agents.install_global` | mutating | `agents:write` | Yes | writes AGENTS.md and profile files under the selected user home |
+| `kernel.review.inspect_repo` | safe | `review:read` | No | none |
+| `kernel.review.architecture_audit` | safe | `review:read` | No | none |
+| `kernel.review.clean_code_audit` | safe | `review:read` | No | none |
+| `kernel.review.test_audit` | safe | `review:read` | No | none |
+| `kernel.review.security_audit` | safe | `review:read` | No | none |
+| `kernel.review.quality_score` | safe | `review:read` | No | none |
+| `kernel.review.release_proof` | safe | `review:read` | No | none |
+| `kernel.drift.map` | safe | `drift:read` | No | none |
+| `kernel.drift.scope` | safe | `drift:read` | No | none |
+| `kernel.drift.self_audit` | safe | `drift:read` | No | none |
+| `kernel.drift.proof` | safe | `drift:read` | No | none |
 
 ## Output Shape
 
@@ -546,6 +561,173 @@ Example input:
 {}
 ```
 
+### `kernel.agents.list`
+
+Agent profile list with id, title, source path, byte size, and content hash.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.agents.validate`
+
+Validation report with status, coverage counts, and failures.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.agents.doctor`
+
+Doctor report with source pack, global file, manifest, and installed profile checks.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.agents.install_global`
+
+Install result with target path, manifest path, profile directory, and backup paths.
+
+Example input:
+
+```json
+{
+  "force": true,
+  "approvalId": "approval_id"
+}
+```
+
+### `kernel.review.inspect_repo`
+
+Repository inspection summary with project metadata, counts, scripts, docs, CI, surfaces, and findings.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.review.architecture_audit`
+
+Architecture category score with findings and evidence references.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.review.clean_code_audit`
+
+Clean-code category score with findings and evidence references.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.review.test_audit`
+
+Testing category score with findings and evidence references.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.review.security_audit`
+
+Security category score with findings and evidence references.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.review.quality_score`
+
+Inspection plus validated review report with architecture, clean-code, testing, security, and release scores.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.review.release_proof`
+
+Release-proof review report with release evidence, score, remaining work, and status.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.drift.map`
+
+Drift map with architecture directories, MCP parity counts, dashboard routes, docs, tests, permissions, and findings.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.drift.scope`
+
+Scope report with inspected files, allowed scopes, denied patterns, and blocking findings.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.drift.self_audit`
+
+Self-audit report with parity checks for MCP dispatcher, contracts, docs, permissions, scripts, and release gates.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.drift.proof`
+
+Complete drift proof with status, map, scope report, self-audit report, findings, and remaining work.
+
+Example input:
+
+```json
+{}
+```
+
 ## Failure Modes
 
 ### `kernel.phase.status`
@@ -771,6 +953,83 @@ Example input:
 - Dashboard snapshot cannot be created.
 - Approval ledger query fails.
 - Run history is malformed.
+
+### `kernel.agents.list`
+
+- Agent manifest is missing or malformed.
+- A profile file is missing.
+
+### `kernel.agents.validate`
+
+- Required global rules are missing.
+- Required profile sections are missing.
+
+### `kernel.agents.doctor`
+
+- Global AGENTS.md is not installed.
+- Install manifest is missing.
+- One or more installed profiles are missing.
+
+### `kernel.agents.install_global`
+
+- Approval is missing or invalid.
+- Agent pack validation fails.
+- Existing AGENTS.md requires --force.
+- Selected home is not writable.
+
+### `kernel.review.inspect_repo`
+
+- Project path is outside allowed review roots.
+- Project files cannot be read.
+
+### `kernel.review.architecture_audit`
+
+- Project path is outside allowed review roots.
+- Project metadata cannot be read.
+
+### `kernel.review.clean_code_audit`
+
+- Project path is outside allowed review roots.
+- Source files cannot be scanned.
+
+### `kernel.review.test_audit`
+
+- Project path is outside allowed review roots.
+- Test metadata cannot be scanned.
+
+### `kernel.review.security_audit`
+
+- Project path is outside allowed review roots.
+- Security metadata cannot be scanned.
+
+### `kernel.review.quality_score`
+
+- Project path is outside allowed review roots.
+- Review report cannot be constructed.
+
+### `kernel.review.release_proof`
+
+- Project path is outside allowed review roots.
+- Release proof cannot be constructed.
+
+### `kernel.drift.map`
+
+- Repository files cannot be scanned.
+- MCP manifest or dispatcher files are malformed.
+
+### `kernel.drift.scope`
+
+- Git status is unavailable and filesystem fallback cannot be scanned.
+- Denied files are present in the inspected scope.
+
+### `kernel.drift.self_audit`
+
+- Generated docs or contracts are stale.
+- Permission guard does not match MCP risk metadata.
+
+### `kernel.drift.proof`
+
+- Any drift map, scope, contract, documentation, or permission check has a blocking finding.
 
 ## Approval Required
 

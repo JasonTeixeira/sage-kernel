@@ -18,6 +18,9 @@ const requiredFiles = [
   "docs/MCP_CLIENTS.md",
   "docs/SECURITY_MODEL.md",
   "docs/RELEASE_PROCESS.md",
+  "agents/AGENTS.md",
+  "agents/manifest.json",
+  "packages/agents/README.md",
   "assets/sage-kernel-architecture.svg",
   "assets/sage-kernel-workflow.svg",
   ".github/workflows/ci.yml",
@@ -30,6 +33,7 @@ const requiredFiles = [
 const requiredPackageFiles = [
   "apps/mcp-server",
   "apps/worker",
+  "agents",
   "assets",
   "bin",
   "catalog",

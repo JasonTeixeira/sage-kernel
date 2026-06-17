@@ -42,6 +42,9 @@ test("MCP contracts and docs are generated from the manifest", () => {
 
   const resourceSnapshot = JSON.parse(fs.readFileSync(resourcesSnapshotPath, "utf8"));
   assert.deepEqual(resourceSnapshot.resources.map((resource) => resource.uri).sort(), [
+    "sage://agents/checks",
+    "sage://agents/global",
+    "sage://agents/profiles",
     "sage://approvals",
     "sage://catalog",
     "sage://dashboard/snapshot",
@@ -64,6 +67,7 @@ test("MCP contracts and docs are generated from the manifest", () => {
 
   const resourceDocs = fs.readFileSync(resourcesDocsPath, "utf8");
   assert.match(resourceDocs, /# Sage Kernel MCP Resources/);
+  assert.match(resourceDocs, /sage:\/\/agents\/global/);
   assert.match(resourceDocs, /sage:\/\/dashboard\/snapshot/);
   assert.match(resourceDocs, /read-only/i);
 
