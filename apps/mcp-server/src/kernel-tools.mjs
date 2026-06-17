@@ -8,6 +8,7 @@ import { assertToolAllowed, listApprovals, requestApproval } from "../../../pack
 import { createSqliteAdapter } from "../../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../../packages/security/approvals.mjs";
 import { dashboardSnapshot } from "../../dashboard/server.mjs";
+import { listAdapters } from "../../../packages/intelligence/adapters.mjs";
 import { createSemanticCode } from "../../../packages/intelligence/semantic-code.mjs";
 import { createAdr, createDailyPlan, listRunbooks } from "../../../packages/intelligence/runbooks.mjs";
 
@@ -514,6 +515,9 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.semantic.summarize_module":
       return createSemanticCode({ root }).summarizeModule(input);
+
+    case "kernel.adapters.list":
+      return listAdapters({ root });
 
     case "kernel.runbooks.list":
       return { runbooks: listRunbooks({ root }) };

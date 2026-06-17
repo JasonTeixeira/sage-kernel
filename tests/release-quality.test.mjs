@@ -39,6 +39,9 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.scripts["semantic:smoke"], "node packages/intelligence/scripts/semantic-smoke.mjs");
   assert.equal(pkg.scripts["semantic:index"], "node packages/intelligence/scripts/semantic-index.mjs");
   assert.equal(pkg.scripts["semantic:search"], "node packages/intelligence/scripts/semantic-search.mjs");
+  assert.equal(pkg.scripts["adapters:validate"], "node packages/intelligence/scripts/adapters-validate.mjs");
+  assert.equal(pkg.scripts["adapters:list"], "node packages/intelligence/scripts/adapters-list.mjs");
+  assert.equal(pkg.scripts["adapters:smoke"], "node packages/intelligence/scripts/adapters-smoke.mjs");
   assert.equal(pkg.scripts["runbooks:validate"], "node packages/intelligence/scripts/runbooks-validate.mjs");
   assert.equal(pkg.scripts["runbooks:smoke"], "node packages/intelligence/scripts/runbooks-smoke.mjs");
   assert.equal(pkg.scripts["plan:day"], "node packages/intelligence/scripts/plan-day.mjs");
@@ -71,6 +74,9 @@ test("package metadata is ready for public OSS distribution", () => {
     "docker-compose.postgres.yml",
     "packages/intelligence/scripts/validate-intelligence.mjs",
     "packages/intelligence/scripts/semantic-smoke.mjs",
+    "packages/intelligence/scripts/adapters-smoke.mjs",
+    "packages/intelligence/adapters.mjs",
+    "packages/intelligence/adapters/optional-adapters.json",
     "packages/intelligence/scripts/runbooks-smoke.mjs",
     "packages/intelligence/semantic-code.mjs",
     "packages/intelligence/runbooks.mjs",
@@ -117,7 +123,7 @@ test("intelligence contracts validate fixtures and reject unsafe shapes", () => 
   assert.equal(passing.status, "passed");
   assert.equal(passing.checked.schemas, 5);
   assert.equal(passing.checked.fixtures, 5);
-  assert.equal(passing.checked.evals, 8);
+  assert.equal(passing.checked.evals, 9);
   assert.deepEqual(passing.failures, []);
 
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-intelligence-"));

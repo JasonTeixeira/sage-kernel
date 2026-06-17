@@ -662,6 +662,28 @@
       ]
     },
     {
+      "name": "kernel.adapters.list",
+      "description": "List built-in and optional external adapters with discovery status, capabilities, and install hints.",
+      "risk": "safe",
+      "permission": "adapters:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Adapter discovery report with status summary, capabilities, mutation policy, permission, configured environment keys, and install hints.",
+      "examples": [
+        {
+          "description": "List optional adapters.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Optional adapter catalog is missing or malformed.",
+        "Configured adapter command is missing from PATH.",
+        "Optional adapter is intentionally disabled by environment."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
       "name": "kernel.runbooks.list",
       "description": "List validated local runbooks for daily engineering operations.",
       "risk": "safe",

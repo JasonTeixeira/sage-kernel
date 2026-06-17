@@ -26,6 +26,7 @@ test("MCP server exposes read-only kernel resources", async () => {
       "sage://catalog",
       "sage://dashboard/snapshot",
       "sage://docs/mcp-server",
+      "sage://intelligence/adapters",
       "sage://intelligence/contracts",
       "sage://intelligence/eval-report",
       "sage://intelligence/evals",
@@ -110,6 +111,9 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   const cockpit = kernelResources.find((resource) => resource.uri === "sage://intelligence/operating-cockpit").read(sandbox);
   assert.equal(cockpit.todayPlan.steps.length > 0, true);
   assert.equal(cockpit.runbooks.length > 0, true);
+  const adapters = kernelResources.find((resource) => resource.uri === "sage://intelligence/adapters").read(sandbox);
+  assert.equal(adapters.adapters.some((adapter) => adapter.id === "adapter_semantic_local"), true);
+  assert.equal(adapters.summary.total, 3);
 
   const registered = [];
   registerKernelResources({

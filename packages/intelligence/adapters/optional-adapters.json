@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "adapters": [
+    {
+      "id": "adapter_semantic_local",
+      "name": "Local Semantic Baseline",
+      "kind": "semantic-code",
+      "mode": "local",
+      "builtIn": true,
+      "capabilities": [
+        "index_project",
+        "search_symbol",
+        "find_references",
+        "summarize_module"
+      ],
+      "mutationPolicy": "read_only",
+      "permission": "semantic:read",
+      "installHint": "Built into Sage Kernel. No external process is required."
+    },
+    {
+      "id": "adapter_serena_mcp",
+      "name": "Serena MCP",
+      "kind": "semantic-code",
+      "mode": "mcp",
+      "builtIn": false,
+      "commandEnv": "SAGE_SERENA_MCP_COMMAND",
+      "urlEnv": "SAGE_SERENA_MCP_URL",
+      "disableEnv": "SAGE_DISABLE_SERENA_ADAPTER",
+      "capabilities": [
+        "index_project",
+        "search_symbol",
+        "find_references",
+        "summarize_module",
+        "plan_refactor",
+        "apply_refactor"
+      ],
+      "mutationPolicy": "approval_required",
+      "permission": "semantic:write",
+      "installHint": "Run Serena as a sibling MCP server and set SAGE_SERENA_MCP_COMMAND or SAGE_SERENA_MCP_URL."
+    },
+    {
+      "id": "adapter_graphiti_memory",
+      "name": "Graphiti Memory",
+      "kind": "memory",
+      "mode": "external",
+      "builtIn": false,
+      "commandEnv": "SAGE_GRAPHITI_MCP_COMMAND",
+      "urlEnv": "SAGE_GRAPHITI_MCP_URL",
+      "disableEnv": "SAGE_DISABLE_GRAPHITI_ADAPTER",
+      "capabilities": [
+        "write_episode",
+        "search_memory",
+        "temporal_graph",
+        "supersede_fact"
+      ],
+      "mutationPolicy": "approval_required",
+      "permission": "memory:write",
+      "installHint": "Run Graphiti or a compatible temporal memory service as a sibling process and set SAGE_GRAPHITI_MCP_COMMAND or SAGE_GRAPHITI_MCP_URL."
+    }
+  ]
+}

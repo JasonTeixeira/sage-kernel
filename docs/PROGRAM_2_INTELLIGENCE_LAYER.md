@@ -562,6 +562,74 @@ Exit criteria:
 - Sage Kernel is useful as a daily engineering operating cockpit, not only a
   collection of scripts.
 
+### Phase 2.6: Optional Adapter Discovery
+
+Status: complete.
+
+Tasks:
+
+- Add a first-class optional adapter registry.
+- Discover Serena-style semantic MCP and Graphiti-style memory adapters without
+  making them core dependencies.
+- Keep the built-in semantic adapter available on every clean install.
+- Expose adapter status through CLI and MCP.
+- Ensure missing optional adapters degrade cleanly and are visible to users.
+
+Implemented:
+
+- Added `packages/intelligence/adapters/optional-adapters.json`.
+- Added `packages/intelligence/adapters.mjs` with deterministic discovery for:
+  - built-in local semantic code
+  - optional Serena MCP command or URL
+  - optional Graphiti memory command or URL
+- Added CLI scripts:
+  - `npm run adapters:validate`
+  - `npm run adapters:list`
+  - `npm run adapters:smoke`
+- Added safe MCP tool:
+  - `kernel.adapters.list`
+- Added read-only MCP resource:
+  - `sage://intelligence/adapters`
+- Added deterministic eval `eval_optional_adapters`.
+- Wired adapter validation into `npm run release:check`.
+
+Environment contract:
+
+- `SAGE_SERENA_MCP_COMMAND`
+- `SAGE_SERENA_MCP_URL`
+- `SAGE_DISABLE_SERENA_ADAPTER`
+- `SAGE_GRAPHITI_MCP_COMMAND`
+- `SAGE_GRAPHITI_MCP_URL`
+- `SAGE_DISABLE_GRAPHITI_ADAPTER`
+- `SAGE_DISABLE_OPTIONAL_ADAPTERS`
+
+Security model:
+
+- Discovery is read-only.
+- Missing adapters never fail clean install or release packaging.
+- URL-based adapters are only reported as configured; this phase does not call
+  external services.
+- Command-based adapters are checked for executable presence only.
+- Mutating capabilities such as refactor application and memory supersession
+  remain marked `approval_required`.
+
+Verification:
+
+```bash
+npm run adapters:validate
+npm run adapters:smoke
+npm run mcp:contracts
+npm run mcp:smoke
+npm run eval:run
+npm test
+```
+
+Exit criteria:
+
+- Sage Kernel can tell a user which advanced adapters are available, missing,
+  disabled, or degraded without vendoring Serena, Graphiti, or any heavy
+  external runtime into the core package.
+
 ## What To Avoid
 
 - Do not vendor large AI repositories into the core package.

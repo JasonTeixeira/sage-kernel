@@ -4,6 +4,7 @@ import path from "node:path";
 import { dashboardSnapshot, renderMetrics } from "../../dashboard/server.mjs";
 import { createMemoryStore } from "../../../packages/intelligence/memory-store.mjs";
 import { createProjectState } from "../../../packages/intelligence/project-state.mjs";
+import { listAdapters } from "../../../packages/intelligence/adapters.mjs";
 import { createOperatingSnapshot, listRunbooks } from "../../../packages/intelligence/runbooks.mjs";
 
 export const kernelResources = [
@@ -145,6 +146,14 @@ export const kernelResources = [
     description: "Validated semantic-code adapter fixture showing read-only capability metadata.",
     mimeType: "application/json",
     read: (root) => readJson(root, "packages/intelligence/fixtures/valid/semantic-adapter.json", {})
+  },
+  {
+    name: "sage.intelligence.adapters",
+    uri: "sage://intelligence/adapters",
+    title: "Sage Intelligence Optional Adapters",
+    description: "Discovered optional Serena, Graphiti, and local adapter status with safe degradation metadata.",
+    mimeType: "application/json",
+    read: (root) => listAdapters({ root })
   }
 ];
 

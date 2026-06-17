@@ -4,6 +4,7 @@ const root = process.cwd();
 const checks = [
   ["npm", ["run", "catalog:validate"]],
   ["npm", ["run", "intelligence:validate"]],
+  ["npm", ["run", "adapters:validate"]],
   ["npm", ["run", "runbooks:validate"]],
   ["npm", ["run", "infra:validate"]],
   ["npm", ["run", "jobs:validate"]],

@@ -13,7 +13,7 @@ const root = path.resolve(import.meta.dirname, "..");
 
 function tempRoot() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sage-kernel-tools-"));
-  for (const item of ["catalog", "packages/qa", "packages/infra", "packages/db", "packages/intelligence/runbooks", "apps/worker", "apps/mcp-server"]) {
+  for (const item of ["catalog", "packages/qa", "packages/infra", "packages/db", "packages/intelligence/adapters", "packages/intelligence/runbooks", "apps/worker", "apps/mcp-server"]) {
     fs.mkdirSync(path.join(dir, item), { recursive: true });
   }
   for (const file of [
@@ -28,6 +28,7 @@ function tempRoot() {
     "packages/infra/deploy-targets.json",
     "packages/infra/readiness-checks.json",
 	    "packages/db/schema.sql",
+	    "packages/intelligence/adapters/optional-adapters.json",
 	    "packages/intelligence/runbooks/release-readiness.json",
 	    "apps/worker/jobs.json",
     "apps/mcp-server/tools.json"
@@ -67,6 +68,9 @@ test("MCP dispatcher covers catalog, template, QA, infra, deploy, dashboard, and
   assert.equal(semanticSummary.language, "json");
   const semanticReferences = await callKernelTool(sandbox, "kernel.semantic.find_references", { query: "version", limit: 5 });
   assert.equal(semanticReferences.results.length > 0, true);
+  const adapters = await callKernelTool(sandbox, "kernel.adapters.list", {});
+  assert.equal(adapters.adapters.some((adapter) => adapter.id === "adapter_semantic_local"), true);
+  assert.equal(adapters.summary.total, 3);
   const runbooks = await callKernelTool(sandbox, "kernel.runbooks.list", {});
   assert.equal(runbooks.runbooks.length > 0, true);
   const dayPlan = await callKernelTool(sandbox, "kernel.runbooks.plan_day", { objective: "test cockpit" });

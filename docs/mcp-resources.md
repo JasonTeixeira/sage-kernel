@@ -23,3 +23,4 @@ These resources are read-only. Use resources when an MCP client needs to inspect
 | Sage Intelligence Runbooks | `sage://intelligence/runbooks` | `application/json` | Validated runbook catalog showing steps, risks, and verification commands. |
 | Sage Intelligence Operating Cockpit | `sage://intelligence/operating-cockpit` | `application/json` | Daily plan, runbooks, eval status, and experiment fixture for cockpit workflows. |
 | Sage Intelligence Semantic Adapter Fixture | `sage://intelligence/semantic-adapters` | `application/json` | Validated semantic-code adapter fixture showing read-only capability metadata. |
+| Sage Intelligence Optional Adapters | `sage://intelligence/adapters` | `application/json` | Discovered optional Serena, Graphiti, and local adapter status with safe degradation metadata. |

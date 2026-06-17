@@ -141,6 +141,14 @@
       "description": "Validated semantic-code adapter fixture showing read-only capability metadata.",
       "mimeType": "application/json",
       "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.adapters",
+      "uri": "sage://intelligence/adapters",
+      "title": "Sage Intelligence Optional Adapters",
+      "description": "Discovered optional Serena, Graphiti, and local adapter status with safe degradation metadata.",
+      "mimeType": "application/json",
+      "access": "read-only"
     }
   ]
 }

@@ -30,6 +30,7 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.semantic.search_symbol` | safe | `semantic:read` | No | none |
 | `kernel.semantic.find_references` | safe | `semantic:read` | No | none |
 | `kernel.semantic.summarize_module` | safe | `semantic:read` | No | none |
+| `kernel.adapters.list` | safe | `adapters:read` | No | none |
 | `kernel.runbooks.list` | safe | `runbooks:read` | No | none |
 | `kernel.runbooks.plan_day` | safe | `runbooks:read` | No | none |
 | `kernel.runbooks.generate_adr` | safe | `runbooks:read` | No | none |
@@ -367,6 +368,16 @@ Example input:
 }
 ```
 
+### `kernel.adapters.list`
+
+Adapter discovery report with status summary, capabilities, mutation policy, permission, configured environment keys, and install hints.
+
+Example input:
+
+```json
+{}
+```
+
 ### `kernel.runbooks.list`
 
 Runbook catalog with ids, titles, risk, approval requirement, steps, and verification commands.
@@ -664,6 +675,12 @@ Example input:
 - input.file is missing.
 - File path is outside the kernel root.
 - Module file is missing or unreadable.
+
+### `kernel.adapters.list`
+
+- Optional adapter catalog is missing or malformed.
+- Configured adapter command is missing from PATH.
+- Optional adapter is intentionally disabled by environment.
 
 ### `kernel.runbooks.list`
 

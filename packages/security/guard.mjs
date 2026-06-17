@@ -28,6 +28,7 @@ const SAFE_ACTIONS = new Set([
   "semantic.search_symbol",
   "semantic.find_references",
   "semantic.summarize_module",
+  "adapters.list",
   "runbooks.list",
   "runbooks.plan_day",
   "runbooks.generate_adr"
