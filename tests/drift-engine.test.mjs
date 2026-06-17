@@ -114,6 +114,16 @@ test("drift engine reports stale contracts, docs, permissions, scripts, and miss
   assert.equal(proof.status, "failed");
   assert.match(formatDriftOutput(proof), /- MCP manifest and dispatcher tool counts differ/);
   assert.match(formatDriftOutput(map), /Drift failed/);
+  assert.match(formatDriftOutput({ ok: true }, { json: true }), /"ok": true/);
+
+  const malformed = fs.mkdtempSync(path.join(os.tmpdir(), "sage-drift-malformed-"));
+  fs.writeFileSync(path.join(malformed, "package.json"), "{");
+  const malformedMap = createDriftMap({ root: malformed });
+  assert.equal(malformedMap.status, "failed");
+  assert.equal(malformedMap.project.name, path.basename(malformed));
+  assert.equal(malformedMap.project.packageManager, "unknown");
+  assert.equal(malformedMap.mcp.manifestTools, 0);
+  assert.equal(runSelfAudit({ root: malformed }).status, "failed");
 });
 
 test("drift CLI and MCP tools expose map, scope, self-audit, and proof flows", async () => {
