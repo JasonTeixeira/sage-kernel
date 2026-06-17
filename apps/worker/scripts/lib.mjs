@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -18,7 +19,7 @@ export function nowIso() {
 
 export function makeRunId(jobId) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const suffix = Math.random().toString(36).slice(2, 8);
+  const suffix = crypto.randomUUID();
   return `${stamp}-${jobId}-${suffix}`;
 }
 

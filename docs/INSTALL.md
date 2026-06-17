@@ -3,7 +3,8 @@
 ## Local Install
 
 ```bash
-cd /Users/Sage/sage-kernel
+git clone <repo-url> sage-kernel
+cd sage-kernel
 npm install
 npm link
 sage doctor
@@ -20,7 +21,7 @@ Do not publish publicly until the security model, CI, and release process are ma
 ## Upgrade
 
 ```bash
-cd /Users/Sage/sage-kernel
+cd sage-kernel
 git pull
 npm install
 npm link

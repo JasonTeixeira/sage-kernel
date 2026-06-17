@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { createSqliteAdapter } from "../db/adapter.mjs";
 import { createApprovalLedger } from "./approvals.mjs";
 
@@ -17,7 +18,12 @@ const SAFE_ACTIONS = new Set([
   "jobs.runs",
   "approvals.list",
   "dashboard.snapshot",
-  "dogfood.prod"
+  "dogfood.prod",
+  "workflow.explain_failures",
+  "workflow.release_readiness",
+  "workflow.pending_approvals",
+  "workflow.stress_dashboard",
+  "workflow.daily_summary"
 ]);
 
 const MUTATING_ACTIONS = new Set([
@@ -27,7 +33,10 @@ const MUTATING_ACTIONS = new Set([
   "jobs.enqueue",
   "worker.tick",
   "approvals.request",
-  "approvals.approve"
+  "approvals.approve",
+  "workflow.audit_repo",
+  "workflow.run_full_qa",
+  "workflow.create_app"
 ]);
 
 export function isReadOnlyMode() {

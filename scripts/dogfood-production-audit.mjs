@@ -1,15 +1,23 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-const root = process.cwd();
-const catalog = JSON.parse(fs.readFileSync(path.join(root, "catalog/repos.json"), "utf8"));
-const requested = process.argv.slice(2);
 const defaults = ["commerce-command-os", "jobcopilot", "trayd"];
-const targets = requested.length ? requested : defaults;
 
-function inspect(repoName) {
-  const repoPath = path.join(catalog.sourceRoot, repoName);
+export function sourceRootForCatalog(catalog, env = process.env) {
+  return catalog.sourceRootEnv && env[catalog.sourceRootEnv] ? env[catalog.sourceRootEnv] : catalog.sourceRoot || "";
+}
+
+export function inspectRepo(repoName, options = {}) {
+  const root = options.root || process.cwd();
+  const sourceRoot = options.sourceRoot || "";
+  const runQa = options.runQa || ((repoPath) => spawnSync("node", ["packages/qa/scripts/qa-runner.mjs", repoPath], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 8
+  }));
+  const repoPath = sourceRoot ? path.join(sourceRoot, repoName) : "";
   const exists = fs.existsSync(repoPath);
   const packagePath = path.join(repoPath, "package.json");
   const packageJson = exists && fs.existsSync(packagePath) ? JSON.parse(fs.readFileSync(packagePath, "utf8")) : null;
@@ -22,9 +30,7 @@ function inspect(repoName) {
     ["lint", Boolean(packageJson?.scripts?.lint)],
     ["build", Boolean(packageJson?.scripts?.build)]
   ];
-  const qa = exists
-    ? spawnSync("node", ["packages/qa/scripts/qa-runner.mjs", repoPath], { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 8 })
-    : null;
+  const qa = exists ? runQa(repoPath) : null;
   let qaReport = null;
   if (qa?.stdout) {
     try {
@@ -43,6 +49,7 @@ function inspect(repoName) {
   return {
     repo: repoName,
     path: repoPath,
+    configured: Boolean(sourceRoot),
     checks: Object.fromEntries(checks),
     score: checks.filter(([, pass]) => pass).length,
     maxScore: checks.length,
@@ -51,10 +58,26 @@ function inspect(repoName) {
   };
 }
 
-const report = {
-  auditedAt: new Date().toISOString(),
-  targets,
-  results: targets.map(inspect)
-};
+export function createDogfoodReport(options = {}) {
+  const root = options.root || process.cwd();
+  const env = options.env || process.env;
+  const catalog = options.catalog || JSON.parse(fs.readFileSync(path.join(root, "catalog/repos.json"), "utf8"));
+  const sourceRoot = sourceRootForCatalog(catalog, env);
+  const targets = options.targets?.length ? options.targets : defaults;
+  return {
+    auditedAt: new Date().toISOString(),
+    sourceRoot,
+    configured: Boolean(sourceRoot),
+    targets,
+    results: targets.map((repoName) => inspectRepo(repoName, {
+      root,
+      sourceRoot,
+      runQa: options.runQa
+    }))
+  };
+}
 
-console.log(JSON.stringify(report, null, 2));
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const requested = process.argv.slice(2);
+  console.log(JSON.stringify(createDogfoodReport({ targets: requested }), null, 2));
+}

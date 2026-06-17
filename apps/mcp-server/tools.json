@@ -12,19 +12,53 @@
       "inputSchema": {
         "type": "object",
         "properties": {}
-      }
+      },
+      "risk": "safe",
+      "permission": "phase:read",
+      "outputShape": "Array of kernel phase records with id, name, status, goal, and completion criteria.",
+      "examples": [
+        {
+          "description": "Example call for kernel.phase.status.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Catalog phase file is missing or malformed."
+      ]
     },
     {
       "name": "kernel.catalog.search",
       "description": "Search repos, modules, templates, integrations, and phases.",
       "inputSchema": {
         "type": "object",
-        "required": ["query"],
+        "required": [
+          "query"
+        ],
         "properties": {
-          "query": { "type": "string" },
-          "limit": { "type": "number" }
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "catalog:read",
+      "outputShape": "Array of matching catalog entries grouped by kind and original item payload.",
+      "examples": [
+        {
+          "description": "Example call for kernel.catalog.search.",
+          "input": {
+            "query": "qa",
+            "limit": 2
+          }
+        }
+      ],
+      "failureModes": [
+        "input.query is missing.",
+        "Catalog JSON files are missing or malformed."
+      ]
     },
     {
       "name": "kernel.template.list",
@@ -32,20 +66,58 @@
       "inputSchema": {
         "type": "object",
         "properties": {}
-      }
+      },
+      "risk": "safe",
+      "permission": "template:read",
+      "outputShape": "Array of template records with coverage, stack, and QA profile metadata.",
+      "examples": [
+        {
+          "description": "Example call for kernel.template.list.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Template catalog is missing or malformed."
+      ]
     },
     {
       "name": "kernel.project.plan",
       "description": "Create a project plan from a template, deployment target, QA profile, and infra profile.",
       "inputSchema": {
         "type": "object",
-        "required": ["template"],
+        "required": [
+          "template"
+        ],
         "properties": {
-          "template": { "type": "string" },
-          "target": { "type": "string" },
-          "name": { "type": "string" }
+          "template": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "project:read",
+      "outputShape": "Project plan object containing template, target, QA profile, infra plan, and next steps.",
+      "examples": [
+        {
+          "description": "Example call for kernel.project.plan.",
+          "input": {
+            "template": "next-ai-app",
+            "target": "local",
+            "name": "demo-ai-app"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.template is missing.",
+        "Template id is unknown.",
+        "Infra target is unknown."
+      ]
     },
     {
       "name": "kernel.project.scaffold",
@@ -53,14 +125,40 @@
       "permission": "project:write",
       "inputSchema": {
         "type": "object",
-        "required": ["template", "name"],
+        "required": [
+          "template",
+          "name"
+        ],
         "properties": {
-          "template": { "type": "string" },
-          "name": { "type": "string" },
-          "out": { "type": "string" }
+          "template": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "out": {
+            "type": "string"
+          }
         }
       },
-      "sideEffects": "writes local files only"
+      "sideEffects": "writes local files only",
+      "risk": "mutating",
+      "outputShape": "Scaffold result with output path and generated file list.",
+      "examples": [
+        {
+          "description": "Example call for kernel.project.scaffold.",
+          "input": {
+            "template": "worker-service",
+            "name": "demo-worker",
+            "out": ".sage-kernel/generated"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.template or input.name is missing.",
+        "Template id is unknown.",
+        "Output path is invalid or not writable."
+      ]
     },
     {
       "name": "kernel.warehouse.summary",
@@ -68,43 +166,125 @@
       "inputSchema": {
         "type": "object",
         "properties": {}
-      }
+      },
+      "risk": "safe",
+      "permission": "warehouse:read",
+      "outputShape": "AI Warehouse summary with inventory counts and maturity/category breakdowns.",
+      "examples": [
+        {
+          "description": "Example call for kernel.warehouse.summary.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "AI_WAREHOUSE_ROOT is not configured.",
+        "Warehouse index is missing or malformed."
+      ]
     },
     {
       "name": "kernel.warehouse.search",
       "description": "Search the AI Warehouse index for tools, categories, tags, and verdicts.",
       "inputSchema": {
         "type": "object",
-        "required": ["query"],
+        "required": [
+          "query"
+        ],
         "properties": {
-          "query": { "type": "string" },
-          "limit": { "type": "number" },
-          "verdict": { "type": "string" }
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "verdict": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "warehouse:read",
+      "outputShape": "Array of AI Warehouse tool matches with slug, name, verdict, maturity, tags, and summary.",
+      "examples": [
+        {
+          "description": "Example call for kernel.warehouse.search.",
+          "input": {
+            "query": "agent",
+            "limit": 5,
+            "verdict": "use"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.query is missing.",
+        "AI_WAREHOUSE_ROOT is not configured.",
+        "Warehouse index is missing or malformed."
+      ]
     },
     {
       "name": "kernel.qa.profile",
       "description": "Return the QA profile for a template.",
       "inputSchema": {
         "type": "object",
-        "required": ["template"],
+        "required": [
+          "template"
+        ],
         "properties": {
-          "template": { "type": "string" }
+          "template": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "qa:read",
+      "outputShape": "QA profile object for the requested template, including commands and gates.",
+      "examples": [
+        {
+          "description": "Example call for kernel.qa.profile.",
+          "input": {
+            "template": "next-ai-app"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.template is missing.",
+        "Template id is unknown.",
+        "QA profile is missing."
+      ]
     },
     {
       "name": "kernel.qa.plan",
       "description": "Plan QA gates for a template without executing them.",
       "inputSchema": {
         "type": "object",
-        "required": ["template"],
+        "required": [
+          "template"
+        ],
         "properties": {
-          "template": { "type": "string" },
-          "mode": { "type": "string" }
+          "template": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "qa:read",
+      "outputShape": "QA execution plan with selected profile, mode, checks, and commands without executing them.",
+      "examples": [
+        {
+          "description": "Example call for kernel.qa.plan.",
+          "input": {
+            "template": "next-ai-app",
+            "mode": "standard"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.template is missing.",
+        "Template id is unknown.",
+        "QA profile is missing."
+      ]
     },
     {
       "name": "kernel.qa.run",
@@ -113,46 +293,132 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "projectPath": { "type": "string" },
-          "mode": { "type": "string" }
+          "projectPath": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          }
         }
       },
-      "sideEffects": "runs local commands only"
+      "sideEffects": "runs local commands only",
+      "risk": "mutating",
+      "outputShape": "Signed QA report with project path, mode, status, checks, timestamps, and signature.",
+      "examples": [
+        {
+          "description": "Example call for kernel.qa.run.",
+          "input": {
+            "projectPath": ".",
+            "mode": "fast"
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "Configured command fails.",
+        "Project package or required files are missing."
+      ]
     },
     {
       "name": "kernel.repo.inspect",
       "description": "Inspect a cataloged source repo without mutating it.",
       "inputSchema": {
         "type": "object",
-        "required": ["repo"],
+        "required": [
+          "repo"
+        ],
         "properties": {
-          "repo": { "type": "string" }
+          "repo": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "repo:read",
+      "outputShape": "Repository inspection with existence, package metadata, readme preview, and source path.",
+      "examples": [
+        {
+          "description": "Example call for kernel.repo.inspect.",
+          "input": {
+            "repo": "nexural-qa-os"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.repo is missing.",
+        "SAGE_KERNEL_SOURCE_ROOT is not configured.",
+        "Repo is not in the catalog."
+      ]
     },
     {
       "name": "kernel.infra.plan",
       "description": "Return an infrastructure plan for a template and deploy target.",
       "inputSchema": {
         "type": "object",
-        "required": ["template"],
+        "required": [
+          "template"
+        ],
         "properties": {
-          "template": { "type": "string" },
-          "target": { "type": "string" }
+          "template": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "infra:read",
+      "outputShape": "Infrastructure plan with deploy target, environment requirements, readiness checks, and rollback notes.",
+      "examples": [
+        {
+          "description": "Example call for kernel.infra.plan.",
+          "input": {
+            "template": "next-ai-app",
+            "target": "local"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.template is missing.",
+        "Template id is unknown.",
+        "Deploy target is unknown."
+      ]
     },
     {
       "name": "kernel.deploy.prepare",
       "description": "Prepare a deploy readiness plan with QA, infra, env, rollback, and approval gates.",
       "inputSchema": {
         "type": "object",
-        "required": ["template"],
+        "required": [
+          "template"
+        ],
         "properties": {
-          "template": { "type": "string" },
-          "target": { "type": "string" }
+          "template": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "deploy:prepare",
+      "outputShape": "Deploy readiness object combining QA gates, infra plan, environment checks, rollback, and approval requirements.",
+      "examples": [
+        {
+          "description": "Example call for kernel.deploy.prepare.",
+          "input": {
+            "template": "next-ai-app",
+            "target": "local"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.template is missing.",
+        "Template id is unknown.",
+        "Deploy target is unknown."
+      ]
     },
     {
       "name": "kernel.jobs.list",
@@ -160,7 +426,19 @@
       "inputSchema": {
         "type": "object",
         "properties": {}
-      }
+      },
+      "risk": "safe",
+      "permission": "jobs:read",
+      "outputShape": "Array of job definitions with id, risk, schedule, approval boundary, and steps.",
+      "examples": [
+        {
+          "description": "Example call for kernel.jobs.list.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Job registry is missing or malformed."
+      ]
     },
     {
       "name": "kernel.jobs.run",
@@ -169,13 +447,36 @@
       "approvalRequired": true,
       "inputSchema": {
         "type": "object",
-        "required": ["job"],
+        "required": [
+          "job"
+        ],
         "properties": {
-          "job": { "type": "string" },
-          "approvalId": { "type": "string" }
+          "job": {
+            "type": "string"
+          },
+          "approvalId": {
+            "type": "string"
+          }
         }
       },
-      "sideEffects": "writes local run history"
+      "sideEffects": "writes local run history",
+      "risk": "approval-required",
+      "outputShape": "Job run summary with run id, job id, status, duration, path, and step results.",
+      "examples": [
+        {
+          "description": "Example call for kernel.jobs.run.",
+          "input": {
+            "job": "repo-health",
+            "approvalId": "approval_123"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.job is missing.",
+        "Job is unknown.",
+        "Signed approval is missing or invalid.",
+        "Job step fails."
+      ]
     },
     {
       "name": "kernel.jobs.runs",
@@ -183,9 +484,25 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "limit": { "type": "number" }
+          "limit": {
+            "type": "number"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "jobs:read",
+      "outputShape": "Array of recent job run summaries with status, duration, timestamp, and path.",
+      "examples": [
+        {
+          "description": "Example call for kernel.jobs.runs.",
+          "input": {
+            "limit": 10
+          }
+        }
+      ],
+      "failureModes": [
+        "Run history directory or database rows are unreadable."
+      ]
     },
     {
       "name": "kernel.jobs.enqueue",
@@ -193,14 +510,39 @@
       "permission": "jobs:write",
       "inputSchema": {
         "type": "object",
-        "required": ["job"],
+        "required": [
+          "job"
+        ],
         "properties": {
-          "job": { "type": "string" },
-          "payload": { "type": "object" },
-          "delayMs": { "type": "number" }
+          "job": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object"
+          },
+          "delayMs": {
+            "type": "number"
+          }
         }
       },
-      "sideEffects": "writes local SQLite queue state"
+      "sideEffects": "writes local SQLite queue state",
+      "risk": "mutating",
+      "outputShape": "Queued job record with id, job id, status, priority, payload, attempts, and next run time.",
+      "examples": [
+        {
+          "description": "Example call for kernel.jobs.enqueue.",
+          "input": {
+            "job": "repo-health",
+            "payload": {},
+            "delayMs": 0
+          }
+        }
+      ],
+      "failureModes": [
+        "input.job is missing.",
+        "Job is unknown.",
+        "SQLite queue write fails."
+      ]
     },
     {
       "name": "kernel.worker.tick",
@@ -210,7 +552,20 @@
         "type": "object",
         "properties": {}
       },
-      "sideEffects": "runs one local queued job if ready"
+      "sideEffects": "runs one local queued job if ready",
+      "risk": "mutating",
+      "outputShape": "Worker tick result showing claimed job, execution status, and queue transition.",
+      "examples": [
+        {
+          "description": "Example call for kernel.worker.tick.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "No job is ready.",
+        "Claimed job fails.",
+        "SQLite queue update fails."
+      ]
     },
     {
       "name": "kernel.approvals.request",
@@ -218,14 +573,41 @@
       "permission": "approvals:write",
       "inputSchema": {
         "type": "object",
-        "required": ["action", "reason"],
+        "required": [
+          "action",
+          "reason"
+        ],
         "properties": {
-          "action": { "type": "string" },
-          "reason": { "type": "string" },
-          "payload": { "type": "object" }
+          "action": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object"
+          }
         }
       },
-      "sideEffects": "writes local SQLite approval state"
+      "sideEffects": "writes local SQLite approval state",
+      "risk": "mutating",
+      "outputShape": "Approval record with id, action, status, reason, payload, and creation timestamp.",
+      "examples": [
+        {
+          "description": "Example call for kernel.approvals.request.",
+          "input": {
+            "action": "kernel.jobs.run",
+            "reason": "Run repo health audit",
+            "payload": {
+              "job": "repo-health"
+            }
+          }
+        }
+      ],
+      "failureModes": [
+        "input.action or input.reason is missing.",
+        "SQLite approval write fails."
+      ]
     },
     {
       "name": "kernel.approvals.list",
@@ -234,9 +616,24 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "status": { "type": "string" }
+          "status": {
+            "type": "string"
+          }
         }
-      }
+      },
+      "risk": "safe",
+      "outputShape": "Array of approval records filtered by optional status.",
+      "examples": [
+        {
+          "description": "Example call for kernel.approvals.list.",
+          "input": {
+            "status": "pending"
+          }
+        }
+      ],
+      "failureModes": [
+        "Approval database query fails."
+      ]
     },
     {
       "name": "kernel.approvals.approve",
@@ -244,13 +641,35 @@
       "permission": "approvals:write",
       "inputSchema": {
         "type": "object",
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "decidedBy": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "decidedBy": {
+            "type": "string"
+          }
         }
       },
-      "sideEffects": "writes signed local SQLite approval state"
+      "sideEffects": "writes signed local SQLite approval state",
+      "risk": "mutating",
+      "outputShape": "Signed approval record with approved status, decidedBy, decidedAt, and signature.",
+      "examples": [
+        {
+          "description": "Example call for kernel.approvals.approve.",
+          "input": {
+            "id": "approval_123",
+            "decidedBy": "local-user"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.id is missing.",
+        "Approval id is unknown.",
+        "SQLite approval update fails."
+      ]
     },
     {
       "name": "kernel.dashboard.snapshot",
@@ -258,7 +677,20 @@
       "inputSchema": {
         "type": "object",
         "properties": {}
-      }
+      },
+      "risk": "safe",
+      "permission": "dashboard:read",
+      "outputShape": "Dashboard snapshot with version, health, DB counts, approvals, jobs, repos, templates, artifacts, and metrics inputs.",
+      "examples": [
+        {
+          "description": "Example call for kernel.dashboard.snapshot.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Dashboard database initialization fails.",
+        "Catalog files are missing or malformed."
+      ]
     },
     {
       "name": "kernel.dogfood.prod",
@@ -268,10 +700,232 @@
         "properties": {
           "repos": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           }
         }
-      }
+      },
+      "risk": "safe",
+      "permission": "dogfood:read",
+      "outputShape": "Dogfood audit report with configured source root, targets, checks, QA status, and failed QA checks.",
+      "examples": [
+        {
+          "description": "Example call for kernel.dogfood.prod.",
+          "input": {
+            "repos": [
+              "commerce-command-os"
+            ]
+          }
+        }
+      ],
+      "failureModes": [
+        "Source root is not configured.",
+        "Target repo is missing.",
+        "QA report is malformed or failed."
+      ]
+    },
+    {
+      "name": "kernel.workflow.audit_repo",
+      "description": "Audit the active project and return QA status, dashboard health, pending approvals, and next actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" },
+          "mode": { "type": "string" }
+        }
+      },
+      "risk": "mutating",
+      "permission": "workflow:write",
+      "sideEffects": "runs local QA commands and may write local audit records",
+      "outputShape": "Daily audit report with QA result, dashboard health summary, pending approval count, and next actions.",
+      "examples": [
+        {
+          "description": "Audit the current repo.",
+          "input": { "projectPath": ".", "mode": "fast" }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "QA command fails.",
+        "Dashboard snapshot cannot be created."
+      ]
+    },
+    {
+      "name": "kernel.workflow.run_full_qa",
+      "description": "Run a full QA workflow against a project path and summarize failures.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" },
+          "mode": { "type": "string" }
+        }
+      },
+      "risk": "mutating",
+      "permission": "workflow:write",
+      "sideEffects": "runs local QA commands and may write local audit records",
+      "outputShape": "Full QA workflow report with mode, QA status, failed checks, and next actions.",
+      "examples": [
+        {
+          "description": "Run standard QA on the current repo.",
+          "input": { "projectPath": ".", "mode": "standard" }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "QA command exits non-zero.",
+        "QA report is malformed."
+      ]
+    },
+    {
+      "name": "kernel.workflow.explain_failures",
+      "description": "Explain failed checks from a QA report or by running a fast local QA pass.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" },
+          "mode": { "type": "string" },
+          "report": { "type": "object" }
+        }
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Failure explanation with failed check names, command output excerpts, and recommended rerun steps.",
+      "examples": [
+        {
+          "description": "Explain a provided failed QA report.",
+          "input": { "report": { "status": "failed", "checks": [] } }
+        }
+      ],
+      "failureModes": [
+        "Provided report is malformed.",
+        "Fallback QA run fails before producing JSON."
+      ]
+    },
+    {
+      "name": "kernel.workflow.create_app",
+      "description": "Create a production-ready app from a Sage Kernel template and return next steps.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["template", "name"],
+        "properties": {
+          "template": { "type": "string" },
+          "name": { "type": "string" },
+          "target": { "type": "string" },
+          "out": { "type": "string" }
+        }
+      },
+      "risk": "mutating",
+      "permission": "workflow:write",
+      "sideEffects": "writes a generated project directory",
+      "outputShape": "Create-app workflow result with template plan, scaffold output, status, and next actions.",
+      "examples": [
+        {
+          "description": "Create a worker app.",
+          "input": { "template": "worker-service", "name": "daily-worker", "out": ".sage-kernel/generated" }
+        }
+      ],
+      "failureModes": [
+        "input.template or input.name is missing.",
+        "Template id is unknown.",
+        "Output directory already exists."
+      ]
+    },
+    {
+      "name": "kernel.workflow.release_readiness",
+      "description": "Check local release readiness from deployment plan, dashboard health, and approval state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "template": { "type": "string" },
+          "target": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Release readiness report with deployment plan, checks, status, and next actions.",
+      "examples": [
+        {
+          "description": "Check Docker release readiness.",
+          "input": { "template": "worker-service", "target": "docker" }
+        }
+      ],
+      "failureModes": [
+        "Template id is unknown.",
+        "Deployment target is unknown.",
+        "Dashboard snapshot cannot be created."
+      ]
+    },
+    {
+      "name": "kernel.workflow.pending_approvals",
+      "description": "Show pending approval requests with review guidance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Approval inbox report with status filter, count, approval records, and next actions.",
+      "examples": [
+        {
+          "description": "List pending approvals.",
+          "input": { "status": "pending" }
+        }
+      ],
+      "failureModes": [
+        "Approval database query fails."
+      ]
+    },
+    {
+      "name": "kernel.workflow.stress_dashboard",
+      "description": "Stress test the local dashboard or health endpoint and return latency/failure metrics.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string" },
+          "endpoint": { "type": "string" },
+          "count": { "type": "number" },
+          "concurrency": { "type": "number" }
+        }
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Dashboard stress report with request count, concurrency, failures, throughput, and latency percentiles.",
+      "examples": [
+        {
+          "description": "Stress the dashboard snapshot endpoint.",
+          "input": { "url": "http://127.0.0.1:8787", "count": 200, "concurrency": 20 }
+        }
+      ],
+      "failureModes": [
+        "Dashboard URL is unreachable.",
+        "Stress script times out.",
+        "Stress report JSON is malformed."
+      ]
+    },
+    {
+      "name": "kernel.workflow.daily_summary",
+      "description": "Summarize today's kernel state for daily app-building work.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Daily summary with dashboard health, DB counts, tool count, pending approvals, recent runs, and next actions.",
+      "examples": [
+        {
+          "description": "Get today's operating summary.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Dashboard snapshot cannot be created.",
+        "Approval ledger query fails.",
+        "Run history is malformed."
+      ]
     }
   ]
 }

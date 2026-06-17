@@ -10,11 +10,13 @@ The warehouse remains its own source repo. The kernel should not blindly copy 86
 
 ## Source Warehouse
 
-Default local source:
+Set the source repo with:
 
-```text
-/Users/Sage/.graphify/repos/JasonTeixeira/ai-warehouse
+```bash
+AI_WAREHOUSE_ROOT=/path/to/ai-warehouse
 ```
+
+If `AI_WAREHOUSE_ROOT` is unset, local summary scripts fail fast with a configuration error.
 
 Current observed capability:
 
@@ -39,4 +41,3 @@ The kernel uses AI Warehouse for:
 - comparing infrastructure options
 - generating evidence-backed project plans
 - updating verdicts after real project usage
-

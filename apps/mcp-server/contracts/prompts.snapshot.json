@@ -1,0 +1,67 @@
+{
+  "generatedAt": "stable",
+  "server": {
+    "name": "sage-kernel",
+    "description": "MCP control surface for Sage Kernel OS.",
+    "defaultTransport": "stdio"
+  },
+  "prompts": [
+    {
+      "name": "sage.audit-repo",
+      "title": "Audit Repository",
+      "description": "Audit a repository for production readiness, security, tests, docs, and release risk.",
+      "arguments": [
+        "scope"
+      ]
+    },
+    {
+      "name": "sage.run-full-qa",
+      "title": "Run Full QA",
+      "description": "Run the full local QA and verification gate sequence.",
+      "arguments": [
+        "mode"
+      ]
+    },
+    {
+      "name": "sage.create-project",
+      "title": "Create Project",
+      "description": "Plan a new production-ready project from a Sage template.",
+      "arguments": [
+        "template",
+        "name"
+      ]
+    },
+    {
+      "name": "sage.inspect-approvals",
+      "title": "Inspect Approvals",
+      "description": "Review pending approvals and explain which risky actions are waiting.",
+      "arguments": [
+        "status"
+      ]
+    },
+    {
+      "name": "sage.prepare-release",
+      "title": "Prepare Release",
+      "description": "Prepare a release checklist and verify release readiness.",
+      "arguments": [
+        "version"
+      ]
+    },
+    {
+      "name": "sage.stress-test-server",
+      "title": "Stress Test Server",
+      "description": "Run local stress tests against queue and dashboard endpoints.",
+      "arguments": [
+        "url"
+      ]
+    },
+    {
+      "name": "sage.explain-failed-job",
+      "title": "Explain Failed Job",
+      "description": "Explain a failed job run and propose a repair plan.",
+      "arguments": [
+        "runId"
+      ]
+    }
+  ]
+}

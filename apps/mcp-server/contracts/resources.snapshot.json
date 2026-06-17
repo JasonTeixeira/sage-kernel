@@ -1,0 +1,74 @@
+{
+  "generatedAt": "stable",
+  "server": {
+    "name": "sage-kernel",
+    "description": "MCP control surface for Sage Kernel OS.",
+    "defaultTransport": "stdio"
+  },
+  "resources": [
+    {
+      "name": "sage.catalog",
+      "uri": "sage://catalog",
+      "title": "Sage Catalog",
+      "description": "Kernel catalog data for phases, repos, modules, templates, integrations, and QA profiles.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.templates",
+      "uri": "sage://templates",
+      "title": "Sage Templates",
+      "description": "Project template catalog with coverage, stack, and QA profile metadata.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.jobs",
+      "uri": "sage://jobs",
+      "title": "Sage Jobs",
+      "description": "Worker job registry and schedule definitions.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.runs",
+      "uri": "sage://runs",
+      "title": "Sage Runs",
+      "description": "Recent job run history from the dashboard snapshot.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.approvals",
+      "uri": "sage://approvals",
+      "title": "Sage Approvals",
+      "description": "Recent approval ledger entries from the dashboard snapshot.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.docs.mcp-server",
+      "uri": "sage://docs/mcp-server",
+      "title": "Sage MCP Server Docs",
+      "description": "Canonical MCP server setup and verification documentation.",
+      "mimeType": "text/markdown",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.metrics",
+      "uri": "sage://metrics",
+      "title": "Sage Metrics",
+      "description": "Prometheus-style dashboard metrics.",
+      "mimeType": "text/plain",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.dashboard.snapshot",
+      "uri": "sage://dashboard/snapshot",
+      "title": "Sage Dashboard Snapshot",
+      "description": "Full DB-backed dashboard snapshot.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    }
+  ]
+}

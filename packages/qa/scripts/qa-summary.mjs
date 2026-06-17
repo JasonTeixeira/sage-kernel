@@ -1,8 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const sourceRoot =
-  process.env.QA_OS_ROOT || "/Users/Sage/.graphify/repos/JasonTeixeira/nexural-qa-os";
+const sourceRoot = process.env.QA_OS_ROOT;
+if (!sourceRoot) {
+  throw new Error("QA OS source root is not configured. Set QA_OS_ROOT.");
+}
 const runnersDir = path.join(sourceRoot, "runners");
 const packagesDir = path.join(sourceRoot, "packages");
 const manifestPath = path.join(sourceRoot, "qa.manifest.json");

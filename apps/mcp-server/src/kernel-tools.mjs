@@ -1,18 +1,23 @@
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { ensureKernelSchema, sqlJson, sqlString, runSql } from "../../../packages/db/scripts/db-lib.mjs";
 import { assertToolAllowed, listApprovals, requestApproval } from "../../../packages/security/guard.mjs";
 import { createSqliteAdapter } from "../../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../../packages/security/approvals.mjs";
 import { dashboardSnapshot } from "../../dashboard/server.mjs";
 
+const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+
 export function readJson(root, relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
 }
 
 function runNode(root, script, args = []) {
-  const result = spawnSync("node", [script, ...args], {
+  const scriptPath = fs.existsSync(path.join(root, script)) ? path.join(root, script) : path.join(sourceRoot, script);
+  const result = spawnSync("node", [scriptPath, ...args], {
     cwd: root,
     encoding: "utf8"
   });
@@ -102,7 +107,7 @@ function listRuns(root, limit = 20) {
 }
 
 function warehouseSearch(root, query, limit = 10, verdict = null) {
-  const sourceRoot = process.env.AI_WAREHOUSE_ROOT || "/Users/Sage/.graphify/repos/JasonTeixeira/ai-warehouse";
+  const sourceRoot = requiredEnvPath("AI_WAREHOUSE_ROOT", "AI Warehouse");
   const indexPath = path.join(sourceRoot, "index.json");
   if (!fs.existsSync(indexPath)) throw new Error(`AI Warehouse index not found: ${indexPath}`);
   const { tools } = JSON.parse(fs.readFileSync(indexPath, "utf8"));
@@ -127,7 +132,9 @@ function inspectRepo(root, repoName) {
   const catalog = readJson(root, "catalog/repos.json");
   const repo = catalog.repos.find((item) => item.name === repoName);
   if (!repo) throw new Error(`Unknown catalog repo: ${repoName}`);
-  const repoPath = path.join(catalog.sourceRoot, repo.name);
+  const sourceRoot = catalogSourceRoot(catalog);
+  if (!sourceRoot) throw new Error(`Repo source root is not configured. Set ${catalog.sourceRootEnv || "SAGE_KERNEL_SOURCE_ROOT"}.`);
+  const repoPath = path.join(sourceRoot, repo.name);
   const exists = fs.existsSync(repoPath);
   const packagePath = path.join(repoPath, "package.json");
   const pyprojectPath = path.join(repoPath, "pyproject.toml");
@@ -144,15 +151,43 @@ function inspectRepo(root, repoName) {
 
 function qaRun(root, projectPath = root, mode = "fast") {
   const absolute = path.resolve(root, projectPath);
-  if (!absolute.startsWith(root) && !absolute.startsWith("/Users/Sage")) {
-    throw new Error("Refusing to run QA outside allowed local workspace");
+  const resolvedProjectPath = realPath(absolute);
+  const allowedRoots = [root, ...configuredAllowedRoots()].map((item) => realPath(path.resolve(item)));
+  if (!allowedRoots.some((allowedRoot) => resolvedProjectPath === allowedRoot || resolvedProjectPath.startsWith(`${allowedRoot}${path.sep}`))) {
+    throw new Error(`Refusing to run QA outside allowed roots: ${allowedRoots.join(", ")}`);
   }
-  const args = [absolute];
+  const args = [resolvedProjectPath];
   if (mode === "deep") args.push("--deep");
   if (mode === "standard") args.push("--standard");
-  const result = runCommand(root, "node", ["packages/qa/scripts/qa-runner.mjs", ...args], 180000);
+  const result = runCommand(root, "node", [path.join(sourceRoot, "packages/qa/scripts/qa-runner.mjs"), ...args], 180000);
   const parsed = result.stdout ? JSON.parse(result.stdout) : { status: "failed", result };
   return parsed;
+}
+
+function configuredAllowedRoots() {
+  return (process.env.SAGE_KERNEL_ALLOWED_ROOTS || "")
+    .split(path.delimiter)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function catalogSourceRoot(catalog) {
+  if (catalog.sourceRootEnv && process.env[catalog.sourceRootEnv]) return process.env[catalog.sourceRootEnv];
+  return catalog.sourceRoot || "";
+}
+
+function requiredEnvPath(name, label) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${label} source root is not configured. Set ${name}.`);
+  return value;
+}
+
+function realPath(absolutePath) {
+  try {
+    return fs.realpathSync.native(absolutePath);
+  } catch {
+    return absolutePath;
+  }
 }
 
 function deployPrepare(root, templateId, target = "vercel") {
@@ -180,6 +215,177 @@ function deployPrepare(root, templateId, target = "vercel") {
 function runCommand(cwd, command, args, timeoutMs) {
   const result = spawnSync(command, args, { cwd, encoding: "utf8", timeout: timeoutMs, maxBuffer: 1024 * 1024 * 8 });
   return { command, args, status: result.status, stdout: result.stdout?.trim() || "", stderr: result.stderr?.trim() || "" };
+}
+
+function workflowAuditRepo(root, input = {}) {
+  const qa = qaRun(root, input.projectPath ?? ".", input.mode ?? "fast");
+  const snapshot = dashboardSnapshot({ root });
+  const health = snapshot.system.health;
+  return {
+    workflow: "audit_repo",
+    status: qa.status === "passed" && health.status !== "degraded" ? "passed" : "needs_attention",
+    qa,
+    dashboard: {
+      status: health.status,
+      summary: health.summary,
+      tools: snapshot.tools.length
+    },
+    pendingApprovals: listApprovals(root, "pending").length,
+    nextActions: workflowNextActions(qa)
+  };
+}
+
+function workflowRunFullQa(root, input = {}) {
+  const mode = input.mode || "standard";
+  const qa = qaRun(root, input.projectPath ?? ".", mode);
+  return {
+    workflow: "run_full_qa",
+    status: qa.status,
+    qa,
+    failures: summarizeFailures(qa),
+    nextActions: workflowNextActions(qa)
+  };
+}
+
+function workflowExplainFailures(root, input = {}) {
+  const report = input.report || qaRun(root, input.projectPath ?? ".", input.mode ?? "fast");
+  const failures = summarizeFailures(report);
+  return {
+    workflow: "explain_failures",
+    status: report.status || (failures.length > 0 ? "failed" : "passed"),
+    failures,
+    nextActions: failures.length > 0
+      ? failures.map((failure) => failure.recommendation)
+      : ["No failed checks found in the provided report."]
+  };
+}
+
+function workflowCreateApp(root, input = {}) {
+  if (!input.template || !input.name) {
+    throw new Error("kernel.workflow.create_app requires input.template and input.name");
+  }
+  const plan = {
+    template: getQaProfile(root, input.template).template,
+    infraPlan: infraPlan(root, input.template, input.target ?? "docker")
+  };
+  const args = ["--template", input.template, "--name", input.name];
+  if (input.out) args.push("--out", input.out);
+  const output = runNode(root, "packages/templates/scripts/template-scaffold-v2.mjs", args);
+  return {
+    workflow: "create_app",
+    status: "created",
+    plan,
+    scaffold: { output },
+    nextActions: [
+      "Open the generated project.",
+      "Run npm install inside the generated project.",
+      "Run the generated QA command before adding features.",
+      "Use Sage Kernel to plan infra and release readiness."
+    ]
+  };
+}
+
+function workflowReleaseReadiness(root, input = {}) {
+  const template = input.template || "worker-service";
+  const target = input.target || "docker";
+  const deployment = deployPrepare(root, template, target);
+  const snapshot = dashboardSnapshot({ root });
+  const health = snapshot.system.health;
+  const checks = [
+    { name: "deployment-plan", status: deployment.status === "prepared" ? "passed" : "failed" },
+    { name: "dashboard-health", status: health.status === "degraded" ? "failed" : "passed" },
+    { name: "pending-approvals", status: listApprovals(root, "pending").length === 0 ? "passed" : "warning" }
+  ];
+  return {
+    workflow: "release_readiness",
+    status: checks.some((check) => check.status === "failed") ? "blocked" : "ready",
+    template,
+    target,
+    deployment,
+    checks,
+    nextActions: deployment.nextActions
+  };
+}
+
+function workflowPendingApprovals(root, input = {}) {
+  const status = input.status || "pending";
+  const approvals = listApprovals(root, status);
+  return {
+    workflow: "pending_approvals",
+    status,
+    count: approvals.length,
+    approvals,
+    nextActions: approvals.length > 0
+      ? ["Review each approval payload and approve only scoped, expected actions."]
+      : ["No pending approvals."]
+  };
+}
+
+function workflowStressDashboard(root, input = {}) {
+  const url = input.url || "http://127.0.0.1:8787";
+  const count = String(input.count || 200);
+  const concurrency = String(input.concurrency || 20);
+  const endpoint = input.endpoint || "/api/snapshot";
+  const result = runCommand(root, "node", [
+    path.join(sourceRoot, "scripts/stress-dashboard.mjs"),
+    `--url=${url}`,
+    `--endpoint=${endpoint}`,
+    `--count=${count}`,
+    `--concurrency=${concurrency}`
+  ], 120000);
+  const report = result.stdout ? JSON.parse(result.stdout) : { status: "failed", result };
+  return {
+    workflow: "stress_dashboard",
+    report,
+    command: result.command,
+    status: report.status
+  };
+}
+
+function workflowDailySummary(root) {
+  const snapshot = dashboardSnapshot({ root });
+  const health = snapshot.system.health;
+  const approvals = listApprovals(root, "pending");
+  const runs = listRuns(root, 5);
+  return {
+    workflow: "daily_summary",
+    status: health.status === "degraded" ? "needs_attention" : "ready",
+    dashboard: {
+      status: health.status,
+      summary: health.summary,
+      db: snapshot.db,
+      tools: snapshot.tools.length
+    },
+    pendingApprovals: approvals.length,
+    recentRuns: runs,
+    nextActions: [
+      "Run audit_repo on the active project.",
+      "Review pending approvals before mutating actions.",
+      "Run release_readiness before shipping."
+    ]
+  };
+}
+
+function summarizeFailures(report) {
+  return (report.checks || [])
+    .filter((check) => check.status === "failed")
+    .map((check) => ({
+      check: check.name,
+      command: check.result?.command || null,
+      stderr: check.result?.stderr || "",
+      stdout: check.result?.stdout || "",
+      recommendation: `Fix failed check ${check.name}, then rerun the same workflow.`
+    }));
+}
+
+function workflowNextActions(qa) {
+  const failures = summarizeFailures(qa);
+  if (failures.length > 0) return failures.map((failure) => failure.recommendation);
+  return [
+    "Keep working from the current branch.",
+    "Run release_readiness before deployment.",
+    "Use create_app for new production-ready project scaffolds."
+  ];
 }
 
 export async function callKernelTool(root, toolName, input = {}) {
@@ -289,12 +495,36 @@ export async function callKernelTool(root, toolName, input = {}) {
     }
 
     case "kernel.dashboard.snapshot":
-      return dashboardSnapshot();
+      return dashboardSnapshot({ root });
 
     case "kernel.dogfood.prod": {
       const output = runNode(root, "scripts/dogfood-production-audit.mjs", input.repos || []);
       return JSON.parse(output);
     }
+
+    case "kernel.workflow.audit_repo":
+      return workflowAuditRepo(root, input);
+
+    case "kernel.workflow.run_full_qa":
+      return workflowRunFullQa(root, input);
+
+    case "kernel.workflow.explain_failures":
+      return workflowExplainFailures(root, input);
+
+    case "kernel.workflow.create_app":
+      return workflowCreateApp(root, input);
+
+    case "kernel.workflow.release_readiness":
+      return workflowReleaseReadiness(root, input);
+
+    case "kernel.workflow.pending_approvals":
+      return workflowPendingApprovals(root, input);
+
+    case "kernel.workflow.stress_dashboard":
+      return workflowStressDashboard(root, input);
+
+    case "kernel.workflow.daily_summary":
+      return workflowDailySummary(root);
 
     default:
       throw new Error(`Unknown tool: ${toolName}`);
@@ -302,7 +532,7 @@ export async function callKernelTool(root, toolName, input = {}) {
 }
 
 function cryptoRandomId() {
-  return `job_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  return `job_${crypto.randomUUID()}`;
 }
 
 export function toMcpTextContent(value) {

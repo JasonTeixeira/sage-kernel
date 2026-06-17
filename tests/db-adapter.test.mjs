@@ -4,7 +4,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { createDbAdapter, createSqliteAdapter, detectDbProvider } from "../packages/db/adapter.mjs";
+import { createDbAdapter, createPersistentSqliteAdapter, createPostgresAdapter, createSqliteAdapter, detectDbProvider } from "../packages/db/adapter.mjs";
+import {
+  backupSqliteDb,
+  exportKernelData,
+  importKernelData,
+  restoreSqliteDbBackup
+} from "../packages/db/persistence.mjs";
+import { migrateKernelDb, runKernelMigrations } from "../packages/db/migrations.mjs";
 
 function tempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sage-kernel-db-"));
@@ -12,6 +19,8 @@ function tempRoot() {
 
 test("detectDbProvider defaults to sqlite and recognizes postgres urls", () => {
   assert.equal(detectDbProvider({}), "sqlite");
+  assert.equal(detectDbProvider({ SAGE_DB_PROVIDER: "postgres" }), "postgres");
+  assert.equal(detectDbProvider({ SAGE_DB_PROVIDER: "sqlite", DATABASE_URL: "postgresql://localhost/db" }), "sqlite");
   assert.equal(detectDbProvider({ DATABASE_URL: "postgres://user:pass@localhost:5432/db" }), "postgres");
   assert.equal(detectDbProvider({ DATABASE_URL: "postgresql://user:pass@localhost:5432/db" }), "postgres");
 });
@@ -32,10 +41,381 @@ test("sqlite adapter initializes schema and supports parameterized writes", () =
   assert.deepEqual(JSON.parse(rows[0].payload_json), { ok: true });
 });
 
-test("createDbAdapter returns sqlite locally and rejects runtime postgres until adapter is configured", () => {
-  assert.equal(createDbAdapter({ root: tempRoot(), env: {} }).provider, "sqlite");
-  assert.throws(
-    () => createDbAdapter({ root: tempRoot(), env: { DATABASE_URL: "postgresql://localhost/db" } }),
-    /Postgres runtime adapter is not configured/
+test("persistent sqlite adapter supports in-process queries when node sqlite is available", () => {
+  let db;
+  try {
+    db = createPersistentSqliteAdapter({ root: tempRoot(), schemaRoot: path.resolve(import.meta.dirname, "..") });
+  } catch (error) {
+    assert.match(error.message, /node:sqlite/);
+    return;
+  }
+  db.init();
+  assert.equal(db.driver, "persistent");
+  db.execute(
+    "INSERT INTO decisions (id, title, summary, source, created_at) VALUES (?, ?, ?, ?, ?)",
+    ["decision_persistent", "Persistent", "Driver", "test", "2026-01-01T00:00:00.000Z"]
   );
+  db.executeBatch([
+    {
+      sql: "INSERT INTO audit_events (id, type, subject, metadata_json, created_at) VALUES (?, ?, ?, ?, ?)",
+      params: ["audit_persistent", "tool.finished", "kernel.test", JSON.stringify({ ok: true }), "2026-01-01T00:00:01.000Z"]
+    }
+  ]);
+  assert.equal(db.query("SELECT id FROM decisions WHERE id=?", ["decision_persistent"])[0].id, "decision_persistent");
+  assert.equal(db.scalar("SELECT COUNT(*) AS count FROM audit_events WHERE id=?", ["audit_persistent"]), 1);
+  assert.equal(db.scalar("SELECT NULL AS value"), "");
+  db.close();
+});
+
+test("sqlite adapter can select persistent mode and rolls back failed persistent batches", () => {
+  let db;
+  try {
+    db = createSqliteAdapter({
+      root: tempRoot(),
+      schemaRoot: path.resolve(import.meta.dirname, ".."),
+      env: { SAGE_SQLITE_DRIVER: "persistent" }
+    });
+  } catch (error) {
+    assert.match(error.message, /node:sqlite/);
+    return;
+  }
+  assert.equal(db.driver, "persistent");
+  db.init();
+  db.execute("CREATE TABLE IF NOT EXISTS persistent_extra (id TEXT PRIMARY KEY);");
+  db.executeBatch([
+    "INSERT INTO persistent_extra (id) VALUES ('one')",
+    { sql: "INSERT INTO persistent_extra (id) VALUES (?)", params: ["two"] }
+  ]);
+  assert.equal(db.scalar("SELECT COUNT(*) AS count FROM persistent_extra;"), 2);
+  assert.throws(
+    () => db.executeBatch(["INSERT INTO persistent_extra (id) VALUES ('three')", "INSERT INTO missing_table VALUES ('broken')"]),
+    /missing_table/
+  );
+  assert.equal(db.scalar("SELECT COUNT(*) AS count FROM persistent_extra;"), 2);
+  db.close();
+});
+
+test("sqlite adapter executes batched statements in one transaction", () => {
+  const root = tempRoot();
+  const db = createSqliteAdapter({ root, schemaRoot: path.resolve(import.meta.dirname, "..") });
+
+  db.init();
+  db.executeBatch([
+    {
+      sql: "INSERT INTO decisions (id, title, summary, source, created_at) VALUES (?, ?, ?, ?, ?)",
+      params: ["decision_1", "One", "First", "test", "2026-01-01T00:00:00.000Z"]
+    },
+    {
+      sql: "INSERT INTO decisions (id, title, summary, source, created_at) VALUES (?, ?, ?, ?, ?)",
+      params: ["decision_2", "Two", "Second", "test", "2026-01-01T00:00:01.000Z"]
+    }
+  ]);
+
+  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM decisions;")), 2);
+});
+
+test("createDbAdapter returns sqlite locally and postgres when configured", () => {
+  assert.equal(createDbAdapter({ root: tempRoot(), env: {} }).provider, "sqlite");
+  assert.equal(createDbAdapter({ root: tempRoot(), env: { DATABASE_URL: "postgresql://localhost/db" } }).provider, "postgres");
+  assert.throws(() => createDbAdapter({ root: tempRoot(), provider: "missing" }), /Unknown DB provider/);
+});
+
+test("postgres adapter supports schema init, parameterized queries, scalar values, transactions, and close", async () => {
+  const calls = [];
+  class FakeClient {
+    constructor(config) {
+      this.config = config;
+    }
+    async connect() {
+      calls.push(["connect", this.config.connectionString]);
+    }
+    async query(sql, params = []) {
+      calls.push(["query", sql, params]);
+      if (sql === "SELECT 1 AS value") return { rows: [{ value: 1 }] };
+      if (sql === "SELECT COUNT(*) AS count FROM approvals") return { rows: [{ count: "2" }] };
+      return { rows: [] };
+    }
+    async end() {
+      calls.push(["end"]);
+    }
+  }
+
+  const adapter = createPostgresAdapter({
+    root: path.resolve(import.meta.dirname, ".."),
+    env: { DATABASE_URL: "postgresql://localhost/sage" },
+    ClientClass: FakeClient
+  });
+
+  await adapter.init();
+  await adapter.execute("INSERT INTO approvals (id) VALUES ($1)", ["approval_1"]);
+  assert.deepEqual(await adapter.query("SELECT 1 AS value"), [{ value: 1 }]);
+  assert.equal(await adapter.scalar("SELECT COUNT(*) AS count FROM approvals"), "2");
+  assert.equal(await adapter.scalar("SELECT nothing"), "");
+  await adapter.executeBatch([
+    { sql: "INSERT INTO approvals (id) VALUES ($1)", params: ["approval_2"] },
+    "DELETE FROM approvals WHERE id = 'approval_2'"
+  ]);
+  await adapter.close();
+  await adapter.close();
+
+  assert.equal(calls[0][0], "connect");
+  assert.equal(calls.some((call) => call[1] === "BEGIN"), true);
+  assert.equal(calls.some((call) => call[1] === "COMMIT"), true);
+  assert.equal(calls.at(-1)[0], "end");
+});
+
+test("postgres adapter rolls back failed batches and rejects missing connection strings", async () => {
+  assert.throws(() => createPostgresAdapter({ env: {} }), /requires DATABASE_URL/);
+
+  const calls = [];
+  class FailingClient {
+    async connect() {
+      calls.push(["connect"]);
+    }
+    async query(sql, params = []) {
+      calls.push(["query", sql, params]);
+      if (sql.includes("BROKEN")) throw new Error("broken statement");
+      return { rows: [] };
+    }
+    async end() {
+      calls.push(["end"]);
+    }
+  }
+
+  const adapter = createPostgresAdapter({
+    root: path.resolve(import.meta.dirname, ".."),
+    env: { DATABASE_URL: "postgresql://localhost/sage" },
+    ClientClass: FailingClient
+  });
+  await assert.rejects(
+    adapter.executeBatch(["SELECT 1", "BROKEN"]),
+    /broken statement/
+  );
+  assert.equal(calls.some((call) => call[1] === "ROLLBACK"), true);
+  await adapter.close();
+  assert.equal(calls.at(-1)[0], "end");
+});
+
+test("postgres migrations cover skipped columns and statement selection", async () => {
+  const calls = [];
+  const existingColumns = new Set(["next_run_at", "locked_at", "locked_by", "signature", "decided_by"]);
+  const fakeDb = {
+    provider: "postgres",
+    async execute(sql, params = []) {
+      calls.push(["execute", sql, params]);
+    },
+    async executeBatch(statements = []) {
+      calls.push(["batch", statements]);
+      for (const statement of statements) {
+        if (typeof statement === "string") {
+          assert.doesNotMatch(statement, /sqlite-only/);
+        } else {
+          assert.match(statement.sql, /INSERT INTO schema_migrations/);
+        }
+      }
+    },
+    async query(sql, params = []) {
+      calls.push(["query", sql, params]);
+      if (sql.includes("schema_migrations")) return [];
+      if (sql.includes("information_schema.columns")) {
+        return [...existingColumns].map((name) => ({ name }));
+      }
+      return [];
+    }
+  };
+
+  const result = await runKernelMigrations({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
+    db: fakeDb,
+    provider: "postgres",
+    now: () => "2026-01-01T00:00:00.000Z"
+  });
+
+  assert.equal(result.applied, 5);
+  assert.equal(result.provider, "postgres");
+  assert.equal(calls.some((call) => call[0] === "batch"), true);
+  assert.equal(calls.some((call) => call[1]?.includes?.("ALTER TABLE")), false);
+});
+
+test("migration runner reports skipped migrations and sqlite column additions", async () => {
+  const calls = [];
+  const fakeDb = {
+    provider: "sqlite",
+    async execute(sql, params = []) {
+      calls.push(["execute", sql, params]);
+    },
+    async executeBatch(statements = []) {
+      calls.push(["batch", statements]);
+    },
+    async query(sql) {
+      calls.push(["query", sql]);
+      if (sql.includes("schema_migrations")) return [{ id: "already_applied" }];
+      if (sql.includes("PRAGMA table_info")) return [];
+      return [];
+    }
+  };
+
+  const result = await runKernelMigrations({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
+    db: fakeDb,
+    provider: "sqlite",
+    now: () => "2026-01-01T00:00:00.000Z",
+    migrations: [
+      { id: "already_applied", description: "skip", statements: ["SELECT skipped"] },
+      {
+        id: "add_column",
+        description: "add column",
+        async up(db, context) {
+          await db.executeBatch([`ALTER TABLE demo ADD COLUMN value ${context.provider === "sqlite" ? "TEXT" : "TEXT"};`]);
+        }
+      },
+      {
+        id: "string_statement",
+        description: "string statement",
+        statements: ["SELECT 1"]
+      }
+    ]
+  });
+
+  assert.equal(result.applied, 2);
+  assert.equal(result.skipped, 1);
+  assert.deepEqual(result.migrations.map((migration) => migration.status), ["skipped", "applied", "applied"]);
+  assert.equal(calls.some((call) => call[0] === "batch" && JSON.stringify(call[1]).includes("SELECT 1")), true);
+});
+
+test("sqlite persistence exports, imports, redacts, backs up, and restores data", () => {
+  const root = tempRoot();
+  const schemaRoot = path.resolve(import.meta.dirname, "..");
+  const db = createSqliteAdapter({ root, schemaRoot });
+  db.init();
+  db.execute(
+    "INSERT INTO approvals (id, action, status, reason, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ["approval_secret", "kernel.test", "pending", "contains secret", JSON.stringify({ token: "secret-token", ok: true }), "2026-01-01T00:00:00.000Z"]
+  );
+  db.execute(
+    "INSERT INTO audit_events (id, type, subject, metadata_json, created_at) VALUES (?, ?, ?, ?, ?)",
+    ["audit_secret", "tool.started", "kernel.test", JSON.stringify({ input: { password: "secret-password" } }), "2026-01-01T00:00:01.000Z"]
+  );
+  db.execute(
+    "INSERT INTO schema_migrations (id, description, applied_at) VALUES (?, ?, ?)",
+    ["9999_test", "test migration", "2026-01-01T00:00:02.000Z"]
+  );
+
+  const exported = exportKernelData({ root, schemaRoot });
+  assert.equal(exported.tables.approvals.length, 1);
+  assert.equal(exported.tables.audit_events.length, 1);
+  assert.equal(exported.tables.schema_migrations.length, 1);
+  assert.match(JSON.stringify(exported), /secret-token/);
+
+  const redacted = exportKernelData({ root, schemaRoot, redacted: true });
+  assert.doesNotMatch(JSON.stringify(redacted), /secret-token|secret-password/);
+  assert.match(JSON.stringify(redacted), /REDACTED/);
+
+  const importedRoot = tempRoot();
+  importKernelData({ root: importedRoot, schemaRoot, data: exported });
+  const importedDb = createSqliteAdapter({ root: importedRoot, schemaRoot });
+  importedDb.init();
+  assert.equal(Number(importedDb.scalar("SELECT COUNT(*) FROM approvals;")), 1);
+  assert.equal(Number(importedDb.scalar("SELECT COUNT(*) FROM audit_events;")), 1);
+  assert.equal(Number(importedDb.scalar("SELECT COUNT(*) FROM schema_migrations;")), 1);
+
+  const backup = backupSqliteDb({ root, schemaRoot });
+  assert.equal(fs.existsSync(backup.path), true);
+  assert.equal(backup.bytes > 0, true);
+
+  const restoredRoot = tempRoot();
+  restoreSqliteDbBackup({ root: restoredRoot, backupPath: backup.path });
+  const restoredDb = createSqliteAdapter({ root: restoredRoot, schemaRoot });
+  restoredDb.init();
+  assert.equal(Number(restoredDb.scalar("SELECT COUNT(*) FROM approvals;")), 1);
+  assert.equal(Number(restoredDb.scalar("SELECT COUNT(*) FROM audit_events;")), 1);
+  assert.equal(Number(restoredDb.scalar("SELECT COUNT(*) FROM schema_migrations;")), 1);
+});
+
+test("sqlite persistence validates import formats, file imports, custom backup paths, and restore inputs", () => {
+  const root = tempRoot();
+  const schemaRoot = path.resolve(import.meta.dirname, "..");
+  const db = createSqliteAdapter({ root, schemaRoot });
+  db.init();
+  db.execute(
+    "INSERT INTO audit_events (id, type, subject, metadata_json, created_at) VALUES (?, ?, ?, ?, ?)",
+    ["audit_invalid_json", "tool.finished", "kernel.test", "{not json", "2026-01-01T00:00:00.000Z"]
+  );
+
+  assert.throws(() => importKernelData({ root: tempRoot(), schemaRoot, data: { format: "wrong" } }), /Unsupported/);
+  assert.throws(() => importKernelData({ root: tempRoot(), schemaRoot }), /Import requires/);
+  assert.throws(() => restoreSqliteDbBackup({ root: tempRoot(), backupPath: "" }), /Backup file does not exist/);
+
+  const exported = exportKernelData({ root, schemaRoot, redacted: true });
+  assert.equal(exported.tables.audit_events[0].metadata_json, "{not json");
+
+  const exportPath = path.join(root, "kernel-export.json");
+  fs.writeFileSync(exportPath, JSON.stringify({
+    ...exported,
+    tables: {
+      ...exported.tables,
+      decisions: [{}]
+    }
+  }));
+  const importedRoot = tempRoot();
+  const imported = importKernelData({ root: importedRoot, schemaRoot, file: exportPath });
+  assert.equal(imported.tables.decisions, 1);
+  const importedDb = createSqliteAdapter({ root: importedRoot, schemaRoot });
+  importedDb.init();
+  assert.equal(Number(importedDb.scalar("SELECT COUNT(*) FROM decisions;")), 0);
+
+  const customBackup = path.join(root, "custom-kernel.db");
+  const backup = backupSqliteDb({ root, schemaRoot, path: customBackup });
+  assert.equal(backup.path, customBackup);
+  assert.equal(fs.existsSync(customBackup), true);
+});
+
+test("sqlite migrations are tracked and idempotent", async () => {
+  const root = tempRoot();
+  const schemaRoot = path.resolve(import.meta.dirname, "..");
+
+  const first = await migrateKernelDb({ root, schemaRoot });
+  assert.equal(first.provider, "sqlite");
+  assert.equal(first.applied, 5);
+  assert.equal(first.skipped, 0);
+
+  const second = await migrateKernelDb({ root, schemaRoot });
+  assert.equal(second.applied, 0);
+  assert.equal(second.skipped, 5);
+
+  const db = createSqliteAdapter({ root, schemaRoot });
+  db.init();
+  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM schema_migrations;")), 5);
+  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM audit_events;")), 0);
+});
+
+test("sqlite migration failures roll back statements and migration records", async () => {
+  const root = tempRoot();
+  const schemaRoot = path.resolve(import.meta.dirname, "..");
+  const db = createSqliteAdapter({ root, schemaRoot });
+  db.init();
+
+  await assert.rejects(
+    runKernelMigrations({
+      root,
+      schemaRoot,
+      db,
+      migrations: [
+        {
+          id: "9999_broken",
+          description: "broken test migration",
+          statements: [
+            "CREATE TABLE rollback_probe (id TEXT PRIMARY KEY);",
+            "INSERT INTO missing_table (id) VALUES ('nope');"
+          ]
+        }
+      ]
+    }),
+    /missing_table|no such table/
+  );
+
+  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM schema_migrations WHERE id = ?", ["9999_broken"])), 0);
+  assert.equal(db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", ["rollback_probe"]).length, 0);
 });

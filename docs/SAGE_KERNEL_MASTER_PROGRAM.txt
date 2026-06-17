@@ -1,0 +1,1310 @@
+SAGE KERNEL MASTER PROGRAM
+MCP-FIRST OPEN SOURCE ENGINEERING OPERATING SYSTEM
+
+Purpose
+=======
+
+This document is the master execution program for turning Sage Kernel into a
+world-class open source MCP-native engineering operating system.
+
+The product direction is:
+
+  Sage Kernel is an MCP server first.
+  The MCP server is the primary product interface.
+  The local dashboard is an optional human cockpit.
+  Hosted deployment is optional, not required.
+
+The kernel should let a developer, team, or AI coding agent inspect projects,
+run QA, audit code, manage approvals, execute jobs, generate production-ready
+templates, and verify release readiness through a strict, documented, tested,
+and auditable control plane.
+
+North Star
+==========
+
+Build a kernel that is good enough for daily use and credible as a standalone
+open source project.
+
+The final project should satisfy these conditions:
+
+1. A stranger can install it from a clean checkout.
+2. A stranger can connect it to an MCP client.
+3. A stranger can run the dashboard locally.
+4. A stranger can run all tests, security scans, E2E checks, and stress tests.
+5. Every important action is documented.
+6. Every risky action has a permission and approval boundary.
+7. Every route, MCP tool, job, and persistence path has automated coverage.
+8. The repo has professional OSS docs, release process, and contribution flow.
+9. The dashboard is useful as a daily operations cockpit.
+10. The system can be extended through templates, tools, and eventually plugins.
+
+Target Quality Gates
+====================
+
+These gates define the standard. Do not claim world-class status unless these
+are passing and recorded.
+
+Required gates:
+
+  npm test
+  npm run test:coverage
+  npm run catalog:validate
+  npm run infra:validate
+  npm run jobs:validate
+  npm run mcp:validate
+  npm run mcp:contracts
+  npm run template:validate-blueprints
+  npm run qa:gate
+  npm run mcp:smoke
+  npm run v03:validate
+  npm run security:scan
+  npm audit
+  npm run qa:run
+  npm run stress:queue -- --count=1000
+  npm run stress:dashboard -- --url=http://127.0.0.1:8787 --count=200 --concurrency=20
+  npm run stress:dashboard -- --url=http://127.0.0.1:8787 --endpoint=/health --count=200 --concurrency=20
+  npm run release:pack
+  git diff --check
+
+Coverage targets:
+
+  Current acceptable floor:
+    Line coverage:     95%+
+    Branch coverage:   80%+
+    Function coverage: 90%+
+
+  World-class target:
+    Line coverage:     98%+
+    Branch coverage:   90%+
+    Function coverage: 98%+
+
+  Critical-module target:
+    packages/core/*:              100% meaningful branch coverage
+    packages/security/*:          100% meaningful branch coverage
+    packages/jobs/queue.mjs:      100% meaningful branch coverage
+    packages/db/adapter.mjs:      100% meaningful branch coverage
+    apps/mcp-server/src/*:        95%+ branch coverage
+    apps/worker/scripts/*:        95%+ branch coverage
+    apps/dashboard/server.mjs:    95%+ branch coverage
+
+Quality score definition:
+
+  99.99% does not mean "perfect software."
+  It means no known critical gaps across:
+    architecture
+    security
+    correctness
+    test coverage
+    documentation
+    usability
+    installability
+    observability
+    release readiness
+    maintainability
+    open source governance
+
+Architecture
+============
+
+System layers:
+
+  1. MCP Interface
+     - Tool definitions
+     - Resource definitions
+     - Prompt/workflow definitions
+     - JSON schema validation
+     - Client examples
+
+  2. Kernel Runtime
+     - Tool registry
+     - Runtime dispatcher
+     - Policy engine
+     - Event bus
+     - Permission enforcement
+
+  3. Persistence
+     - SQLite local default
+     - Postgres production option
+     - Schema migrations
+     - Backup/restore
+     - Export/import
+
+  4. Security And Approvals
+     - Signed approvals
+     - Permission scopes
+     - Secret redaction
+     - Audit records
+     - Destructive-action blocking
+
+  5. Worker Engine
+     - Queue
+     - Job runner
+     - Scheduled jobs
+     - Retries
+     - Dead-letter behavior
+     - Run history
+
+  6. QA And Evals
+     - Unit tests
+     - Integration tests
+     - E2E tests
+     - Coverage gates
+     - Security scans
+     - Stress tests
+     - Release gates
+
+  7. Dashboard
+     - Local control cockpit
+     - Health panels
+     - Job queue view
+     - Approval inbox
+     - MCP tool explorer
+     - Run history
+     - Logs and metrics
+
+  8. Template Engine
+     - Project blueprints
+     - Production scaffolds
+     - QA profiles
+     - Infra emitters
+     - Golden examples
+
+  9. Open Source Layer
+     - README
+     - Install docs
+     - Architecture docs
+     - Contributing docs
+     - Security policy
+     - Release process
+     - Roadmap
+
+Master Program Map
+==================
+
+There are 12 programs. Each program has 4 phases. Execute them in order unless
+a phase is clearly independent and can be parallelized.
+
+PROGRAM 1: MCP PRODUCT CORE
+===========================
+
+Goal:
+  Make the MCP server the primary product, not an afterthought.
+
+Phase 1.1: Canonical MCP Entry Point
+------------------------------------
+
+Tasks:
+  - Document that Sage Kernel is MCP-first.
+  - Make `apps/mcp-server/src/server.mjs` the canonical runtime entry.
+  - Add `npm run mcp:start` if missing.
+  - Ensure the server can start from a clean checkout.
+  - Ensure all tools load through the same runtime registry.
+
+Code review checklist:
+  - No duplicated tool-registration paths.
+  - No hidden dependency on local maintainer paths.
+  - No tool starts a long-running or mutating action without policy review.
+
+Tests:
+  - MCP server starts.
+  - MCP smoke passes.
+  - Tool manifest validates.
+
+Verification:
+  npm run mcp:validate
+  npm run mcp:smoke
+  npm run mcp:contracts
+
+Exit criteria:
+  A user can run the MCP server locally and call at least one safe read-only
+  tool through a documented client path.
+
+Phase 1.2: Tool Schema Hardening
+--------------------------------
+
+Tasks:
+  - Every MCP tool must have:
+      name
+      description
+      input schema
+      output shape
+      risk level
+      permission scope
+      examples
+      failure modes
+  - Add schema tests for malformed input.
+  - Add schema tests for missing required input.
+  - Add docs generation from the manifest.
+
+Code review checklist:
+  - No tool accepts arbitrary command strings.
+  - No broad JSON blob where a strict object schema is possible.
+  - No filesystem path input without root-boundary validation.
+
+Tests:
+  - Invalid input returns useful errors.
+  - Valid input returns stable JSON.
+  - Generated docs match the manifest.
+
+Verification:
+  npm run mcp:validate
+  npm run mcp:contracts
+  npm test
+
+Exit criteria:
+  The MCP tool surface is strict, documented, and contract-tested.
+
+Phase 1.3: MCP Resources
+------------------------
+
+Tasks:
+  - Add MCP resources for:
+      catalog
+      templates
+      jobs
+      runs
+      approvals
+      docs
+      metrics
+      dashboard snapshot
+  - Add tests for listing and reading resources.
+  - Add generated docs for resources.
+
+Code review checklist:
+  - Resources are read-only unless explicitly named as mutable tools.
+  - Resource identifiers are stable.
+  - Resource output is bounded and cannot dump secrets.
+
+Tests:
+  - Resource list returns expected entries.
+  - Each resource can be read.
+  - Missing resource returns a clean error.
+
+Exit criteria:
+  MCP clients can inspect kernel state without calling command-style tools.
+
+Phase 1.4: MCP Workflows And Prompts
+------------------------------------
+
+Tasks:
+  - Add prompts/workflows for:
+      audit this repo
+      run full QA
+      create new project
+      inspect pending approvals
+      prepare release
+      stress test server
+      explain failed job
+  - Add prompt docs.
+  - Add examples for Claude Desktop, Codex, Cursor, and other clients.
+
+Tests:
+  - Prompt manifest validates.
+  - Example configs reference real commands.
+
+Exit criteria:
+  A new user can connect an MCP client and understand what to ask the kernel.
+
+PROGRAM 2: RUNTIME AND CLEAN CODE ENGINE
+=======================================
+
+Goal:
+  Make the internal runtime small, clean, explicit, and easy to extend.
+
+Phase 2.1: Runtime Boundary Review
+----------------------------------
+
+Tasks:
+  - Review packages/core.
+  - Ensure runtime, registry, event bus, and policy engine have clear boundaries.
+  - Remove duplicated behavior.
+  - Keep public functions small and testable.
+
+Clean-code rules:
+  - One module should have one reason to change.
+  - Use explicit data structures.
+  - Avoid hidden global state.
+  - Avoid process exits in business logic.
+  - CLI scripts should call importable functions.
+
+Tests:
+  - Runtime dispatch success.
+  - Runtime dispatch failure.
+  - Duplicate tool registration.
+  - Missing metadata.
+  - Permission denial.
+
+Exit criteria:
+  Core runtime files are small, documented by tests, and branch-covered.
+
+Phase 2.2: Error Model
+----------------------
+
+Tasks:
+  - Define kernel error codes.
+  - Normalize tool errors.
+  - Ensure errors include:
+      code
+      message
+      safe details
+      remediation where useful
+  - Avoid leaking stack traces to MCP clients by default.
+
+Tests:
+  - Unknown tool.
+  - Invalid input.
+  - Permission denied.
+  - Missing source root.
+  - Missing environment variable.
+
+Exit criteria:
+  Errors are predictable and useful to both humans and agents.
+
+Phase 2.3: Event And Audit Model
+--------------------------------
+
+Tasks:
+  - Define events for:
+      tool called
+      job queued
+      job started
+      job completed
+      approval requested
+      approval approved
+      QA run completed
+      release packed
+  - Persist important audit events.
+  - Redact sensitive fields.
+
+Tests:
+  - Events emit in order.
+  - Audit records are persisted.
+  - Secrets are redacted.
+
+Exit criteria:
+  The kernel can explain what happened and when.
+
+Phase 2.4: Plugin-Ready Runtime
+-------------------------------
+
+Tasks:
+  - Define plugin manifest format.
+  - Add plugin loading from a trusted local directory.
+  - Add allowlist.
+  - Add plugin validation.
+
+Security rules:
+  - Plugins are disabled by default.
+  - Plugins cannot bypass policy engine.
+  - Plugins must declare permissions.
+
+Exit criteria:
+  The project has a safe path to community extension without arbitrary trust.
+
+PROGRAM 3: PERSISTENCE AND DATA PROGRAM
+======================================
+
+Goal:
+  Make the kernel durable, portable, and production-ready.
+
+Phase 3.1: SQLite Local Excellence
+----------------------------------
+
+Tasks:
+  - Keep SQLite as the local default.
+  - Ensure schema initializes from clean checkout.
+  - Ensure batch transactions are tested.
+  - Add DB summary and export commands.
+
+Tests:
+  - Init schema.
+  - Insert/query every table.
+  - Batch insert transaction.
+  - Bad SQL path fails cleanly.
+
+Exit criteria:
+  Local users can run the kernel with zero external services.
+
+Phase 3.2: Postgres Adapter
+---------------------------
+
+Tasks:
+  - Add Postgres driver.
+  - Implement adapter parity with SQLite.
+  - Add env vars:
+      SAGE_DB_PROVIDER
+      DATABASE_URL
+  - Add migration docs.
+
+Tests:
+  - Adapter selection.
+  - Postgres schema creation.
+  - CRUD parity tests.
+  - Transaction tests.
+
+Exit criteria:
+  Users can run Sage Kernel with Postgres for long-lived use.
+
+Phase 3.3: Migration System
+---------------------------
+
+Tasks:
+  - Add migrations directory.
+  - Add migration table.
+  - Add migration runner.
+  - Add rollback notes for each migration.
+
+Tests:
+  - Fresh migrate.
+  - Re-run migrate.
+  - Failed migration does not corrupt DB.
+
+Exit criteria:
+  Schema changes become auditable and reproducible.
+
+Phase 3.4: Backup, Restore, Export
+----------------------------------
+
+Tasks:
+  - Add backup command.
+  - Add restore command.
+  - Add JSON export.
+  - Add redacted export for bug reports.
+
+Tests:
+  - Backup creates file.
+  - Restore recreates records.
+  - Redacted export does not leak secrets.
+
+Exit criteria:
+  A daily user can trust the kernel with persistent state.
+
+PROGRAM 4: SECURITY AND PERMISSIONS PROGRAM
+===========================================
+
+Goal:
+  Make the kernel safe enough to connect to real workflows.
+
+Phase 4.1: Permission Taxonomy
+------------------------------
+
+Permission classes:
+  - read
+  - write
+  - mutate
+  - external
+  - network
+  - filesystem
+  - shell
+  - destructive
+  - secret
+
+Tasks:
+  - Assign every tool a permission class.
+  - Add policy tests for every class.
+  - Make default mode read-only where possible.
+
+Exit criteria:
+  Risk is explicit for every tool.
+
+Phase 4.2: Approval Hardening
+-----------------------------
+
+Tasks:
+  - Keep signed approvals.
+  - Add expiry times.
+  - Add approval scopes.
+  - Add one-time-use option.
+  - Add revocation.
+
+Tests:
+  - Approved scope passes.
+  - Wrong scope fails.
+  - Expired approval fails.
+  - Revoked approval fails.
+  - Tampered approval fails.
+
+Exit criteria:
+  Risky actions cannot run accidentally.
+
+Phase 4.3: Secret And Path Safety
+---------------------------------
+
+Tasks:
+  - Centralize secret redaction.
+  - Centralize path boundary checks.
+  - Scan logs and reports for secret-looking values.
+  - Fail fast on missing required env vars.
+
+Tests:
+  - Secrets redacted in logs.
+  - Outside-root path denied.
+  - Missing source root produces clear error.
+
+Exit criteria:
+  The kernel does not leak secrets or traverse unexpected paths.
+
+Phase 4.4: Threat Model
+-----------------------
+
+Tasks:
+  - Write docs/THREAT_MODEL.md.
+  - Cover MCP tool abuse.
+  - Cover prompt injection into tools.
+  - Cover malicious plugin manifests.
+  - Cover untrusted repo content.
+  - Cover shell command execution.
+
+Exit criteria:
+  Security assumptions are documented and test-backed.
+
+PROGRAM 5: DASHBOARD REDESIGN PROGRAM
+=====================================
+
+Goal:
+  Turn the dashboard into a daily operator cockpit.
+
+Phase 5.1: Information Architecture
+-----------------------------------
+
+Primary dashboard views:
+  - Overview
+  - MCP Tools
+  - Projects
+  - Jobs
+  - Approvals
+  - Runs
+  - Templates
+  - QA
+  - Security
+  - Settings
+
+Tasks:
+  - Replace the current single-page command-center with structured views.
+  - Use dense, operational UI.
+  - Avoid marketing-style layout.
+  - Use stable dimensions and responsive constraints.
+
+Exit criteria:
+  A daily user can see what needs attention within 10 seconds.
+
+Phase 5.2: Project And Template UX
+----------------------------------
+
+Tasks:
+  - Add template browser.
+  - Add new-project wizard.
+  - Add project health cards.
+  - Add generated command preview.
+
+E2E:
+  - User opens templates.
+  - User filters templates.
+  - User previews a project plan.
+
+Exit criteria:
+  The dashboard helps users create and inspect projects without CLI knowledge.
+
+Phase 5.3: Jobs, Approvals, Runs UX
+-----------------------------------
+
+Tasks:
+  - Add job queue table.
+  - Add run history table.
+  - Add approval inbox.
+  - Add status filters.
+  - Add detail drawer for logs/results.
+
+E2E:
+  - User sees queued jobs.
+  - User sees completed runs.
+  - User sees pending approvals.
+  - Empty states render cleanly.
+  - Error states render cleanly.
+
+Exit criteria:
+  The dashboard is useful for operating the worker system.
+
+Phase 5.4: Visual QA
+--------------------
+
+Tasks:
+  - Add Playwright tests for desktop and mobile.
+  - Add screenshots for key views.
+  - Check no text overlap.
+  - Check all routes render.
+
+Required route tests:
+  - /
+  - /tools
+  - /projects
+  - /jobs
+  - /approvals
+  - /runs
+  - /templates
+  - /qa
+  - /settings
+  - /health
+  - /ready
+  - /metrics
+  - /api/snapshot
+
+Exit criteria:
+  Dashboard is visually and functionally verified.
+
+PROGRAM 6: QA, TESTING, AND COVERAGE PROGRAM
+============================================
+
+Goal:
+  Make test quality a defining feature of the project.
+
+Phase 6.1: Coverage Campaign
+----------------------------
+
+Tasks:
+  - Refactor branch-heavy scripts into importable functions.
+  - Add direct tests for all error branches.
+  - Add tests for all fallback branches.
+  - Add stricter coverage thresholds gradually.
+
+Priority files:
+  - packages/security/approvals.mjs
+  - packages/jobs/queue.mjs
+  - packages/core/runtime.mjs
+  - packages/core/tool-registry.mjs
+  - packages/db/adapter.mjs
+  - apps/mcp-server/src/kernel-tools.mjs
+  - packages/templates/scripts/template-scaffold-v2.mjs
+  - packages/infra/scripts/infra-plan.mjs
+
+Exit criteria:
+  Branch coverage crosses 90% without meaningless tests.
+
+Phase 6.2: E2E Harness
+----------------------
+
+Tasks:
+  - Add Playwright config.
+  - Start dashboard in webServer config.
+  - Test all dashboard routes.
+  - Test API endpoints.
+  - Store traces/screenshots on failure.
+
+Commands:
+  npm run e2e
+  npm run e2e:headed
+  npm run e2e:report
+
+Exit criteria:
+  A user can verify the browser UI end to end.
+
+Phase 6.3: MCP Process E2E
+--------------------------
+
+Tasks:
+  - Start actual MCP server process.
+  - Call representative tools through the MCP protocol.
+  - Test malformed messages.
+  - Test permission denial.
+  - Test long-running tool behavior.
+
+Exit criteria:
+  The MCP server is tested as a real process, not only imported functions.
+
+Phase 6.4: Failure Injection
+----------------------------
+
+Tasks:
+  - Simulate missing DB schema.
+  - Simulate locked DB.
+  - Simulate failed job.
+  - Simulate malformed catalog.
+  - Simulate denied approval.
+  - Simulate missing source root.
+
+Exit criteria:
+  Failure behavior is intentional, documented, and tested.
+
+PROGRAM 7: ROUTE, CONNECTION, AND HEALTH VERIFICATION
+=====================================================
+
+Goal:
+  Verify every route and connection path.
+
+Phase 7.1: Route Registry
+-------------------------
+
+Tasks:
+  - Create a route registry for dashboard/API routes.
+  - Each route declares:
+      path
+      method
+      content type
+      auth requirement
+      expected status
+      test coverage
+
+Exit criteria:
+  There is no undocumented route.
+
+Phase 7.2: Connection Doctor
+----------------------------
+
+Tasks:
+  - Add `sage doctor`.
+  - Check Node version.
+  - Check package install.
+  - Check DB init.
+  - Check MCP manifest.
+  - Check dashboard route.
+  - Check optional source roots.
+  - Check optional Postgres.
+
+Exit criteria:
+  Users can diagnose setup problems quickly.
+
+Phase 7.3: Health And Readiness Contract
+----------------------------------------
+
+Tasks:
+  - `/health` should prove process is alive.
+  - `/ready` should prove dependencies are ready.
+  - `/metrics` should expose safe metrics.
+  - Add tests for healthy and degraded states.
+
+Exit criteria:
+  Health checks are operationally meaningful.
+
+Phase 7.4: Connection Matrix
+----------------------------
+
+Connections to verify:
+  - MCP client to MCP server
+  - Dashboard to snapshot API
+  - Worker to DB
+  - QA runner to project root
+  - Template engine to catalog
+  - Security scanner to repo files
+  - Stress harness to live server
+
+Exit criteria:
+  Every connection has a documented test.
+
+PROGRAM 8: STRESS, RELIABILITY, AND OBSERVABILITY
+=================================================
+
+Goal:
+  Prove the kernel works under load and explains itself.
+
+Phase 8.1: Queue Stress
+-----------------------
+
+Targets:
+  - 1,000 jobs: must pass.
+  - 10,000 jobs: should pass.
+  - 100,000 jobs: benchmark target.
+
+Metrics:
+  - duration
+  - jobs/sec
+  - unfinished count
+  - retry count
+  - dead-letter count
+
+Exit criteria:
+  Queue throughput is measured and reproducible.
+
+Phase 8.2: Dashboard Stress
+---------------------------
+
+Targets:
+  - /health
+  - /ready
+  - /metrics
+  - /api/snapshot
+
+Metrics:
+  - requests/sec
+  - p50 latency
+  - p95 latency
+  - max latency
+  - failures
+
+Exit criteria:
+  Dashboard can sustain local daily use comfortably.
+
+Phase 8.3: MCP Stress
+---------------------
+
+Tasks:
+  - Parallel safe tool calls.
+  - Parallel invalid input.
+  - Tool timeout behavior.
+  - Tool output size limits.
+
+Exit criteria:
+  MCP server remains stable under concurrent client usage.
+
+Phase 8.4: Observability
+------------------------
+
+Tasks:
+  - Structured logs.
+  - Request IDs.
+  - Tool call IDs.
+  - Job run IDs.
+  - Metrics for tools/jobs/errors.
+
+Exit criteria:
+  A maintainer can debug failures without guessing.
+
+PROGRAM 9: TEMPLATE AND PROJECT GENERATION PROGRAM
+==================================================
+
+Goal:
+  Make Sage Kernel useful for creating excellent projects.
+
+Phase 9.1: Template Quality Standard
+------------------------------------
+
+Every template must include:
+  - README
+  - package config
+  - test script
+  - lint script
+  - env example
+  - Dockerfile when relevant
+  - CI workflow when relevant
+  - QA profile
+  - deployment notes
+
+Exit criteria:
+  No template produces a toy project.
+
+Phase 9.2: Golden Template Tests
+--------------------------------
+
+Tasks:
+  - Generate each template in temp dir.
+  - Run install where possible.
+  - Run tests where possible.
+  - Validate generated files.
+
+Exit criteria:
+  Generated projects are executable and documented.
+
+Phase 9.3: Template Review
+--------------------------
+
+Review lenses:
+  - security
+  - portability
+  - maintainability
+  - clean code
+  - deployability
+  - testing
+
+Exit criteria:
+  Templates match the same standard as the kernel.
+
+Phase 9.4: Community Template Path
+----------------------------------
+
+Tasks:
+  - Document template contribution format.
+  - Add validation for third-party templates.
+  - Add examples.
+
+Exit criteria:
+  OSS contributors can safely add templates.
+
+PROGRAM 10: OPEN SOURCE PRODUCT PROGRAM
+=======================================
+
+Goal:
+  Make the project understandable and trustworthy to strangers.
+
+Phase 10.1: Documentation Set
+-----------------------------
+
+Required docs:
+  - README.md
+  - docs/INSTALL.md
+  - docs/ARCHITECTURE.md
+  - docs/MCP_SERVER.md
+  - docs/DASHBOARD.md
+  - docs/TESTING.md
+  - docs/SECURITY_MODEL.md
+  - docs/OPERATIONS.md
+  - docs/RELEASE_PROCESS.md
+  - docs/ROADMAP.md
+  - docs/CONTRIBUTOR_GUIDE.md
+
+Exit criteria:
+  A new user can install, run, test, and understand the project.
+
+Phase 10.2: Examples
+--------------------
+
+Examples:
+  - Connect to Claude Desktop.
+  - Connect to Codex.
+  - Run a repo audit.
+  - Generate a project.
+  - Run QA.
+  - Start dashboard.
+  - Stress test.
+
+Exit criteria:
+  A new user has copy-paste examples for the first hour.
+
+Phase 10.3: Governance
+----------------------
+
+Tasks:
+  - Issue templates.
+  - PR template.
+  - Maintainer guide.
+  - Code owners.
+  - Release policy.
+  - Deprecation policy.
+
+Exit criteria:
+  The project can accept outside contributions without chaos.
+
+Phase 10.4: Public Trust
+------------------------
+
+Tasks:
+  - Add screenshots.
+  - Add demo recording.
+  - Add architecture diagram.
+  - Add security model summary.
+  - Add roadmap.
+
+Exit criteria:
+  A serious developer can evaluate the project quickly.
+
+PROGRAM 11: RELEASE ENGINEERING PROGRAM
+=======================================
+
+Goal:
+  Make every release reproducible and safe.
+
+Phase 11.1: CI Pipeline
+-----------------------
+
+CI jobs:
+  - install
+  - lint
+  - test
+  - coverage
+  - security scan
+  - npm audit
+  - MCP contract generation check
+  - release pack dry-run
+  - E2E
+
+Exit criteria:
+  PRs cannot merge unless the project is verified.
+
+Phase 11.2: Release Artifacts
+-----------------------------
+
+Artifacts:
+  - npm package
+  - Docker image
+  - checksums
+  - generated docs
+  - coverage report
+  - SBOM if practical
+
+Exit criteria:
+  Releases are inspectable and reproducible.
+
+Phase 11.3: Versioning And Compatibility
+----------------------------------------
+
+Tasks:
+  - SemVer policy.
+  - MCP tool compatibility policy.
+  - Deprecation warnings.
+  - Migration notes.
+
+Exit criteria:
+  Users can upgrade with confidence.
+
+Phase 11.4: Release Checklist
+-----------------------------
+
+Before release:
+  - All tests pass.
+  - Coverage thresholds pass.
+  - E2E passes.
+  - Stress passes.
+  - Security scan passes.
+  - npm audit clean or documented.
+  - Docs updated.
+  - Changelog updated.
+  - Pack dry-run clean.
+
+Exit criteria:
+  Releases are boring.
+
+PROGRAM 12: WORLD-CLASS REVIEW PROGRAM
+======================================
+
+Goal:
+  Force the project through professional review lenses.
+
+Phase 12.1: Architecture Review
+-------------------------------
+
+Questions:
+  - Are boundaries clear?
+  - Is MCP really the primary product?
+  - Can a user run it without hidden local assumptions?
+  - Can the system grow without becoming tangled?
+
+Exit criteria:
+  Architecture docs match the code.
+
+Phase 12.2: Security Review
+---------------------------
+
+Questions:
+  - Can untrusted input trigger shell commands?
+  - Can tools read outside allowed roots?
+  - Can secrets leak into output?
+  - Are risky actions approval-gated?
+  - Are plugins safe by default?
+
+Exit criteria:
+  Critical security paths are tested and documented.
+
+Phase 12.3: Performance Review
+------------------------------
+
+Questions:
+  - Is SQLite shelling acceptable for local use?
+  - Do stress tests show bottlenecks?
+  - Does dashboard snapshot caching work?
+  - Are long jobs offloaded from request paths?
+
+Exit criteria:
+  Known performance limits are documented with next upgrades.
+
+Phase 12.4: Stranger Install Review
+-----------------------------------
+
+Test:
+  - Fresh clone.
+  - Install dependencies.
+  - Start MCP server.
+  - Start dashboard.
+  - Run tests.
+  - Run QA.
+  - Run stress.
+  - Connect MCP client.
+
+Exit criteria:
+  A new user can succeed without private context.
+
+Daily Use Workflow
+==================
+
+Morning:
+  1. Start the MCP server.
+  2. Start the dashboard if using UI.
+  3. Check health and readiness.
+  4. Review pending approvals.
+  5. Review failed jobs or recent runs.
+  6. Run QA gate before serious work.
+
+During development:
+  1. Ask MCP client to inspect project state.
+  2. Generate plans or templates.
+  3. Run tests through kernel tools.
+  4. Queue jobs for audits or scaffolds.
+  5. Approve risky actions explicitly.
+  6. Review artifacts and reports.
+
+Before release:
+  1. Run full verification suite.
+  2. Run coverage.
+  3. Run security scan.
+  4. Run stress tests.
+  5. Run release pack.
+  6. Update changelog.
+  7. Tag release only after gates pass.
+
+Code Review Standard
+====================
+
+Every PR or patch must answer:
+
+  1. What behavior changed?
+  2. What code paths are affected?
+  3. What tests prove it?
+  4. What security boundary is involved?
+  5. What docs changed?
+  6. What could fail in production?
+  7. How do we roll back?
+
+Review checklist:
+
+  - No unrelated refactors.
+  - No hardcoded local paths.
+  - No secrets.
+  - No process.exit inside reusable logic.
+  - No broad catch blocks without useful fallback.
+  - No shell execution from untrusted input.
+  - No unbounded output to MCP clients.
+  - No hidden network calls.
+  - No undocumented env vars.
+  - No route without test.
+  - No MCP tool without schema and docs.
+  - No job without retry/failure behavior.
+
+Clean Code Standard
+===================
+
+Rules:
+
+  - Keep modules small.
+  - Keep functions testable.
+  - Prefer explicit arguments over globals.
+  - CLI files should be thin wrappers.
+  - Business logic should be importable.
+  - Use structured JSON for machine-readable output.
+  - Validate inputs at boundaries.
+  - Return clear errors.
+  - Avoid clever code.
+  - Avoid hidden behavior.
+  - Avoid broad mutable state.
+
+Refactor triggers:
+
+  - A file is hard to test.
+  - A script exits before logic can be imported.
+  - A function mixes IO, policy, and formatting.
+  - A module knows too much about unrelated layers.
+  - Coverage gaps are caused by untestable structure.
+
+Testing Matrix
+==============
+
+Unit tests:
+  - Pure functions.
+  - Schema validators.
+  - Policy logic.
+  - Signature logic.
+  - Queue transitions.
+
+Integration tests:
+  - DB adapter.
+  - Runtime plus tool registry.
+  - MCP handler dispatch.
+  - Worker job run.
+  - Dashboard snapshot.
+
+E2E tests:
+  - Dashboard route loads.
+  - Dashboard API returns valid JSON.
+  - MCP server process handles calls.
+  - Job lifecycle completes.
+  - Approval lifecycle completes.
+
+Stress tests:
+  - Queue throughput.
+  - Dashboard endpoints.
+  - MCP parallel calls.
+
+Security tests:
+  - Secret scan.
+  - Permission denial.
+  - Path boundary denial.
+  - Approval tamper denial.
+  - Missing env fail-fast.
+
+Verification Script Target
+==========================
+
+Create one command eventually:
+
+  npm run verify:all
+
+It should run:
+
+  npm run catalog:validate
+  npm run infra:validate
+  npm run jobs:validate
+  npm run mcp:validate
+  npm run mcp:contracts
+  npm test
+  npm run test:coverage
+  npm run template:validate-blueprints
+  npm run qa:gate
+  npm run mcp:smoke
+  npm run v03:validate
+  npm run security:scan
+  npm audit
+  npm run qa:run
+  npm run stress:queue -- --count=1000
+  npm run release:pack
+  git diff --check
+
+Add dashboard stress when a live dashboard URL is provided:
+
+  npm run stress:dashboard -- --url=http://127.0.0.1:8787 --count=200 --concurrency=20
+
+Immediate Next 10 Tasks
+=======================
+
+1. Add docs/ARCHITECTURE.md.
+2. Add docs/MCP_SERVER.md.
+3. Add docs/TESTING.md.
+4. Add docs/OPERATIONS.md.
+5. Add `npm run verify:all`.
+6. Add Playwright E2E for dashboard routes.
+7. Add MCP process-level E2E tests.
+8. Redesign dashboard into multi-view cockpit.
+9. Add `sage doctor`.
+10. Raise branch coverage from current 80%+ toward 90%+.
+
+Execution Protocol For Future Sessions
+======================================
+
+Use this prompt:
+
+  "Use docs/SAGE_KERNEL_MASTER_PROGRAM.txt. Pick the next unchecked phase.
+  Implement it end to end. Add tests first where practical. Run targeted tests,
+  then run the relevant verification gates. Do not claim completion unless
+  commands pass. Update docs if behavior changes."
+
+Do not skip:
+
+  - test evidence
+  - security review
+  - docs update
+  - route/tool verification
+  - git diff review
+
+Final Standard
+==============
+
+The project is not done when code exists.
+The project is done when:
+
+  - code is clean
+  - behavior is tested
+  - routes are verified
+  - MCP tools are documented
+  - security boundaries are explicit
+  - docs are usable by strangers
+  - stress tests pass
+  - releases are reproducible
+  - daily workflow is obvious
+
+That is the standard for making Sage Kernel an exceptional MCP-first open
+source engineering kernel.

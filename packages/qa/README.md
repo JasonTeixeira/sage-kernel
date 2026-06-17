@@ -6,10 +6,18 @@ The QA OS remains its own source repo. The kernel consumes it through profiles, 
 
 ## Source QA OS
 
-Default local source:
+Set the source repo with:
 
-```text
-/Users/Sage/.graphify/repos/JasonTeixeira/nexural-qa-os
+```bash
+QA_OS_ROOT=/path/to/nexural-qa-os
+```
+
+If `QA_OS_ROOT` is unset, local summary scripts fail fast with a configuration error.
+
+To allow `kernel.qa.run` to inspect projects outside this repo, set a path-delimited allowlist:
+
+```bash
+SAGE_KERNEL_ALLOWED_ROOTS=/path/to/workspace:/path/to/other-workspace
 ```
 
 Observed capability:
@@ -36,4 +44,3 @@ The kernel uses QA OS for:
 - blocking unsafe deploys
 - explaining release readiness
 - generating portfolio-grade proof artifacts
-

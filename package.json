@@ -1,9 +1,45 @@
 {
   "name": "sage-kernel",
   "version": "0.3.0",
-  "private": true,
   "description": "Sage Kernel OS: a personal MCP-powered engineering operating system for app, AI, infra, QA, and production workflows.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JasonTeixeira/sage-kernel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JasonTeixeira/sage-kernel/issues"
+  },
+  "homepage": "https://github.com/JasonTeixeira/sage-kernel#readme",
+  "keywords": [
+    "mcp",
+    "engineering-os",
+    "automation",
+    "qa",
+    "templates",
+    "sqlite",
+    "agent-tools"
+  ],
   "type": "module",
+  "files": [
+    "apps/dashboard/README.md",
+    "apps/dashboard/scripts",
+    "apps/dashboard/server.mjs",
+    "apps/mcp-server",
+    "apps/worker",
+    "bin",
+    "catalog",
+    "docs",
+    "packages",
+    "scripts",
+    ".env.example",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "CHANGELOG.md"
+  ],
   "bin": {
     "sage": "bin/sage.mjs"
   },
@@ -17,16 +53,27 @@
     "mcp:call": "node apps/mcp-server/scripts/call-tool.mjs",
     "mcp:validate": "node apps/mcp-server/scripts/validate-mcp.mjs",
     "mcp:contracts": "node apps/mcp-server/scripts/generate-contracts.mjs",
+    "mcp:start": "node apps/mcp-server/src/server.mjs",
     "mcp:server": "node apps/mcp-server/src/server.mjs",
     "mcp:smoke": "node apps/mcp-server/scripts/smoke.mjs",
+    "mcp:config": "node bin/sage.mjs mcp config all",
+    "doctor": "node bin/sage.mjs doctor",
+    "daily": "node bin/sage.mjs daily",
     "playwright:check": "node scripts/check-playwright-env.mjs",
     "security:scan": "node scripts/secret-scan.mjs",
+    "stress:queue": "node scripts/stress-queue.mjs",
+    "stress:dashboard": "node scripts/stress-dashboard.mjs",
     "v03:validate": "node scripts/validate-v03.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
-    "test:coverage": "node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-lines=70 --test-coverage-functions=65 tests/*.test.mjs",
+    "test:coverage": "SAGE_SQLITE_DRIVER=cli node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-lines=98 --test-coverage-branches=90 --test-coverage-functions=97 --test-coverage-exclude=tests/postgres-integration.test.mjs tests/*.test.mjs",
     "qa:gate": "node scripts/qa-gate.mjs",
     "db:init": "node packages/db/scripts/db-init.mjs",
+    "db:migrate": "node packages/db/scripts/db-migrate.mjs",
     "db:summary": "node packages/db/scripts/db-summary.mjs",
+    "db:backup": "node packages/db/scripts/db-backup.mjs",
+    "db:restore": "node packages/db/scripts/db-restore.mjs",
+    "db:export": "node packages/db/scripts/db-export-json.mjs",
+    "db:import": "node packages/db/scripts/db-import-json.mjs",
     "db:postgres:schema": "node packages/db/scripts/db-export-postgres.mjs",
     "qa:run": "node packages/qa/scripts/qa-runner.mjs",
     "jobs:validate": "node apps/worker/scripts/validate-jobs.mjs",
@@ -39,21 +86,27 @@
     "jobs:show": "node apps/worker/scripts/runs-show.mjs",
     "dashboard:build": "node apps/dashboard/scripts/build-dashboard.mjs",
     "dashboard:serve": "node apps/dashboard/server.mjs",
+    "dashboard:browser-check": "node apps/dashboard/scripts/browser-check.mjs",
+    "dashboard:e2e": "node scripts/dashboard-e2e.mjs",
     "infra:emit": "node packages/infra/scripts/infra-emit.mjs",
     "dogfood:build": "node scripts/dogfood-build.mjs",
     "dogfood:prod": "node scripts/dogfood-production-audit.mjs",
     "release:pack": "npm pack --dry-run",
+    "release:check": "node scripts/release-check.mjs",
+    "verify:fresh-install": "node scripts/verify-fresh-install.mjs",
     "sage:smoke": "node bin/sage.mjs status",
     "template:list": "node packages/templates/scripts/template-list.mjs",
     "template:scaffold": "node packages/templates/scripts/template-scaffold-v2.mjs",
     "template:validate-blueprints": "node packages/templates/scripts/validate-blueprints.mjs",
-    "phase:status": "node scripts/phase-status.mjs"
+    "phase:status": "node scripts/phase-status.mjs",
+    "postgres:integration": "node --test tests/postgres-integration.test.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "pg": "^8.21.0",
     "zod": "^4.4.3"
   }
 }

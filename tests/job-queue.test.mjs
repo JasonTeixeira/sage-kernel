@@ -57,3 +57,11 @@ test("job queue completes claimed jobs and clears locks", () => {
   assert.equal(row.status, "finished");
   assert.equal(row.lockedBy, null);
 });
+
+test("job queue validates required inputs and unknown failure ids", () => {
+  assert.throws(() => createJobQueue({}), /requires db/);
+  const { queue } = setup();
+  assert.throws(() => queue.enqueue({}), /enqueue requires jobId/);
+  assert.throws(() => queue.fail("missing-job"), /Unknown queued job/);
+  assert.equal(queue.get("missing-job"), null);
+});

@@ -1,3 +1,9 @@
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  id TEXT PRIMARY KEY,
+  description TEXT NOT NULL,
+  applied_at TIMESTAMPTZ NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -64,8 +70,19 @@ CREATE TABLE IF NOT EXISTS artifacts (
   created_at TIMESTAMPTZ NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS audit_events (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  subject TEXT,
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS job_queue_ready_idx
   ON job_queue (status, priority, next_run_at, created_at);
 
 CREATE INDEX IF NOT EXISTS job_runs_job_idx
   ON job_runs (job_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS audit_events_type_idx
+  ON audit_events (type, created_at DESC);

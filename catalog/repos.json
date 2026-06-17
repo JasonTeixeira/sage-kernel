@@ -1,7 +1,8 @@
 {
   "version": 1,
   "updated": "2026-06-07",
-  "sourceRoot": "/Users/Sage/.graphify/repos/JasonTeixeira",
+  "sourceRoot": "",
+  "sourceRootEnv": "SAGE_KERNEL_SOURCE_ROOT",
   "sourceRepoPolicy": "non-destructive federation: source repos remain intact; kernel may reference, query, adapt, or copy approved reusable artifacts, but must not rip apart, move, delete, or rewrite upstream repos without explicit approval",
   "repos": [
     {

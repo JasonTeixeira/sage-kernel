@@ -8,7 +8,7 @@ if (!fs.existsSync(dbPath(root))) {
   process.exit(0);
 }
 
-const tables = ["projects", "job_queue", "job_runs", "approvals", "decisions", "artifacts"];
+const tables = ["projects", "job_queue", "job_runs", "approvals", "decisions", "artifacts", "audit_events", "schema_migrations"];
 const summary = { initialized: true, path: dbPath(root), tables: {} };
 const db = createSqliteAdapter({ root });
 for (const table of tables) {

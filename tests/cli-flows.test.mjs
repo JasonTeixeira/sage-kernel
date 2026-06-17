@@ -99,4 +99,50 @@ test("job queue CLI enqueues and worker tick drains a safe local job", () => {
   const result = parseJsonAfterNpm(tick.stdout);
   assert.equal(result.jobId, "repo-health");
   assert.equal(result.status, "passed");
+  assert.match(result.runId, /^\d{4}-\d{2}-\d{2}T.*-repo-health-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+});
+
+test("sage CLI prints MCP client config, runs smoke, and emits structured doctor output", () => {
+  const config = run(["node", "bin/sage.mjs", "mcp", "config", "codex", "--json"]);
+  assert.equal(config.status, 0, config.stderr || config.stdout);
+  const configJson = JSON.parse(config.stdout);
+  assert.equal(configJson.client, "codex");
+  assert.equal(configJson.server.name, "sage-kernel");
+  assert.equal(configJson.server.command, "node");
+  assert.equal(configJson.server.args.at(-1), "apps/mcp-server/src/server.mjs");
+
+  const allConfigs = run(["node", "bin/sage.mjs", "mcp", "config", "all", "--json"]);
+  assert.equal(allConfigs.status, 0, allConfigs.stderr || allConfigs.stdout);
+  const allJson = JSON.parse(allConfigs.stdout);
+  assert.deepEqual(Object.keys(allJson.clients).sort(), ["claude-desktop", "codex", "cursor"]);
+
+  const smoke = run(["node", "bin/sage.mjs", "mcp", "smoke"]);
+  assert.equal(smoke.status, 0, smoke.stderr || smoke.stdout);
+  assert.match(smoke.stdout, /MCP smoke passed/);
+
+  const doctor = run(["node", "bin/sage.mjs", "doctor", "--json", "--fast"]);
+  assert.equal(doctor.status, 0, doctor.stderr || doctor.stdout);
+  const report = JSON.parse(doctor.stdout);
+  assert.equal(report.status, "passed");
+  assert.equal(report.checks.node.status, "passed");
+  assert.equal(report.checks.db.status, "passed");
+  assert.equal(report.checks.mcpManifest.status, "passed");
+  assert.equal(report.checks.permissions.status, "passed");
+});
+
+test("sage CLI exposes daily workflow shortcuts through MCP tools", () => {
+  const summary = run(["node", "bin/sage.mjs", "daily"]);
+  assert.equal(summary.status, 0, summary.stderr || summary.stdout);
+  const daily = JSON.parse(summary.stdout);
+  assert.equal(daily.status, "ready");
+  assert.equal(typeof daily.dashboard.summary, "string");
+
+  const failures = run(["node", "bin/sage.mjs", "failures", JSON.stringify({
+    status: "failed",
+    checks: [{ name: "npm:test", status: "failed", result: { stderr: "boom" } }]
+  })]);
+  assert.equal(failures.status, 0, failures.stderr || failures.stdout);
+  const explained = JSON.parse(failures.stdout);
+  assert.equal(explained.status, "failed");
+  assert.equal(explained.failures.length, 1);
 });

@@ -56,3 +56,58 @@ test("golden blueprints emit production readiness artifacts across app types", (
     assert.equal(plan.productionReadiness.envValidation, true, `${template} missing env validation readiness`);
   }
 });
+
+test("template scaffold rejects invalid inputs and protects existing output directories", () => {
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), "sage-scaffold-errors-"));
+
+  const missingArgs = spawnSync("node", ["packages/templates/scripts/template-scaffold-v2.mjs"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(missingArgs.status, 0);
+  assert.match(missingArgs.stderr, /Usage/);
+
+  const unknown = spawnSync(
+    "node",
+    ["packages/templates/scripts/template-scaffold-v2.mjs", "--template", "missing-template", "--name", "Missing", "--out", out],
+    { cwd: root, encoding: "utf8" }
+  );
+  assert.notEqual(unknown.status, 0);
+  assert.match(unknown.stderr, /Unknown template/);
+
+  const first = spawnSync(
+    "node",
+    ["packages/templates/scripts/template-scaffold-v2.mjs", "--template", "node-api-service", "--name", "Existing API", "--out", out],
+    { cwd: root, encoding: "utf8" }
+  );
+  assert.equal(first.status, 0, first.stderr || first.stdout);
+  const second = spawnSync(
+    "node",
+    ["packages/templates/scripts/template-scaffold-v2.mjs", "--template", "node-api-service", "--name", "Existing API", "--out", out],
+    { cwd: root, encoding: "utf8" }
+  );
+  assert.notEqual(second.status, 0);
+  assert.match(second.stderr, /Refusing to overwrite/);
+});
+
+test("remaining template emitters create expected specialized files", () => {
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), "sage-scaffold-extra-"));
+  const cases = [
+    ["node-api-service", "Node API", "src/server.mjs"],
+    ["next-dashboard", "Ops Dashboard", "app/page.tsx"],
+    ["agent-workflow-app", "Agent Flow", "src/agent.mjs"]
+  ];
+
+  for (const [template, name, expectedFile] of cases) {
+    const result = spawnSync(
+      "node",
+      ["packages/templates/scripts/template-scaffold-v2.mjs", "--template", template, "--name", name, "--out", out],
+      { cwd: root, encoding: "utf8" }
+    );
+    assert.equal(result.status, 0, `${template}: ${result.stderr || result.stdout}`);
+    const projectDir = path.join(out, name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""));
+    assert.equal(fs.existsSync(path.join(projectDir, expectedFile)), true, `${template} missing ${expectedFile}`);
+    const plan = JSON.parse(fs.readFileSync(path.join(projectDir, ".sage/project-plan.json"), "utf8"));
+    assert.equal(plan.template, template);
+  }
+});

@@ -25,6 +25,15 @@ for (const tool of manifest.tools) {
   seen.add(tool.name);
   if (!tool.description) throw new Error(`MCP tool ${tool.name} missing description`);
   if (!tool.inputSchema?.type) throw new Error(`MCP tool ${tool.name} missing inputSchema.type`);
+  if (!tool.outputShape) throw new Error(`MCP tool ${tool.name} missing outputShape`);
+  if (!tool.risk) throw new Error(`MCP tool ${tool.name} missing risk`);
+  if (!tool.permission) throw new Error(`MCP tool ${tool.name} missing permission`);
+  if (!Array.isArray(tool.examples) || tool.examples.length === 0) {
+    throw new Error(`MCP tool ${tool.name} missing examples`);
+  }
+  if (!Array.isArray(tool.failureModes) || tool.failureModes.length === 0) {
+    throw new Error(`MCP tool ${tool.name} missing failureModes`);
+  }
   if ((tool.sideEffects || tool.approvalRequired) && !tool.permission) {
     throw new Error(`MCP tool ${tool.name} with side effects must declare permission`);
   }

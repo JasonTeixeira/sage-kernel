@@ -11,6 +11,7 @@ import {
   verifyApprovalSignature
 } from "../packages/security/approvals.mjs";
 import { createPolicyEngine } from "../packages/core/policy-engine.mjs";
+import { signRecord } from "../packages/security/guard.mjs";
 
 const schemaRoot = path.resolve(import.meta.dirname, "..");
 
@@ -35,6 +36,22 @@ test("approval signatures are deterministic and tamper-evident", () => {
   const signature = createApprovalSignature(approval);
   assert.equal(verifyApprovalSignature({ ...approval, signature }), true);
   assert.equal(verifyApprovalSignature({ ...approval, action: "kernel.jobs.enqueue", signature }), false);
+  assert.equal(verifyApprovalSignature({ ...approval }), false);
+  assert.equal(verifyApprovalSignature(null), false);
+  assert.equal(createApprovalSignature({ id: "approval_minimal", action: "kernel.test", status: "approved", reason: "minimal" }).length, 64);
+});
+
+test("generic record signatures are deterministic and tamper-evident", () => {
+  const report = {
+    projectPath: "/workspace/sage-kernel",
+    mode: "fast",
+    status: "passed",
+    checks: [{ name: "npm:test", status: "passed" }]
+  };
+  const signature = signRecord(report);
+
+  assert.equal(signRecord(report), signature);
+  assert.notEqual(signRecord({ ...report, status: "failed" }), signature);
 });
 
 test("approval ledger can request, approve, verify, and reject scope mismatches", () => {
@@ -53,6 +70,26 @@ test("approval ledger can request, approve, verify, and reject scope mismatches"
     () => ledger.verify({ id: requested.id, action: "kernel.jobs.run", payload: { job: "nightly-local-audit" } }),
     /scope mismatch/
   );
+});
+
+test("approval ledger rejects invalid requests, unknown approvals, action mismatches, and tampering", () => {
+  assert.throws(() => createApprovalLedger({}), /requires db/);
+  const { ledger, db } = setup();
+  assert.throws(() => ledger.request({ action: "", reason: "missing action" }), /requires action/);
+  assert.throws(() => ledger.approve({ id: "approval_missing" }), /Unknown approval/);
+  assert.throws(() => ledger.verify({ id: "approval_missing", action: "kernel.test" }), /Unknown approval/);
+
+  const approval = ledger.request({ action: "kernel.jobs.run", reason: "test", payload: { job: "repo-health" } });
+  assert.throws(() => ledger.verify({ id: approval.id, action: "kernel.jobs.run", payload: { job: "repo-health" } }), /not approved/);
+  ledger.approve({ id: approval.id, decidedBy: "tester" });
+  assert.throws(() => ledger.verify({ id: approval.id, action: "kernel.jobs.enqueue", payload: { job: "repo-health" } }), /action mismatch/);
+
+  db.execute("UPDATE approvals SET signature=? WHERE id=?", ["tampered", approval.id]);
+  assert.equal(verifyApprovalSignature(ledger.get(approval.id)), false);
+  assert.throws(() => ledger.verify({ id: approval.id, action: "kernel.jobs.run", payload: { job: "repo-health" } }), /signature invalid/);
+  assert.equal(ledger.list().length, 1);
+  assert.equal(ledger.list("approved").length, 1);
+  assert.equal(ledger.get("approval_missing"), null);
 });
 
 test("policy engine requires signed approval for approval-required tools", () => {
@@ -76,6 +113,13 @@ test("policy engine enforces permission scopes", () => {
   assert.equal(policy.authorize({ name: "kernel.catalog.search", risk: "safe", permission: "catalog:read" }).allowed, true);
   assert.throws(
     () => policy.authorize({ name: "kernel.jobs.enqueue", risk: "mutating", permission: "jobs:write" }),
+    /Missing permission scope/
+  );
+
+  const wildcard = createPolicyEngine({ scopes: ["dashboard.workflow:*"] });
+  assert.equal(wildcard.authorize({ name: "kernel.workflow.daily_summary", risk: "safe", permission: "dashboard.workflow.read" }).allowed, true);
+  assert.throws(
+    () => wildcard.authorize({ name: "kernel.catalog.search", risk: "safe", permission: "catalog:read" }),
     /Missing permission scope/
   );
 });

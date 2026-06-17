@@ -2,7 +2,7 @@
 
 Phase 6 defines the MCP control surface for Sage Kernel OS.
 
-The server exposes both a dependency-free local dispatcher and a real SDK-backed stdio MCP server.
+The SDK-backed stdio MCP server is the canonical product entry point. The dependency-free local dispatcher remains available for tests and debugging.
 
 - `tools.json`: stable MCP tool manifest
 - `scripts/call-tool.mjs`: dependency-free local dispatcher
@@ -31,7 +31,9 @@ npm run mcp:call -- kernel.project.plan '{"template":"next-saas-app","target":"v
 Run the stdio server:
 
 ```bash
-npm run mcp:server
+npm run mcp:start
 ```
 
-MCP clients should launch it from the `sage-kernel` repo root. The active runtime uses `@modelcontextprotocol/sdk`.
+`npm run mcp:server` is a compatibility alias for the same command. MCP clients should launch the server from the `sage-kernel` repo root. The active runtime uses `@modelcontextprotocol/sdk`.
+
+Full setup notes for Claude Desktop and Codex are in `docs/MCP_SERVER.md`.

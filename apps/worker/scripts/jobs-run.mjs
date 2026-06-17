@@ -1,20 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
 import { findJob, makeRunId, nowIso, readJson, runCommand, runsDir, writeJson } from "./lib.mjs";
 import { runSql, sqlJson, sqlString } from "../../../packages/db/scripts/db-lib.mjs";
 
-const root = process.cwd();
-const [jobId] = process.argv.slice(2);
-
-if (!jobId) {
-  console.error("Usage: npm run jobs:run -- <job-id>");
-  process.exit(1);
-}
-
-const approvalPolicy = readJson(root, "apps/worker/approval-policy.json");
-
-async function runJob(id, parentRunId = null) {
+export async function runJob(id, options = {}) {
+  const root = options.root || process.cwd();
+  const parentRunId = options.parentRunId || null;
+  const commandRunner = options.commandRunner || runCommand;
+  const shouldPersist = options.persist !== false;
+  const approvalPolicy = readJson(root, "apps/worker/approval-policy.json");
   const job = findJob(root, id);
   if (job.approval === "required") {
     return {
@@ -51,17 +47,17 @@ async function runJob(id, parentRunId = null) {
 
   for (const step of job.steps) {
     if (step.type === "npm-script") {
-      const result = runCommand(root, "npm", ["run", step.script], job.timeoutMs);
+      const result = commandRunner(root, "npm", ["run", step.script], job.timeoutMs);
       run.steps.push({ ...step, result, status: result.status === 0 ? "passed" : "failed" });
       if (result.status !== 0) {
         run.status = "failed";
         break;
       }
     } else if (step.type === "builtin" && step.name === "repo-health") {
-      const result = repoHealth();
+      const result = repoHealth(root);
       run.steps.push({ ...step, result, status: result.missing.length === 0 ? "passed" : "warning" });
     } else if (step.type === "job") {
-      const nested = await runJob(step.job, run.runId);
+      const nested = await runJob(step.job, { ...options, root, parentRunId: run.runId });
       run.steps.push({ ...step, nested, status: nested.status === "passed" ? "passed" : nested.status });
       if (nested.status === "failed" || nested.status === "blocked") {
         run.status = nested.status;
@@ -82,12 +78,14 @@ async function runJob(id, parentRunId = null) {
   run.finishedAt = nowIso();
   run.durationMs = Date.now() - started;
 
-  persistRun(run);
-  writeJson(root, path.join(".sage-kernel", "runs", `${run.runId}.json`), run);
+  if (shouldPersist) {
+    persistRun(root, run);
+    writeJson(root, path.join(".sage-kernel", "runs", `${run.runId}.json`), run);
+  }
   return run;
 }
 
-function persistRun(run) {
+export function persistRun(root, run) {
   runSql(root, `.read packages/db/schema.sql`);
   const signature = crypto.createHash("sha256").update(JSON.stringify(run)).digest("hex");
   run.signature = signature;
@@ -98,18 +96,18 @@ function persistRun(run) {
   );
 }
 
-function repoHealth() {
+export function repoHealth(root = process.cwd()) {
   const catalog = readJson(root, "catalog/repos.json");
-  const sourceRoot = catalog.sourceRoot;
+  const sourceRoot = catalogSourceRoot(catalog);
   const checked = [];
   const missing = [];
 
   for (const repo of catalog.repos) {
-    const repoPath = path.join(sourceRoot, repo.name);
+    const repoPath = sourceRoot ? path.join(sourceRoot, repo.name) : "";
     const exists = fs.existsSync(repoPath);
-    const hasPackageJson = fs.existsSync(path.join(repoPath, "package.json"));
-    const hasPyproject = fs.existsSync(path.join(repoPath, "pyproject.toml"));
-    const hasReadme = fs.existsSync(path.join(repoPath, "README.md"));
+    const hasPackageJson = exists && fs.existsSync(path.join(repoPath, "package.json"));
+    const hasPyproject = exists && fs.existsSync(path.join(repoPath, "pyproject.toml"));
+    const hasReadme = exists && fs.existsSync(path.join(repoPath, "README.md"));
     const item = {
       name: repo.name,
       path: repoPath,
@@ -121,11 +119,12 @@ function repoHealth() {
       hasReadme
     };
     checked.push(item);
-    if (!exists) missing.push(item);
+    if (sourceRoot && !exists) missing.push(item);
   }
 
   return {
     sourceRoot,
+    configured: Boolean(sourceRoot),
     checkedCount: checked.length,
     missingCount: missing.length,
     missing,
@@ -133,13 +132,36 @@ function repoHealth() {
   };
 }
 
-const run = await runJob(jobId);
-const runPath = path.join(runsDir(root), `${run.runId}.json`);
+export function catalogSourceRoot(catalog) {
+  if (catalog.sourceRootEnv && process.env[catalog.sourceRootEnv]) return process.env[catalog.sourceRootEnv];
+  return catalog.sourceRoot || "";
+}
 
-console.log(JSON.stringify({
-  runId: run.runId,
-  jobId: run.jobId,
-  status: run.status,
-  durationMs: run.durationMs,
-  path: runPath
-}, null, 2));
+export async function runJobCli(args = process.argv.slice(2), options = {}) {
+  const root = options.root || process.cwd();
+  const [jobId] = args;
+  if (!jobId) {
+    return { status: 1, stderr: "Usage: npm run jobs:run -- <job-id>" };
+  }
+
+  const run = await runJob(jobId, { root, commandRunner: options.commandRunner, persist: options.persist });
+  const runId = run.runId || run.id;
+  const runPath = path.join(runsDir(root), `${runId}.json`);
+  return {
+    status: 0,
+    stdout: JSON.stringify({
+      runId,
+      jobId: run.jobId || run.id,
+      status: run.status,
+      durationMs: run.durationMs,
+      path: runPath
+    }, null, 2)
+  };
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const result = await runJobCli();
+  if (result.stderr) console.error(result.stderr);
+  if (result.stdout) console.log(result.stdout);
+  process.exit(result.status);
+}

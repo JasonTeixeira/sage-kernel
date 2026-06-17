@@ -1,8 +1,12 @@
 #!/usr/bin/env node
+/* node:coverage disable */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { callToolCli } from "../apps/mcp-server/scripts/call-tool.mjs";
+import { createDoctorReport, formatDoctorReport } from "../packages/core/doctor.mjs";
+import { formatMcpClientConfig } from "../packages/core/mcp-client-config.mjs";
 
 const currentFile = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(currentFile), "..");
@@ -22,6 +26,23 @@ function runNpm(script, scriptArgs = []) {
     stdio: "inherit"
   });
   process.exitCode = result.status ?? 1;
+}
+
+async function printTool(tool, input = {}) {
+  const result = await callToolCli([tool, JSON.stringify(input)], { root });
+  if (result.stderr) console.error(result.stderr);
+  if (result.stdout) console.log(result.stdout);
+  process.exitCode = result.status;
+}
+
+function jsonArg(raw, fallback = {}) {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error(`Input must be JSON: ${error.message}`);
+    process.exit(1);
+  }
 }
 
 function help() {
@@ -50,14 +71,24 @@ Usage:
   sage dashboard-live
   sage postgres-schema
   sage dogfood-prod [repo...]
-  sage doctor
-  sage mcp
+  sage doctor [--json] [--fast] [--client=codex|claude|cursor|all]
+  sage mcp [start|config|smoke]
+  sage daily
+  sage audit [projectPath]
+  sage full-qa [projectPath]
+  sage failures [json-report]
+  sage create-app <template> <name>
+  sage release [template] [target]
+  sage pending
+  sage stress [url]
   sage db
 
 Examples:
   sage plan next-saas-app vercel contractor-dispatch-os
   sage new next-ai-app ai-research-copilot
   sage run nightly-local-audit
+  sage mcp config codex --json
+  sage daily
 `);
 }
 
@@ -233,35 +264,78 @@ switch (command) {
     break;
 
   case "doctor":
-    runNpm("db:init");
-    if (process.exitCode) break;
-    runNpm("catalog:validate");
-    if (process.exitCode) break;
-    runNpm("infra:validate");
-    if (process.exitCode) break;
-    runNpm("jobs:validate");
-    if (process.exitCode) break;
-    runNpm("mcp:validate");
-    if (process.exitCode) break;
-    runNpm("mcp:contracts");
-    if (process.exitCode) break;
-    runNpm("template:validate-blueprints");
-    if (process.exitCode) break;
-    runNpm("test");
-    if (process.exitCode) break;
-    runNpm("qa:gate");
-    if (process.exitCode) break;
-    runNpm("v03:validate");
-    if (process.exitCode) break;
-    runNpm("security:scan");
+    {
+      const client = valueArg(args, "--client") || "all";
+      const report = await createDoctorReport({ root, fast: args.includes("--fast"), client });
+      console.log(formatDoctorReport(report, { json: args.includes("--json") }));
+      process.exitCode = report.status === "passed" ? 0 : 1;
+    }
     break;
 
   case "db":
     runNpm("db:summary");
     break;
 
-  case "mcp":
-    runNpm("mcp:server");
+  case "mcp": {
+    const [subcommand = "start", client = "all"] = args.filter((arg) => !arg.startsWith("--"));
+    if (subcommand === "start" || subcommand === "server") {
+      runNpm("mcp:server");
+      break;
+    }
+    if (subcommand === "smoke") {
+      runNpm("mcp:smoke");
+      break;
+    }
+    if (subcommand === "config") {
+      try {
+        console.log(formatMcpClientConfig(client, { root, json: args.includes("--json") }));
+      } catch (error) {
+        console.error(error.message);
+        process.exitCode = 1;
+      }
+      break;
+    }
+    console.error(`Unknown mcp subcommand: ${subcommand}`);
+    process.exitCode = 1;
+    break;
+  }
+
+  case "daily":
+    await printTool("kernel.workflow.daily_summary", {});
+    break;
+
+  case "audit":
+    await printTool("kernel.workflow.audit_repo", { projectPath: args[0] || ".", mode: args[1] || "fast" });
+    break;
+
+  case "full-qa":
+    await printTool("kernel.workflow.run_full_qa", { projectPath: args[0] || ".", mode: args[1] || "standard" });
+    break;
+
+  case "failures":
+    await printTool("kernel.workflow.explain_failures", { report: jsonArg(args.join(" "), null) });
+    break;
+
+  case "create-app": {
+    const [template, name, out] = args;
+    if (!template || !name) {
+      console.error("Usage: sage create-app <template> <name> [out]");
+      process.exit(1);
+    }
+    await printTool("kernel.workflow.create_app", { template, name, out });
+    break;
+  }
+
+  case "release":
+    await printTool("kernel.workflow.release_readiness", { template: args[0] || "worker-service", target: args[1] || "docker" });
+    break;
+
+  case "pending":
+    await printTool("kernel.workflow.pending_approvals", { status: args[0] || "pending" });
+    break;
+
+  case "stress":
+    await printTool("kernel.workflow.stress_dashboard", { url: args[0] || "http://127.0.0.1:8787" });
     break;
 
   case "root":
@@ -272,4 +346,9 @@ switch (command) {
     console.error(`Unknown command: ${command}`);
     help();
     process.exit(1);
+}
+
+function valueArg(values, name) {
+  const arg = values.find((item) => item.startsWith(`${name}=`));
+  return arg ? arg.slice(name.length + 1) : null;
 }

@@ -2,6 +2,8 @@ import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createKernelRuntime } from "../../../packages/core/runtime.mjs";
+import { registerKernelPrompts } from "./kernel-prompts.mjs";
+import { registerKernelResources } from "./kernel-resources.mjs";
 import { toMcpTextContent } from "./kernel-tools.mjs";
 
 const root = process.cwd();
@@ -21,6 +23,8 @@ export async function createServer() {
       return toMcpTextContent(result);
     });
   }
+  registerKernelResources(server, { root });
+  registerKernelPrompts(server);
 
   return server;
 }

@@ -44,12 +44,40 @@ From this repo:
 
 ```bash
 node bin/sage.mjs status
+node bin/sage.mjs doctor --fast
+node bin/sage.mjs mcp config all
+node bin/sage.mjs mcp smoke
+node bin/sage.mjs daily
+node bin/sage.mjs audit .
 node bin/sage.mjs plan next-saas-app vercel contractor-dispatch-os
 node bin/sage.mjs run nightly-local-audit
 node bin/sage.mjs dashboard
 ```
 
 After `npm link`, use `sage` from any terminal.
+
+Daily app-building shortcuts:
+
+```bash
+sage daily
+sage audit .
+sage full-qa .
+sage failures '{"status":"failed","checks":[]}'
+sage create-app worker-service daily-worker
+sage release worker-service docker
+sage pending
+sage stress http://127.0.0.1:8787
+```
+
+MCP client setup:
+
+```bash
+sage mcp config codex --json
+sage mcp config claude-desktop --json
+sage mcp config cursor --json
+sage mcp smoke
+sage mcp start
+```
 
 ## Local Secrets
 

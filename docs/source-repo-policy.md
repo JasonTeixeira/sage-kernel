@@ -40,13 +40,14 @@ When a reusable artifact is worth bringing into the kernel:
 4. Do not remove the original.
 5. Validate the copied/adapted artifact with kernel tests.
 
-## Existing Nexural Federation
+## Existing Federation Sources
 
-Nexural Federation is an existing predecessor/control-plane concept, especially in:
+Federated source repos are optional local inputs. Configure them with environment variables instead of committing personal filesystem paths:
 
-- `/Users/Sage/code/nexural/nexural-meta`
-- `/Users/Sage/.graphify/repos/JasonTeixeira/nexural-meta`
-- `/Users/Sage/Sage Ideas/01-Projects/Nexural Federation.md`
-- `/Users/Sage/Sage Ideas/99-MOCs/Nexural Federation MOC.md`
+```bash
+SAGE_KERNEL_SOURCE_ROOT=/path/to/source/repos
+AI_WAREHOUSE_ROOT=/path/to/ai-warehouse
+QA_OS_ROOT=/path/to/nexural-qa-os
+```
 
-Sage Kernel OS should preserve that work and treat it as prior architecture, not overwrite it.
+Sage Kernel OS should preserve federated source work and treat it as prior architecture, not overwrite it.

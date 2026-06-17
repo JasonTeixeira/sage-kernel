@@ -1,32 +1,95 @@
-name: Sage Kernel CI
+name: CI
 
 on:
-  pull_request:
   push:
     branches: [main]
+  pull_request:
 
 jobs:
-  validate:
+  quality:
+    name: Quality Gates / Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install system SQLite
+        run: sudo apt-get update && sudo apt-get install -y sqlite3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate catalogs and manifests
+        run: |
+          npm run catalog:validate
+          npm run infra:validate
+          npm run jobs:validate
+          npm run mcp:validate
+          npm run mcp:contracts
+          npm run template:validate-blueprints
+          npm run v03:validate
+
+      - name: Test with hard coverage gates
+        run: npm run test:coverage
+
+      - name: MCP smoke
+        run: npm run mcp:smoke
+
+      - name: Security
+        run: |
+          npm run security:scan
+          npm audit
+
+      - name: QA gate and release package
+        run: |
+          npm run qa:gate
+          npm run release:check
+          git diff --check
+
+  postgres:
+    name: Postgres Integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sage
+          POSTGRES_PASSWORD: sage
+          POSTGRES_DB: sage_kernel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: sudo apt-get update && sudo apt-get install -y sqlite3
-      - run: npm ci
-      - run: npm run db:init
-      - run: npm run catalog:validate
-      - run: npm run infra:validate
-      - run: npm run jobs:validate
-      - run: npm run mcp:validate
-      - run: npm run mcp:contracts
-      - run: npm run template:validate-blueprints
-      - run: npm test
-      - run: npm run test:coverage
-      - run: npm run qa:gate
-      - run: npm run mcp:smoke
-      - run: npm run v03:validate
-      - run: npm run security:scan
-      - run: npm audit --audit-level=moderate
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Postgres integration tests
+        env:
+          SAGE_RUN_POSTGRES_TESTS: "1"
+          DATABASE_URL: postgresql://sage:sage@127.0.0.1:5432/sage_kernel
+        run: npm run postgres:integration
