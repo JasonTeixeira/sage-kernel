@@ -1,0 +1,25 @@
+{
+  "id": "eval_dashboard_health",
+  "name": "Dashboard health",
+  "scope": "dashboard",
+  "version": 1,
+  "description": "Proves the local dashboard can build and expose the static cockpit artifact.",
+  "graders": [
+    {
+      "id": "dashboard_build",
+      "type": "command",
+      "command": "npm run dashboard:build"
+    },
+    {
+      "id": "dashboard_artifact",
+      "type": "file_exists",
+      "path": "apps/dashboard/dist/index.html"
+    }
+  ],
+  "successCriteria": [
+    "Dashboard build exits with status 0.",
+    "Static dashboard HTML exists."
+  ],
+  "requiresApproval": false
+}
+

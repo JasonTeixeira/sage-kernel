@@ -89,8 +89,16 @@
     {
       "name": "sage.intelligence.evals",
       "uri": "sage://intelligence/evals",
-      "title": "Sage Intelligence Eval Fixture",
-      "description": "Validated eval-definition fixture showing deterministic grader structure.",
+      "title": "Sage Intelligence Eval Definitions",
+      "description": "Validated eval definitions for deterministic release, MCP, dashboard, QA, and workflow checks.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.eval-report",
+      "uri": "sage://intelligence/eval-report",
+      "title": "Sage Intelligence Latest Eval Report",
+      "description": "Latest local eval run report, or a missing-state object if no eval suite has run yet.",
       "mimeType": "application/json",
       "access": "read-only"
     },

@@ -1,0 +1,25 @@
+{
+  "id": "eval_release_readiness",
+  "name": "Release readiness",
+  "scope": "release",
+  "version": 1,
+  "description": "Proves the public release gate still passes.",
+  "graders": [
+    {
+      "id": "release_check",
+      "type": "command",
+      "command": "npm run release:check"
+    },
+    {
+      "id": "release_docs",
+      "type": "file_exists",
+      "path": "docs/RELEASE_PROCESS.md"
+    }
+  ],
+  "successCriteria": [
+    "Release check exits with status 0.",
+    "Release process documentation exists."
+  ],
+  "requiresApproval": false
+}
+

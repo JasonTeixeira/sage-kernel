@@ -16,7 +16,8 @@ These resources are read-only. Use resources when an MCP client needs to inspect
 | Sage Dashboard Snapshot | `sage://dashboard/snapshot` | `application/json` | Full DB-backed dashboard snapshot. |
 | Sage Intelligence Contracts | `sage://intelligence/contracts` | `application/json` | Read-only intelligence schemas and security boundaries for memory, evals, experiments, runbooks, and semantic code. |
 | Sage Intelligence Memory Fixture | `sage://intelligence/memory` | `application/json` | Validated memory-record fixture showing provenance, confidence, and supersession structure. |
-| Sage Intelligence Eval Fixture | `sage://intelligence/evals` | `application/json` | Validated eval-definition fixture showing deterministic grader structure. |
+| Sage Intelligence Eval Definitions | `sage://intelligence/evals` | `application/json` | Validated eval definitions for deterministic release, MCP, dashboard, QA, and workflow checks. |
+| Sage Intelligence Latest Eval Report | `sage://intelligence/eval-report` | `application/json` | Latest local eval run report, or a missing-state object if no eval suite has run yet. |
 | Sage Intelligence Experiment Fixture | `sage://intelligence/experiments` | `application/json` | Validated experiment-run fixture showing bounded feedback-loop structure. |
 | Sage Intelligence Runbook Fixture | `sage://intelligence/runbooks` | `application/json` | Validated runbook fixture showing steps and verification commands. |
 | Sage Intelligence Semantic Adapter Fixture | `sage://intelligence/semantic-adapters` | `application/json` | Validated semantic-code adapter fixture showing read-only capability metadata. |

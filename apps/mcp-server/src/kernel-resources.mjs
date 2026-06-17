@@ -90,10 +90,18 @@ export const kernelResources = [
   {
     name: "sage.intelligence.evals",
     uri: "sage://intelligence/evals",
-    title: "Sage Intelligence Eval Fixture",
-    description: "Validated eval-definition fixture showing deterministic grader structure.",
+    title: "Sage Intelligence Eval Definitions",
+    description: "Validated eval definitions for deterministic release, MCP, dashboard, QA, and workflow checks.",
     mimeType: "application/json",
-    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/eval-definition.json", {})
+    read: (root) => readEvalDefinitions(root)
+  },
+  {
+    name: "sage.intelligence.eval-report",
+    uri: "sage://intelligence/eval-report",
+    title: "Sage Intelligence Latest Eval Report",
+    description: "Latest local eval run report, or a missing-state object if no eval suite has run yet.",
+    mimeType: "application/json",
+    read: (root) => readLatestEvalReport(root)
   },
   {
     name: "sage.intelligence.experiments",
@@ -169,6 +177,25 @@ function readIntelligenceContracts(root) {
   };
 }
 
+function readEvalDefinitions(root) {
+  const evalDir = path.join(root, "packages/intelligence/evals");
+  if (!fs.existsSync(evalDir)) return [];
+  return fs
+    .readdirSync(evalDir)
+    .filter((file) => file.endsWith(".json"))
+    .sort()
+    .map((file) => readJson(root, path.join("packages/intelligence/evals", file), {}));
+}
+
+function readLatestEvalReport(root) {
+  return readJson(root, path.join(".sage-kernel/evals/latest.json"), {
+    status: "missing",
+    evals: [],
+    summary: { total: 0, passed: 0, failed: 0 },
+    failures: ["No eval report has been generated yet."]
+  });
+}
+
 function readJson(root, relativePath, fallback = null) {
   const fullPath = path.join(root, relativePath);
   if (!fs.existsSync(fullPath)) return fallback;
@@ -183,7 +210,9 @@ function resourceText(value, mimeType) {
 
 export const __resourceTestInternals = {
   readCatalog,
+  readEvalDefinitions,
   readIntelligenceContracts,
+  readLatestEvalReport,
   readJson,
   resourceText
 };

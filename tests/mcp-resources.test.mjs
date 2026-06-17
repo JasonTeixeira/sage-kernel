@@ -27,6 +27,7 @@ test("MCP server exposes read-only kernel resources", async () => {
       "sage://dashboard/snapshot",
       "sage://docs/mcp-server",
       "sage://intelligence/contracts",
+      "sage://intelligence/eval-report",
       "sage://intelligence/evals",
       "sage://intelligence/experiments",
       "sage://intelligence/memory",
@@ -90,6 +91,10 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   assert.equal(contracts.securityBoundaries.some((boundary) => boundary.action === "semantic_code.apply_refactor"), true);
   const memory = kernelResources.find((resource) => resource.uri === "sage://intelligence/memory").read(sandbox);
   assert.equal(memory.id, "mem_release_ci_passed");
+  const evals = kernelResources.find((resource) => resource.uri === "sage://intelligence/evals").read(sandbox);
+  assert.equal(evals.length > 0, true);
+  const evalReport = kernelResources.find((resource) => resource.uri === "sage://intelligence/eval-report").read(sandbox);
+  assert.equal(evalReport.status, "missing");
 
   const registered = [];
   registerKernelResources({

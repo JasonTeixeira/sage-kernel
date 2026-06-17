@@ -1,0 +1,25 @@
+{
+  "id": "eval_project_workflows",
+  "name": "Project workflow surface",
+  "scope": "mcp",
+  "version": 1,
+  "description": "Proves daily project workflows are present in the MCP tool contract.",
+  "graders": [
+    {
+      "id": "tool_contract",
+      "type": "mcp_contract",
+      "path": "apps/mcp-server/contracts/tools.snapshot.json"
+    },
+    {
+      "id": "usage_docs",
+      "type": "file_exists",
+      "path": "docs/USAGE.md"
+    }
+  ],
+  "successCriteria": [
+    "MCP tool contract exists and contains tools.",
+    "Usage documentation exists."
+  ],
+  "requiresApproval": false
+}
+

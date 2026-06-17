@@ -44,7 +44,8 @@ export function validateIntelligence(options = {}) {
   const checked = {
     schemas: 0,
     fixtures: 0,
-    boundaries: 0
+    boundaries: 0,
+    evals: 0
   };
 
   for (const contract of contracts) {
@@ -69,12 +70,40 @@ export function validateIntelligence(options = {}) {
     checked.boundaries = boundaries.boundaries?.length || 0;
   }
 
+  const evalDir = path.join(workspace, packageDir, "evals");
+  if (fs.existsSync(evalDir)) {
+    for (const file of fs.readdirSync(evalDir).filter((item) => item.endsWith(".json")).sort()) {
+      const label = path.join("packages/intelligence/evals", file);
+      const definition = readJson(path.join(evalDir, file), failures, label);
+      if (definition) {
+        checked.evals += 1;
+        failures.push(...validateEvalDefinitionFile(definition, label));
+      }
+    }
+  } else {
+    failures.push("Missing packages/intelligence/evals");
+  }
+
   return {
     status: failures.length === 0 ? "passed" : "failed",
     checked,
     contracts: contracts.map((contract) => contract.name),
     failures
   };
+}
+
+export function validateEvalDefinitionFile(definition, label = "eval-definition.json") {
+  const failures = [];
+  validateEvalDefinition(definition, label, failures);
+  const graderIds = new Set();
+  for (const [index, grader] of arrayItems(definition.graders).entries()) {
+    if (graderIds.has(grader.id)) failures.push(`${label}.graders[${index}].id duplicates ${grader.id}`);
+    graderIds.add(grader.id);
+    if (grader.type === "coverage" && !Number.isFinite(grader.threshold)) {
+      failures.push(`${label}.graders[${index}].threshold must be finite`);
+    }
+  }
+  return failures;
 }
 
 function validateSchema(contract, schema, failures) {

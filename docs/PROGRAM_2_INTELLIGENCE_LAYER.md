@@ -281,7 +281,7 @@ Exit criteria:
 
 ### Phase 2.2: Eval Harness And Feedback Loops
 
-Status: planned.
+Status: complete for the eval harness scope.
 
 Tasks:
 
@@ -296,19 +296,54 @@ Tasks:
 - Add bounded feedback-loop runner inspired by Karpathy-style experiment
   loops, but policy-gated and rollback-aware.
 
+Implemented:
+
+- Added five real eval definitions:
+  - `eval_release_readiness`
+  - `eval_mcp_smoke`
+  - `eval_dashboard_health`
+  - `eval_qa_gate`
+  - `eval_project_workflows`
+- Added `npm run eval:validate`.
+- Added `npm run eval:run`.
+- Added `npm run eval:report`.
+- Added deterministic graders:
+  - command exit code
+  - JSON parse/schema-file presence
+  - file existence
+  - coverage threshold metadata
+  - MCP contract snapshot count
+- Added latest-report persistence under `.sage-kernel/evals/latest.json`.
+- Added read-only MCP resources for eval definitions and latest eval report.
+- Added tests for:
+  - successful eval execution
+  - failed command graders
+  - missing files
+  - missing MCP contracts
+  - workspace path escapes
+  - missing latest reports
+  - real repository workflow eval execution
+
+Deferred:
+
+- Bounded experiment loops remain Program 5 scope. Program 2 proves evals and
+  verification; it does not yet mutate code or accept/reject experiments.
+
 Verification:
 
 ```bash
 npm run eval:validate
 npm run eval:run
 npm run eval:report
-npm run experiments:smoke
+node --test tests/eval-runner.test.mjs
 npm run qa:gate
 ```
 
 Exit criteria:
 
 - Sage Kernel can prove whether an agent workflow improved or regressed.
+- Sage Kernel can run deterministic evals and persist a report that MCP
+  clients can inspect.
 
 ### Phase 2.3: Durable Memory And Project State
 

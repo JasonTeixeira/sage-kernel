@@ -1,0 +1,25 @@
+{
+  "id": "eval_mcp_smoke",
+  "name": "MCP smoke and contract",
+  "scope": "mcp",
+  "version": 1,
+  "description": "Proves the MCP server starts, lists tools, calls a safe tool, and has generated contracts.",
+  "graders": [
+    {
+      "id": "mcp_smoke",
+      "type": "command",
+      "command": "npm run mcp:smoke"
+    },
+    {
+      "id": "resources_contract",
+      "type": "mcp_contract",
+      "path": "apps/mcp-server/contracts/resources.snapshot.json"
+    }
+  ],
+  "successCriteria": [
+    "MCP smoke exits with status 0.",
+    "MCP resource contract snapshot exists and contains resources."
+  ],
+  "requiresApproval": false
+}
+

@@ -29,6 +29,9 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.scripts["stress:queue"], "node scripts/stress-queue.mjs");
   assert.equal(pkg.scripts["stress:dashboard"], "node scripts/stress-dashboard.mjs");
   assert.equal(pkg.scripts["intelligence:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
+  assert.equal(pkg.scripts["eval:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
+  assert.equal(pkg.scripts["eval:run"], "node packages/intelligence/scripts/eval-runner.mjs");
+  assert.equal(pkg.scripts["eval:report"], "node packages/intelligence/scripts/eval-report.mjs");
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-lines=98/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-branches=90/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-functions=97/);
@@ -98,6 +101,7 @@ test("intelligence contracts validate fixtures and reject unsafe shapes", () => 
   assert.equal(passing.status, "passed");
   assert.equal(passing.checked.schemas, 5);
   assert.equal(passing.checked.fixtures, 5);
+  assert.equal(passing.checked.evals, 5);
   assert.deepEqual(passing.failures, []);
 
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-intelligence-"));
@@ -214,6 +218,21 @@ test("intelligence contracts validate fixtures and reject unsafe shapes", () => 
   assert.match(failures, /security-boundaries\.json\.boundaries\[0]\.approvalRequired must be true for local-write risk/);
   assert.match(failures, /security-boundaries\.json\.boundaries\[1]\.action duplicates duplicate\.action/);
   assert.match(failures, /security-boundaries\.json\.boundaries\[1]\.approvalRequired must be boolean/);
+
+  fs.writeFileSync(path.join(workspace, "packages/intelligence/evals/bad.json"), JSON.stringify({
+    id: "eval_duplicate_grader",
+    name: "Duplicate grader",
+    scope: "mcp",
+    version: 1,
+    graders: [
+      { id: "same", type: "coverage", threshold: 90 },
+      { id: "same", type: "coverage", threshold: null }
+    ],
+    successCriteria: ["Detect bad graders."]
+  }));
+  failures = validateIntelligence({ root: workspace }).failures.join("\n");
+  assert.match(failures, /packages\/intelligence\/evals\/bad\.json\.graders\[1]\.id duplicates same/);
+  assert.match(failures, /packages\/intelligence\/evals\/bad\.json\.graders\[1]\.threshold must be a number between 0 and 100/);
 
   fs.writeFileSync(path.join(fixtureDir, "runbook.json"), "{");
   assert.match(validateIntelligence({ root: workspace }).failures.join("\n"), /Invalid fixture runbook\.json/);

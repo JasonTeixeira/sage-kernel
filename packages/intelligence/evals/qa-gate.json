@@ -1,0 +1,19 @@
+{
+  "id": "eval_qa_gate",
+  "name": "QA gate",
+  "scope": "cli",
+  "version": 1,
+  "description": "Proves the kernel QA gate still passes.",
+  "graders": [
+    {
+      "id": "qa_gate",
+      "type": "command",
+      "command": "npm run qa:gate"
+    }
+  ],
+  "successCriteria": [
+    "QA gate exits with status 0."
+  ],
+  "requiresApproval": false
+}
+
