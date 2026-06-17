@@ -11,6 +11,7 @@ const checks = [
   ["npm", ["run", "mcp:validate"]],
   ["npm", ["run", "mcp:contracts"]],
   ["npm", ["run", "mcp:smoke"]],
+  ["npm", ["run", "soak:quick"]],
   ["npm", ["run", "template:validate-blueprints"]],
   ["npm", ["run", "v03:validate"]],
   ["npm", ["run", "security:scan"]],

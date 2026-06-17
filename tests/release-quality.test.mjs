@@ -9,6 +9,7 @@ import { createQaReport, parseMode, runQaCli, staticChecks } from "../packages/q
 import { createDogfoodReport, inspectRepo, sourceRootForCatalog } from "../scripts/dogfood-production-audit.mjs";
 import { createDashboardStressReport, parseDashboardStressArgs } from "../scripts/stress-dashboard.mjs";
 import { createQueueStressReport, parseQueueStressArgs } from "../scripts/stress-queue.mjs";
+import { createSoakReport, parseSoakArgs, runMcpSmoke } from "../scripts/soak-runner.mjs";
 import { createWarehouseSummary } from "../packages/ai-warehouse/scripts/warehouse-summary.mjs";
 import { validateIntelligence } from "../packages/intelligence/scripts/validate-intelligence.mjs";
 import { validateMarkdownLinks, validatePublicSurface } from "../scripts/validate-public-surface.mjs";
@@ -28,6 +29,8 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.files.includes("assets"), true);
   assert.equal(pkg.scripts["stress:queue"], "node scripts/stress-queue.mjs");
   assert.equal(pkg.scripts["stress:dashboard"], "node scripts/stress-dashboard.mjs");
+  assert.equal(pkg.scripts["soak:run"], "node scripts/soak-runner.mjs");
+  assert.equal(pkg.scripts["soak:quick"], "node scripts/soak-runner.mjs --profile=quick");
   assert.equal(pkg.scripts["intelligence:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
   assert.equal(pkg.scripts["eval:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
   assert.equal(pkg.scripts["eval:run"], "node packages/intelligence/scripts/eval-runner.mjs");
@@ -44,6 +47,7 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.scripts["adapters:smoke"], "node packages/intelligence/scripts/adapters-smoke.mjs");
   assert.equal(pkg.scripts["runbooks:validate"], "node packages/intelligence/scripts/runbooks-validate.mjs");
   assert.equal(pkg.scripts["runbooks:smoke"], "node packages/intelligence/scripts/runbooks-smoke.mjs");
+  assert.equal(pkg.scripts["runbooks:execute"], "node packages/intelligence/scripts/runbooks-execute.mjs");
   assert.equal(pkg.scripts["plan:day"], "node packages/intelligence/scripts/plan-day.mjs");
   assert.equal(pkg.scripts["adr:generate"], "node packages/intelligence/scripts/adr-generate.mjs");
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-lines=98/);
@@ -71,6 +75,10 @@ test("package metadata is ready for public OSS distribution", () => {
     "docs/RELEASE_PROCESS.md",
     "assets/sage-kernel-architecture.svg",
     "assets/sage-kernel-workflow.svg",
+    "assets/sage-kernel-control-loop.svg",
+    "docs/DEMO_ASSETS.md",
+    "examples/claude-desktop.config.json",
+    "examples/codex-mcp.config.toml",
     "docker-compose.postgres.yml",
     "packages/intelligence/scripts/validate-intelligence.mjs",
     "packages/intelligence/scripts/semantic-smoke.mjs",
@@ -78,6 +86,7 @@ test("package metadata is ready for public OSS distribution", () => {
     "packages/intelligence/adapters.mjs",
     "packages/intelligence/adapters/optional-adapters.json",
     "packages/intelligence/scripts/runbooks-smoke.mjs",
+    "packages/intelligence/scripts/runbooks-execute.mjs",
     "packages/intelligence/semantic-code.mjs",
     "packages/intelligence/runbooks.mjs",
     "packages/intelligence/runbooks/release-readiness.json",
@@ -123,7 +132,7 @@ test("intelligence contracts validate fixtures and reject unsafe shapes", () => 
   assert.equal(passing.status, "passed");
   assert.equal(passing.checked.schemas, 5);
   assert.equal(passing.checked.fixtures, 5);
-  assert.equal(passing.checked.evals, 9);
+  assert.equal(passing.checked.evals, 10);
   assert.deepEqual(passing.failures, []);
 
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-intelligence-"));
@@ -392,6 +401,63 @@ test("public surface validator catches package and markdown regressions", () => 
 
   fs.writeFileSync(path.join(workspace, "package.json"), "{");
   assert.match(validatePublicSurface({ root: workspace }).failures.join("\n"), /Invalid package.json/);
+});
+
+test("soak runner reports repeated checks and memory deltas", async () => {
+  assert.deepEqual(parseSoakArgs(["--profile=quick", "--cycles=1", "--skip-mcp"]).includeMcp, false);
+  const localProfile = parseSoakArgs(["--profile=local", "--skip-dashboard", "--mcp", "--url=http://127.0.0.1:9999", "--endpoint=/ready"]);
+  assert.equal(localProfile.includeDashboard, false);
+  assert.equal(localProfile.includeMcp, true);
+  assert.equal(localProfile.baseUrl, "http://127.0.0.1:9999");
+  assert.equal(localProfile.endpoint, "/ready");
+  assert.equal(parseSoakArgs(["--profile=quick", "--dashboard"]).includeDashboard, true);
+  assert.throws(() => parseSoakArgs(["--profile=missing"]), /Unknown soak profile/);
+
+  const report = await createSoakReport({
+    root,
+    cycles: 1,
+    queueCount: 5,
+    includeDashboard: true,
+    dashboardCount: 3,
+    concurrency: 1,
+    fetchImpl: async () => ({ ok: true, text: async () => "ok" }),
+    mcpSmoke: { status: "passed", exitCode: 0 }
+  });
+  assert.equal(report.status, "passed");
+  assert.equal(report.cycles.length, 1);
+  assert.equal(report.cycles[0].checks.some((check) => check.name === "dashboard"), true);
+  assert.equal(typeof report.memoryDelta.rssBytes, "number");
+
+  const failed = await createSoakReport({
+    root,
+    cycles: 1,
+    queueCount: 1,
+    includeDashboard: true,
+    includeMcp: false,
+    fetchImpl: async () => ({ ok: false, text: async () => "bad" })
+  });
+  assert.equal(failed.status, "failed");
+
+  const missingProfile = spawnSync("node", ["scripts/soak-runner.mjs", "--profile=missing"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(missingProfile.status, 0);
+  assert.match(missingProfile.stderr, /Unknown soak profile/);
+
+  const failingRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-soak-failing-root-"));
+  fs.mkdirSync(path.join(failingRoot, "packages/db"), { recursive: true });
+  fs.copyFileSync(path.join(root, "packages/db/schema.sql"), path.join(failingRoot, "packages/db/schema.sql"));
+  fs.writeFileSync(path.join(failingRoot, "package.json"), JSON.stringify({ name: "soak-failure-fixture", scripts: {} }));
+  const failedMcp = spawnSync("node", [path.join(root, "scripts/soak-runner.mjs"), "--profile=quick", "--cycles=1"], {
+    cwd: failingRoot,
+    encoding: "utf8"
+  });
+  assert.notEqual(failedMcp.status, 0);
+  assert.match(failedMcp.stdout, /"status": "failed"/);
+  const directFailedMcp = runMcpSmoke(failingRoot);
+  assert.equal(directFailedMcp.status, "failed");
+  assert.notEqual(directFailedMcp.exitCode, 0);
 });
 
 test("infra plan CLI validates inputs, writes output files, and covers python docker selection", () => {

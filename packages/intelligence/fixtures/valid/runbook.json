@@ -9,13 +9,20 @@
       "title": "Run local release gate",
       "action": "execute_command",
       "command": "npm run release:check",
-      "expected": "The command exits with status 0."
+      "expected": "The command exits with status 0.",
+      "timeoutMs": 120000,
+      "rollback": {
+        "description": "No file rollback is required. If this gate fails, fix the reported check and rerun release verification."
+      }
     },
     {
       "id": "remote_ci_check",
       "title": "Verify remote CI",
       "action": "inspect_ci",
-      "expected": "Quality, fresh-install, and Postgres jobs are green."
+      "expected": "Quality, fresh-install, and Postgres jobs are green.",
+      "rollback": {
+        "description": "Do not release. Revert or fix the failing commit, push again, and wait for CI to pass."
+      }
     }
   ],
   "verification": [
@@ -23,4 +30,3 @@
     "gh run watch <run-id> --repo JasonTeixeira/sage-kernel"
   ]
 }
-

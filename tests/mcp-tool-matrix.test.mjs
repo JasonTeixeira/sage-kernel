@@ -78,6 +78,26 @@ test("MCP dispatcher covers catalog, template, QA, infra, deploy, dashboard, and
   assert.equal(dayPlan.steps.length > 0, true);
   const adr = await callKernelTool(sandbox, "kernel.runbooks.generate_adr", { title: "Test ADR", decision: "Use safe tools." });
   assert.match(adr.markdown, /# ADR: Test ADR/);
+  const runbookPayload = {
+    runbook: "runbook_daily_release_readiness",
+    step: "inspect_state",
+    dryRun: true
+  };
+  await assert.rejects(() => callKernelTool(sandbox, "kernel.runbooks.execute_step", runbookPayload), /requires approval/);
+  const runbookDb = createSqliteAdapter({ root: sandbox, schemaRoot: root });
+  runbookDb.init();
+  const runbookLedger = createApprovalLedger({ db: runbookDb, signer: "test-signer" });
+  const runbookApproval = runbookLedger.request({
+    action: "runbooks.execute_step",
+    reason: "execute dry-run runbook step through MCP",
+    payload: runbookPayload
+  });
+  runbookLedger.approve({ id: runbookApproval.id, decidedBy: "tester" });
+  const execution = await callKernelTool(sandbox, "kernel.runbooks.execute_step", {
+    ...runbookPayload,
+    approvalId: runbookApproval.id
+  });
+  assert.equal(execution.status, "planned");
 
   const content = toMcpTextContent({ ok: true });
   assert.equal(content.content[0].type, "text");

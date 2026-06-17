@@ -897,6 +897,42 @@
       ]
     },
     {
+      "name": "kernel.runbooks.execute_step",
+      "description": "Execute one allowlisted runbook step with signed approval, timeout, rollback metadata, and audit records.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["runbook", "step"],
+        "properties": {
+          "runbook": { "type": "string" },
+          "step": { "type": "string" },
+          "dryRun": { "type": "boolean" },
+          "timeoutMs": { "type": "number" },
+          "approvalId": { "type": "string" }
+        }
+      },
+      "risk": "approval-required",
+      "approvalRequired": true,
+      "permission": "runbooks:execute",
+      "sideEffects": "may execute allowlisted local commands and writes audit/artifact records",
+      "outputShape": "Runbook step execution result with status, command, timeout, duration, stdout/stderr excerpts, rollback metadata, and audit record.",
+      "examples": [
+        {
+          "description": "Plan a runbook step without executing it.",
+          "input": {
+            "runbook": "runbook_release_verification",
+            "step": "local_release_check",
+            "dryRun": true
+          }
+        }
+      ],
+      "failureModes": [
+        "Signed approval is missing or invalid for execution.",
+        "Runbook or step id is unknown.",
+        "Command is not in the runbook execution allowlist.",
+        "Step command times out or exits non-zero."
+      ]
+    },
+    {
       "name": "kernel.dogfood.prod",
       "description": "Audit three production repos against kernel QA readiness without mutating them.",
       "inputSchema": {

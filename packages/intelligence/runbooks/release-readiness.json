@@ -9,21 +9,33 @@
       "title": "Inspect project state",
       "action": "inspect_state",
       "command": "npm run memory:state",
-      "expected": "Project state reports git, evals, dashboard health, memory, and approvals."
+      "expected": "Project state reports git, evals, dashboard health, memory, and approvals.",
+      "timeoutMs": 60000,
+      "rollback": {
+        "description": "No rollback is required. This step only reads local state."
+      }
     },
     {
       "id": "run_evals",
       "title": "Run deterministic evals",
       "action": "run_eval",
       "command": "npm run eval:run",
-      "expected": "All eval definitions pass and latest report is persisted."
+      "expected": "All eval definitions pass and latest report is persisted.",
+      "timeoutMs": 120000,
+      "rollback": {
+        "description": "If eval output changes, inspect .sage-kernel/evals/latest.json and rerun after fixing the failing grader."
+      }
     },
     {
       "id": "run_release_check",
       "title": "Run release check",
       "action": "verify_release",
       "command": "npm run release:check",
-      "expected": "Release check exits with status 0."
+      "expected": "Release check exits with status 0.",
+      "timeoutMs": 180000,
+      "rollback": {
+        "description": "Do not package or publish. Fix the failed release gate and rerun this step."
+      }
     }
   ],
   "verification": [

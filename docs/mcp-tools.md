@@ -34,6 +34,7 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.runbooks.list` | safe | `runbooks:read` | No | none |
 | `kernel.runbooks.plan_day` | safe | `runbooks:read` | No | none |
 | `kernel.runbooks.generate_adr` | safe | `runbooks:read` | No | none |
+| `kernel.runbooks.execute_step` | approval-required | `runbooks:execute` | Yes | may execute allowlisted local commands and writes audit/artifact records |
 | `kernel.dogfood.prod` | safe | `dogfood:read` | No | none |
 | `kernel.workflow.audit_repo` | mutating | `workflow:write` | No | runs local QA commands and may write local audit records |
 | `kernel.workflow.run_full_qa` | mutating | `workflow:write` | No | runs local QA commands and may write local audit records |
@@ -413,6 +414,20 @@ Example input:
 }
 ```
 
+### `kernel.runbooks.execute_step`
+
+Runbook step execution result with status, command, timeout, duration, stdout/stderr excerpts, rollback metadata, and audit record.
+
+Example input:
+
+```json
+{
+  "runbook": "runbook_release_verification",
+  "step": "local_release_check",
+  "dryRun": true
+}
+```
+
 ### `kernel.dogfood.prod`
 
 Dogfood audit report with configured source root, targets, checks, QA status, and failed QA checks.
@@ -698,6 +713,13 @@ Example input:
 - Output path is outside the project root.
 - Output directory cannot be created.
 - ADR input contains unsupported values.
+
+### `kernel.runbooks.execute_step`
+
+- Signed approval is missing or invalid for execution.
+- Runbook or step id is unknown.
+- Command is not in the runbook execution allowlist.
+- Step command times out or exits non-zero.
 
 ### `kernel.dogfood.prod`
 

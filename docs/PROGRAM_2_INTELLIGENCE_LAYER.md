@@ -630,6 +630,73 @@ Exit criteria:
   disabled, or degraded without vendoring Serena, Graphiti, or any heavy
   external runtime into the core package.
 
+### Phase 2.7: Approval-Gated Runbook Execution
+
+Status: complete.
+
+Implemented:
+
+- Added root-bounded runbook step execution through `executeRunbookStep`.
+- Added `npm run runbooks:execute`.
+- Added MCP tool `kernel.runbooks.execute_step`.
+- Required signed approval for MCP runbook execution.
+- Added command allowlisting for local execution.
+- Added step-level timeout support.
+- Added rollback metadata to runbook steps.
+- Persisted runbook execution artifacts and audit events.
+
+Verification:
+
+```bash
+npm run runbooks:validate
+npm run runbooks:smoke
+npm run runbooks:execute -- --runbook=runbook_release_verification --step=local_release_check
+npm run mcp:contracts
+npm test
+```
+
+### Phase 2.8: Soak Profiles
+
+Status: complete.
+
+Implemented:
+
+- Added `scripts/soak-runner.mjs`.
+- Added `npm run soak:quick`.
+- Added `npm run soak:run`.
+- Added queue, dashboard, and MCP smoke cycles.
+- Added memory samples and memory delta reporting.
+- Wired quick soak into release checks and evals.
+
+Verification:
+
+```bash
+npm run soak:quick
+npm run soak:run -- --profile=local --dashboard --url=http://127.0.0.1:8787 --endpoint=/health
+npm run eval:run
+npm run release:check
+```
+
+### Phase 2.9: Public Demo And Visual Polish
+
+Status: complete.
+
+Implemented:
+
+- Added MCP config examples in `examples/`.
+- Added `docs/DEMO_ASSETS.md`.
+- Added animated/static-safe SVG control-loop asset:
+  - `assets/sage-kernel-control-loop.svg`
+- Updated usage and visual docs with runbook execution and soak commands.
+
+Verification:
+
+```bash
+npm run public:validate
+npm run release:check
+git diff --check
+```
+
 ## What To Avoid
 
 - Do not vendor large AI repositories into the core package.

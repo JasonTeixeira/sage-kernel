@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 
 import { readLatestEvalReport } from "./scripts/eval-runner.mjs";
 import { createMemoryStore } from "./memory-store.mjs";
+import { createSqliteAdapter } from "../db/adapter.mjs";
 
 export function listRunbooks(options = {}) {
   const root = path.resolve(options.root || process.cwd());
@@ -50,6 +53,18 @@ export function validateRunbookData(runbook, label = "runbook") {
     requireString(step.id, null, `${label}.steps[${index}].id`, failures);
     requireString(step.title, null, `${label}.steps[${index}].title`, failures);
     requireString(step.action, null, `${label}.steps[${index}].action`, failures);
+    if (step.command !== undefined) requireString(step.command, null, `${label}.steps[${index}].command`, failures);
+    if (step.timeoutMs !== undefined && (!Number.isInteger(step.timeoutMs) || step.timeoutMs < 1000 || step.timeoutMs > 300000)) {
+      failures.push(`${label}.steps[${index}].timeoutMs must be an integer between 1000 and 300000`);
+    }
+    if (step.rollback !== undefined) {
+      if (!step.rollback || typeof step.rollback !== "object" || Array.isArray(step.rollback)) {
+        failures.push(`${label}.steps[${index}].rollback must be an object`);
+      } else {
+        requireString(step.rollback.description, null, `${label}.steps[${index}].rollback.description`, failures);
+        if (step.rollback.command !== undefined) requireString(step.rollback.command, null, `${label}.steps[${index}].rollback.command`, failures);
+      }
+    }
   }
   if (!Array.isArray(runbook.verification) || runbook.verification.length === 0) {
     failures.push(`${label}.verification must be a non-empty array`);
@@ -173,17 +188,159 @@ export function createAdr(input = {}, options = {}) {
   return { ...adr, path: null, markdown };
 }
 
+export function executeRunbookStep(input = {}, options = {}) {
+  const root = path.resolve(options.root || process.cwd());
+  const runbookId = input.runbook;
+  const stepId = input.step;
+  if (!runbookId || !stepId) throw new Error("runbook execution requires input.runbook and input.step");
+
+  const runbook = listRunbooks({ root }).find((item) => item.id === runbookId);
+  if (!runbook) throw new Error(`Unknown runbook: ${runbookId}`);
+  const step = runbook.steps.find((item) => item.id === stepId);
+  if (!step) throw new Error(`Unknown runbook step: ${stepId}`);
+
+  const dryRun = input.dryRun !== false;
+  const timeoutMs = Number(input.timeoutMs || step.timeoutMs || 120000);
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 300000) throw new Error("Runbook step timeout must be between 1000 and 300000 ms");
+  const plan = createRunbookStepPlan(runbook, step, { dryRun, timeoutMs });
+  const db = options.db || createSqliteAdapter({ root, schemaRoot: options.schemaRoot });
+  db.init();
+
+  if (dryRun) {
+    writeRunbookAudit(db, "runbook.step.planned", plan);
+    return {
+      status: "planned",
+      runbook: plan.runbook,
+      step: plan.step,
+      command: plan.command,
+      timeoutMs,
+      approvalRequired: true,
+      rollback: plan.rollback,
+      auditId: writeRunbookAudit(db, "runbook.step.dry_run", plan)
+    };
+  }
+
+  if (!isAllowedRunbookCommand(step.command)) {
+    throw new Error(`Runbook command is not allowlisted: ${step.command || step.action}`);
+  }
+
+  const started = Date.now();
+  const result = runShellCommand(root, step.command, timeoutMs, options.runner);
+  const execution = {
+    id: `runbook_${crypto.randomUUID()}`,
+    status: result.status === 0 ? "passed" : "failed",
+    runbook: plan.runbook,
+    step: plan.step,
+    command: plan.command,
+    timeoutMs,
+    durationMs: Date.now() - started,
+    exitCode: result.status,
+    stdout: boundedText(result.stdout),
+    stderr: boundedText(result.stderr),
+    rollback: plan.rollback
+  };
+  persistRunbookExecution(db, execution);
+  writeRunbookAudit(db, "runbook.step.executed", execution);
+  return execution;
+}
+
 export function runbooksSmoke(options = {}) {
   const root = path.resolve(options.root || process.cwd());
   const validation = validateRunbooks({ root });
   const plan = createDailyPlan({ root });
   const adr = createAdr({ title: "Program 5 cockpit validation", decision: "Use local-first runbooks and plans." }, { root });
+  const stepPlan = safeValue(() => executeRunbookStep({
+    runbook: "runbook_release_verification",
+    step: "local_release_check",
+    dryRun: true
+  }, { root, schemaRoot: options.schemaRoot }), null);
   return {
-    status: validation.status === "passed" && plan.steps.length > 0 && adr.markdown.includes("# ADR:") ? "passed" : "failed",
+    status: validation.status === "passed" && plan.steps.length > 0 && adr.markdown.includes("# ADR:") && stepPlan?.status === "planned" ? "passed" : "failed",
     validation,
     plan: { id: plan.id, status: plan.status, steps: plan.steps.length, gates: plan.gates.length },
-    adr: { id: adr.id, status: adr.status }
+    adr: { id: adr.id, status: adr.status },
+    execution: stepPlan ? { status: stepPlan.status, runbook: stepPlan.runbook.id, step: stepPlan.step.id } : null
   };
+}
+
+function createRunbookStepPlan(runbook, step, { dryRun, timeoutMs }) {
+  return {
+    runbook: { id: runbook.id, title: runbook.title, risk: runbook.risk },
+    step: { id: step.id, title: step.title, action: step.action },
+    command: step.command || null,
+    dryRun,
+    timeoutMs,
+    rollback: normalizeRollback(step.rollback)
+  };
+}
+
+function normalizeRollback(rollback) {
+  if (!rollback) {
+    return {
+      required: false,
+      description: "No rollback is required for this read-only or verification step.",
+      command: null
+    };
+  }
+  return {
+    required: true,
+    description: rollback.description,
+    command: rollback.command || null
+  };
+}
+
+function isAllowedRunbookCommand(command) {
+  if (!command) return false;
+  return [
+    "npm run adapters:smoke",
+    "npm run eval:run",
+    "npm run memory:state",
+    "npm run qa:gate",
+    "npm run release:check",
+    "npm run runbooks:smoke",
+    "npm run test:coverage",
+    "git diff --check",
+    "git status --short"
+  ].includes(command);
+}
+
+function runShellCommand(root, command, timeoutMs, runner) {
+  if (runner) return runner({ root, command, timeoutMs });
+  const result = spawnSync(command, [], {
+    cwd: root,
+    encoding: "utf8",
+    shell: true,
+    timeout: timeoutMs,
+    maxBuffer: 1024 * 1024 * 8
+  });
+  return {
+    status: result.status ?? 1,
+    stdout: result.stdout || "",
+    stderr: result.stderr || (result.error ? result.error.message : "")
+  };
+}
+
+function persistRunbookExecution(db, execution) {
+  const now = new Date().toISOString();
+  db.execute(
+    `INSERT INTO artifacts (id, kind, path, metadata_json, created_at)
+     VALUES (?, 'runbook-execution', ?, ?, ?)`,
+    [execution.id, `.sage-kernel/runbooks/${execution.id}.json`, JSON.stringify(execution), now]
+  );
+}
+
+function writeRunbookAudit(db, type, metadata) {
+  const id = `audit_${crypto.randomUUID()}`;
+  db.execute(
+    `INSERT INTO audit_events (id, type, subject, metadata_json, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [id, type, metadata.runbook?.id || metadata.runbook || null, JSON.stringify(metadata), new Date().toISOString()]
+  );
+  return id;
+}
+
+function boundedText(value) {
+  return String(value || "").slice(0, 8000);
 }
 
 function renderAdr(adr) {

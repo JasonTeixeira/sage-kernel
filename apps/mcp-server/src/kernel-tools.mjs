@@ -10,7 +10,7 @@ import { createApprovalLedger } from "../../../packages/security/approvals.mjs";
 import { dashboardSnapshot } from "../../dashboard/server.mjs";
 import { listAdapters } from "../../../packages/intelligence/adapters.mjs";
 import { createSemanticCode } from "../../../packages/intelligence/semantic-code.mjs";
-import { createAdr, createDailyPlan, listRunbooks } from "../../../packages/intelligence/runbooks.mjs";
+import { createAdr, createDailyPlan, executeRunbookStep, listRunbooks } from "../../../packages/intelligence/runbooks.mjs";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const knownKernelToolNames = new Set(
@@ -527,6 +527,9 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.runbooks.generate_adr":
       return createAdr(input, { root });
+
+    case "kernel.runbooks.execute_step":
+      return executeRunbookStep(input, { root });
 
     case "kernel.dogfood.prod": {
       const output = runNode(root, "scripts/dogfood-production-audit.mjs", input.repos || []);

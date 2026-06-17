@@ -26,6 +26,18 @@ assets/sage-kernel-workflow.svg
 
 The workflow diagram includes lightweight SVG motion when opened directly in a browser. In GitHub markdown it remains useful as a static diagram.
 
+## Control Loop Diagram
+
+![Sage Kernel control loop](../assets/sage-kernel-control-loop.svg)
+
+File:
+
+```text
+assets/sage-kernel-control-loop.svg
+```
+
+Use it to explain the live operating loop: MCP client, runtime, approvals, runbooks, jobs, QA, audit records, and dashboard feedback.
+
 ## How To Use These Assets
 
 Recommended placements:

@@ -166,6 +166,31 @@ npm run stress:dashboard -- --url=http://127.0.0.1:8787 --count=1000 --concurren
 npm run stress:dashboard -- --url=http://127.0.0.1:8787 --endpoint=/health --count=1000 --concurrency=50
 ```
 
+### Execute Runbooks
+
+Plan a runbook step without executing it:
+
+```bash
+npm run runbooks:execute -- --runbook=runbook_release_verification --step=local_release_check
+```
+
+Runbook execution through MCP is approval-gated. The execution result records timeout, command output excerpts, rollback metadata, and audit/artifact records.
+
+### Run Soak Profiles
+
+Run the CI-safe quick soak profile:
+
+```bash
+npm run soak:quick
+```
+
+Run a live local dashboard soak after starting the dashboard:
+
+```bash
+npm run dashboard:serve
+npm run soak:run -- --profile=local --dashboard --url=http://127.0.0.1:8787 --endpoint=/health
+```
+
 ## MCP Client Setup
 
 Generate config:

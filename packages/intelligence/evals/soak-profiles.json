@@ -1,0 +1,23 @@
+{
+  "id": "eval_soak_profiles",
+  "name": "Soak profile verification",
+  "scope": "cli",
+  "version": 1,
+  "graders": [
+    {
+      "id": "quick-soak",
+      "type": "command",
+      "command": "npm run soak:quick"
+    },
+    {
+      "id": "soak-runner-file",
+      "type": "file_exists",
+      "path": "scripts/soak-runner.mjs"
+    }
+  ],
+  "successCriteria": [
+    "Quick soak profile completes without a live dashboard dependency.",
+    "Soak reports include repeated queue checks, MCP smoke, and memory deltas.",
+    "Live dashboard soak can be enabled explicitly with --dashboard."
+  ]
+}

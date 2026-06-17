@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Sage Kernel control loop</title>
+  <desc id="desc">A visual control loop showing MCP clients, policy, runbooks, jobs, QA, audit records, and dashboard feedback.</desc>
+  <style>
+    :root { color-scheme: light dark; }
+    text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #17202a; letter-spacing: 0; }
+    .bg { fill: #f8fafc; }
+    .panel { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 8; }
+    .core { fill: #0f766e; }
+    .edge { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    .muted { fill: #475569; font-size: 22px; }
+    .label { fill: #0f172a; font-size: 26px; font-weight: 700; }
+    .small { fill: #475569; font-size: 18px; }
+    .pulse { fill: #14b8a6; opacity: .85; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0b1120; }
+      .panel { fill: #111827; stroke: #334155; }
+      text, .label { fill: #f8fafc; }
+      .muted, .small { fill: #cbd5e1; }
+      .edge { stroke: #94a3b8; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .pulse { animation: move 4.8s linear infinite; }
+      .p2 { animation-delay: .8s; }
+      .p3 { animation-delay: 1.6s; }
+      .p4 { animation-delay: 2.4s; }
+      @keyframes move {
+        0% { transform: translate(0, 0); opacity: 0; }
+        15% { opacity: .95; }
+        50% { transform: translate(360px, 0); opacity: .95; }
+        100% { transform: translate(720px, 0); opacity: 0; }
+      }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#334155" />
+    </marker>
+  </defs>
+  <rect class="bg" width="1280" height="720" />
+  <text x="70" y="70" class="label">Sage Kernel MCP-Native Engineering Control Loop</text>
+  <text x="70" y="105" class="muted">A local-first kernel for inspected, approved, tested, and auditable engineering work.</text>
+
+  <rect class="panel" x="70" y="170" width="220" height="130" />
+  <text x="105" y="220" class="label">MCP Client</text>
+  <text x="105" y="255" class="small">Codex, Claude, Cursor</text>
+
+  <rect class="panel" x="390" y="150" width="260" height="170" />
+  <rect class="core" x="420" y="185" width="200" height="56" rx="8" />
+  <text x="455" y="222" font-size="24" font-weight="700" fill="#ffffff">Kernel Runtime</text>
+  <text x="430" y="275" class="small">tool registry + policy</text>
+
+  <rect class="panel" x="760" y="110" width="210" height="110" />
+  <text x="800" y="158" class="label">Approvals</text>
+  <text x="800" y="190" class="small">signed scope checks</text>
+
+  <rect class="panel" x="760" y="260" width="210" height="110" />
+  <text x="800" y="308" class="label">Runbooks</text>
+  <text x="800" y="340" class="small">timeouts + rollback</text>
+
+  <rect class="panel" x="760" y="410" width="210" height="110" />
+  <text x="815" y="458" class="label">QA</text>
+  <text x="800" y="490" class="small">coverage + evals</text>
+
+  <rect class="panel" x="1060" y="180" width="150" height="110" />
+  <text x="1090" y="228" class="label">Jobs</text>
+  <text x="1085" y="260" class="small">queue</text>
+
+  <rect class="panel" x="1060" y="360" width="150" height="110" />
+  <text x="1080" y="408" class="label">Audit</text>
+  <text x="1085" y="440" class="small">evidence</text>
+
+  <rect class="panel" x="390" y="500" width="260" height="110" />
+  <text x="440" y="548" class="label">Dashboard</text>
+  <text x="430" y="580" class="small">human cockpit</text>
+
+  <path class="edge" d="M290 235 H390" />
+  <path class="edge" d="M650 235 C700 180 710 165 760 165" />
+  <path class="edge" d="M650 235 H760" />
+  <path class="edge" d="M650 235 C710 310 710 465 760 465" />
+  <path class="edge" d="M970 315 C1025 300 1025 245 1060 235" />
+  <path class="edge" d="M970 465 C1025 455 1025 420 1060 415" />
+  <path class="edge" d="M1135 470 C1030 620 650 650 520 610" />
+  <path class="edge" d="M520 500 C430 430 380 340 390 260" />
+
+  <circle class="pulse" cx="315" cy="235" r="10" />
+  <circle class="pulse p2" cx="315" cy="235" r="10" />
+  <circle class="pulse p3" cx="315" cy="235" r="10" />
+  <circle class="pulse p4" cx="315" cy="235" r="10" />
+</svg>

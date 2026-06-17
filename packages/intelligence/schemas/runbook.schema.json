@@ -22,7 +22,17 @@
           "title": { "type": "string", "minLength": 1 },
           "action": { "type": "string", "minLength": 1 },
           "command": { "type": "string" },
-          "expected": { "type": "string" }
+          "expected": { "type": "string" },
+          "timeoutMs": { "type": "integer", "minimum": 1000, "maximum": 300000 },
+          "rollback": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["description"],
+            "properties": {
+              "description": { "type": "string", "minLength": 1 },
+              "command": { "type": "string", "minLength": 1 }
+            }
+          }
         }
       }
     },
@@ -33,4 +43,3 @@
     }
   }
 }
-

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "sage-kernel": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/sage-kernel/apps/mcp-server/src/server.mjs"
+      ],
+      "env": {
+        "SAGE_KERNEL_ROOT": "/absolute/path/to/sage-kernel"
+      }
+    }
+  }
+}
