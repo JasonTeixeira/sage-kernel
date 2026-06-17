@@ -1,96 +1,215 @@
-# Sage Kernel OS
+# Sage Kernel
 
-Sage Kernel OS is a personal engineering operating system for planning, scaffolding, testing, securing, deploying, and documenting real-world software systems through an MCP server.
+![Sage Kernel architecture](assets/sage-kernel-architecture.svg)
 
-This is a non-destructive federation layer. Existing repos stay intact; the kernel references, queries, adapts, or copies approved reusable artifacts without ripping source repos apart. See `docs/source-repo-policy.md`.
+Sage Kernel is an MCP-native engineering operating system for local software work. It gives developers, teams, and AI coding agents one controlled place to inspect a project, run QA, scaffold apps, manage approvals, execute jobs, check release readiness, and view operational state.
 
-The kernel is built around five durable surfaces:
+The MCP server is the primary product interface. The dashboard is an optional local cockpit. Hosted deployment is optional.
 
-- `catalog/`: source of truth for repos, templates, modules, integrations, and phases.
-- `apps/mcp-server/`: MCP control plane.
-- `apps/dashboard/`: visual command center.
-- `apps/worker/`: background orchestration and scheduled checks.
-- `packages/`: reusable engines for app, infra, AI, QA, auth, API, data, jobs, security, and observability.
+## What It Does
 
-## Phase Plan
+Sage Kernel turns a local repo into a strict engineering control plane:
 
-1. Kernel Registry
-2. AI Warehouse Integration
-3. QA OS Integration
-4. Template Engine
-5. Infra Engine
-6. MCP Server
-7. Orchestration and Jobs
-8. Command Center Dashboard
+- Connect an MCP client such as Codex, Claude Desktop, or Cursor.
+- Ask the kernel to audit a repo, run QA, explain failures, or prepare a release.
+- Generate production-ready app templates from cataloged blueprints.
+- Run safe read-only tools without approval and route risky work through approval boundaries.
+- Track jobs, runs, approvals, audit records, templates, resources, and dashboard state.
+- Use SQLite locally by default, with a tested Postgres path for production-style persistence.
+- Run hard quality gates, security scans, stress checks, MCP smoke tests, and release checks.
 
-## Phase 1 Completion Criteria
+It is designed as a non-destructive federation layer. Existing repos stay intact; the kernel references, queries, adapts, or copies approved reusable artifacts without rewriting source projects. See [Source Repo Policy](docs/source-repo-policy.md).
 
-- Repos are cataloged by consolidation role.
-- Reusable modules are defined with ownership and target package.
-- Templates are defined by project type and required capabilities.
-- Integrations are defined by external system and boundary.
-- Phase roadmap is machine-readable.
-- Catalog validation passes.
+## Why It Exists
 
-Run:
+Modern app building has too many separate surfaces: terminal commands, agent prompts, QA scripts, templates, deployment checks, security scans, approval decisions, run history, and project docs. Sage Kernel brings those surfaces into one auditable local system that both humans and AI coding agents can use.
+
+The practical result:
+
+- A developer can start the day with `sage daily`.
+- An AI coding agent can call the MCP server instead of guessing commands.
+- A team can standardize project creation, QA, security checks, and release readiness.
+- Maintainers can prove behavior through tests, CI, stress scripts, contracts, and docs.
+
+## Quick Start
+
+Requirements:
+
+- Node.js `>=22`
+- npm
+- SQLite CLI for local DB workflows
+
+Install from a clean checkout:
 
 ```bash
-npm run catalog:validate
+git clone https://github.com/JasonTeixeira/sage-kernel.git
+cd sage-kernel
+npm install
+npm link
+sage doctor --fast
 ```
 
-## Daily Terminal Use
-
-From this repo:
+Start the MCP server:
 
 ```bash
-node bin/sage.mjs status
-node bin/sage.mjs doctor --fast
-node bin/sage.mjs mcp config all
-node bin/sage.mjs mcp smoke
-node bin/sage.mjs daily
-node bin/sage.mjs audit .
-node bin/sage.mjs plan next-saas-app vercel contractor-dispatch-os
-node bin/sage.mjs run nightly-local-audit
-node bin/sage.mjs dashboard
+sage mcp start
 ```
 
-After `npm link`, use `sage` from any terminal.
+Generate MCP client config:
 
-Daily app-building shortcuts:
+```bash
+sage mcp config codex --json
+sage mcp config claude-desktop --json
+sage mcp config cursor --json
+```
+
+Run a smoke test:
+
+```bash
+sage mcp smoke
+```
+
+Open the local dashboard:
+
+```bash
+sage dashboard-live
+```
+
+By default the dashboard serves on `http://127.0.0.1:8787`.
+
+## Daily Usage
+
+Use these commands from the kernel repo after `npm link`:
 
 ```bash
 sage daily
 sage audit .
 sage full-qa .
 sage failures '{"status":"failed","checks":[]}'
+sage templates
 sage create-app worker-service daily-worker
 sage release worker-service docker
 sage pending
 sage stress http://127.0.0.1:8787
 ```
 
-MCP client setup:
+Common workflows:
+
+- `sage daily`: summarize health, tools, jobs, approvals, and next actions.
+- `sage audit .`: run a repo audit workflow against the current project.
+- `sage full-qa .`: run the deeper QA workflow for a project path.
+- `sage create-app <template> <name>`: scaffold a new app from a production blueprint.
+- `sage release <template> <target>`: check release readiness for a template and deployment target.
+- `sage pending`: show pending approvals.
+- `sage stress <url>`: stress test the dashboard/API endpoint.
+
+More detail: [Usage Guide](docs/USAGE.md).
+
+## MCP Interface
+
+The canonical server entry point is:
 
 ```bash
-sage mcp config codex --json
-sage mcp config claude-desktop --json
-sage mcp config cursor --json
-sage mcp smoke
-sage mcp start
+npm run mcp:start
 ```
 
-## Local Secrets
+The MCP server exposes:
 
-Local secrets go in `.env.local`, which is ignored by git.
+- Tools for catalog search, templates, QA, infra planning, deploy preparation, jobs, approvals, dashboard snapshots, audits, and daily workflows.
+- Resources for read-only inspection of kernel state.
+- Prompts for repeatable workflows such as auditing a repo, running full QA, preparing a release, and explaining failed jobs.
 
-Required for Playwright MCP browser extension workflows:
+Docs:
+
+- [MCP Server](docs/MCP_SERVER.md)
+- [MCP Clients](docs/MCP_CLIENTS.md)
+- [MCP Tools](docs/mcp-tools.md)
+- [MCP Resources](docs/mcp-resources.md)
+- [MCP Prompts](docs/mcp-prompts.md)
+
+## Architecture
+
+![Sage Kernel workflow](assets/sage-kernel-workflow.svg)
+
+Core layers:
+
+- `apps/mcp-server/`: MCP stdio server, tool manifest, resources, prompts, contracts, smoke tests.
+- `apps/dashboard/`: local operations cockpit with health, jobs, approvals, tools, runs, metrics, and workflow controls.
+- `apps/worker/`: job definitions, queue commands, worker daemon, run history.
+- `packages/core/`: runtime dispatcher, policy checks, doctor, schemas, errors, events.
+- `packages/db/`: SQLite and Postgres adapters, migrations, backup, restore, export, import.
+- `packages/security/`: signed approvals, permission boundaries, secret scanning.
+- `packages/templates/`: production blueprints and scaffold generation.
+- `packages/qa/`: QA profiles, runners, and gates.
+- `packages/infra/`: infra contracts, plans, and emitters.
+- `catalog/`: machine-readable registry of repos, templates, integrations, modules, and phases.
+
+More detail: [Architecture Guide](docs/ARCHITECTURE.md).
+
+## Quality Proof
+
+The project is built around hard gates:
 
 ```bash
-PLAYWRIGHT_MCP_EXTENSION_TOKEN=
+npm test
+npm run test:coverage
+npm run release:check
+npm run mcp:smoke
+npm run security:scan
+npm audit
 ```
 
-Check:
+Stress tests:
 
 ```bash
-npm run playwright:check
+npm run stress:queue -- --count=10000
+npm run stress:dashboard -- --url=http://127.0.0.1:8787 --count=1000 --concurrency=50
+npm run stress:dashboard -- --url=http://127.0.0.1:8787 --endpoint=/health --count=1000 --concurrency=50
 ```
+
+Postgres integration:
+
+```bash
+docker compose -f docker-compose.postgres.yml up -d postgres
+SAGE_RUN_POSTGRES_TESTS=1 DATABASE_URL=postgresql://sage:sage@127.0.0.1:55432/sage_kernel npm run postgres:integration
+docker compose -f docker-compose.postgres.yml down
+```
+
+CI runs the quality gates and a real Postgres integration service on GitHub Actions.
+
+## Documentation Map
+
+- [Install](docs/INSTALL.md)
+- [Usage Guide](docs/USAGE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Visual Guide](docs/VISUAL_GUIDE.md)
+- [Runtime Engine](docs/RUNTIME_ENGINE.md)
+- [Persistence](docs/PERSISTENCE.md)
+- [Security Model](docs/SECURITY_MODEL.md)
+- [Release Process](docs/RELEASE_PROCESS.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Changelog](CHANGELOG.md)
+
+## Development
+
+```bash
+npm install
+npm run catalog:validate
+npm run mcp:validate
+npm run mcp:contracts
+npm run test:coverage
+npm run release:check
+```
+
+Check the dashboard:
+
+```bash
+npm run dashboard:serve
+npm run dashboard:e2e
+```
+
+## Status
+
+Sage Kernel is production-grade for local MCP-native development workflows. It is intended to remain local-first by default. Treat public network exposure as a separate deployment-hardening project.
