@@ -219,6 +219,16 @@ test("MCP dispatcher covers jobs, approvals, run listing, and dogfood report bra
   const dogfood = await callKernelTool(sandbox, "kernel.dogfood.prod", { repos: ["commerce-command-os"] });
   assert.equal(dogfood.configured, false);
   assert.equal(dogfood.results[0].configured, false);
+
+  fs.mkdirSync(path.join(sandbox, "apps/worker/scripts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(sandbox, "apps/worker/scripts/worker-daemon.mjs"),
+    "console.error('worker tick failed'); process.exit(7);\n"
+  );
+  await assert.rejects(
+    () => callKernelTool(sandbox, "kernel.worker.tick", {}),
+    /worker tick failed/
+  );
 });
 
 test("MCP dispatcher exposes daily workflow tools for app-building operations", async () => {
