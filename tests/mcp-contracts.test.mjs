@@ -51,6 +51,7 @@ test("MCP contracts and docs are generated from the manifest", () => {
     "sage://intelligence/evals",
     "sage://intelligence/experiments",
     "sage://intelligence/memory",
+    "sage://intelligence/operating-cockpit",
     "sage://intelligence/project-state",
     "sage://intelligence/runbooks",
     "sage://intelligence/semantic-adapters",
@@ -69,9 +70,13 @@ test("MCP contracts and docs are generated from the manifest", () => {
   assert.deepEqual(promptSnapshot.prompts.map((prompt) => prompt.name).sort(), [
     "sage.audit-repo",
     "sage.create-project",
+    "sage.execute-release-runbook",
+    "sage.explain-current-risk",
     "sage.explain-failed-job",
     "sage.inspect-approvals",
+    "sage.plan-my-day",
     "sage.prepare-release",
+    "sage.project-standup",
     "sage.run-full-qa",
     "sage.stress-test-server"
   ]);

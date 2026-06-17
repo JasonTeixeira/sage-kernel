@@ -13,3 +13,7 @@ These prompts are workflow entry points for day-to-day kernel operations.
 | `sage.prepare-release` | `version` | Prepare a release checklist and verify release readiness. |
 | `sage.stress-test-server` | `url` | Run local stress tests against queue and dashboard endpoints. |
 | `sage.explain-failed-job` | `runId` | Explain a failed job run and propose a repair plan. |
+| `sage.plan-my-day` | `objective` | Create a daily engineering plan from current project state, runbooks, evals, and gates. |
+| `sage.project-standup` | `focus` | Summarize current project status as a standup update. |
+| `sage.execute-release-runbook` | `runbook` | Walk through the release runbook with explicit verification and approval boundaries. |
+| `sage.explain-current-risk` | `scope` | Explain current project risk from evals, coverage, approvals, memory, and release state. |

@@ -1,0 +1,34 @@
+{
+  "id": "runbook_daily_release_readiness",
+  "title": "Daily release readiness",
+  "risk": "medium",
+  "requiresApproval": false,
+  "steps": [
+    {
+      "id": "inspect_state",
+      "title": "Inspect project state",
+      "action": "inspect_state",
+      "command": "npm run memory:state",
+      "expected": "Project state reports git, evals, dashboard health, memory, and approvals."
+    },
+    {
+      "id": "run_evals",
+      "title": "Run deterministic evals",
+      "action": "run_eval",
+      "command": "npm run eval:run",
+      "expected": "All eval definitions pass and latest report is persisted."
+    },
+    {
+      "id": "run_release_check",
+      "title": "Run release check",
+      "action": "verify_release",
+      "command": "npm run release:check",
+      "expected": "Release check exits with status 0."
+    }
+  ],
+  "verification": [
+    "npm run memory:state",
+    "npm run eval:run",
+    "npm run release:check"
+  ]
+}

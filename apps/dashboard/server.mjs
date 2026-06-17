@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createSqliteAdapter } from "../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../packages/security/approvals.mjs";
+import { createOperatingSnapshot } from "../../packages/intelligence/runbooks.mjs";
 
 const defaultRoot = process.cwd();
 const port = Number(process.env.SAGE_DASHBOARD_PORT || 8787);
@@ -147,6 +148,12 @@ export function dashboardSnapshot(options = {}) {
   const jobTimeline = latestJobRuns(db, root);
   const repoHealthRows = repoHealth(root, reposCatalog);
   const templateReadinessRows = templateReadiness(templates);
+  const operating = safeValue(() => createOperatingSnapshot({ root, schemaRoot: options.schemaRoot }), {
+    todayPlan: null,
+    runbooks: [],
+    evals: { status: "missing", summary: { total: 0, passed: 0, failed: 0 }, latestId: null },
+    experiments: null
+  });
 
   return {
     version: packageJson.version,
@@ -184,6 +191,7 @@ export function dashboardSnapshot(options = {}) {
     artifacts: {
       recent: latestArtifacts(db)
     },
+    operating,
     system: {
       health: systemHealth({ phases, repoHealthRows, templates, tools, jobTimeline }),
       coverage: {
@@ -456,7 +464,7 @@ export function renderDashboardHtml(snapshot) {
         <span>MCP command cockpit · v${escapeHtml(snapshot.version)}</span>
       </div>
       <nav class="nav" aria-label="Dashboard views">
-        ${["Overview", "Workflows", "Approvals", "Jobs", "MCP Tools", "Repos", "Templates", "Data"].map((view, index) => `<button type="button" data-view-target="${slug(view)}" aria-selected="${index === 0 ? "true" : "false"}">${escapeHtml(view)}</button>`).join("")}
+        ${["Overview", "Cockpit", "Workflows", "Approvals", "Jobs", "MCP Tools", "Repos", "Templates", "Data"].map((view, index) => `<button type="button" data-view-target="${slug(view)}" aria-selected="${index === 0 ? "true" : "false"}">${escapeHtml(view)}</button>`).join("")}
       </nav>
       <div class="sidebar-footer">
         <strong class="status-${escapeHtml(health.status)}">${escapeHtml(health.status)}</strong>
@@ -504,6 +512,25 @@ export function renderDashboardHtml(snapshot) {
         <article class="panel span-6" data-panel="job-timeline">
           <div class="panel-header"><h2>Job Timeline</h2><span class="badge">${snapshot.jobs.timeline.length} recent</span></div>
           <div class="panel-body">${renderRunTable(snapshot.jobs.timeline)}</div>
+        </article>
+      </section>
+
+      <section id="cockpit" class="view grid" data-view="cockpit">
+        <article class="panel span-7" data-panel="today-plan">
+          <div class="panel-header"><h2>Today's Plan</h2><span class="badge">${escapeHtml(snapshot.operating.todayPlan?.status || "missing")}</span></div>
+          <div class="panel-body">${renderTodayPlan(snapshot.operating.todayPlan)}</div>
+        </article>
+        <article class="panel span-5" data-panel="risk-gates">
+          <div class="panel-header"><h2>Risk And Gates</h2><span class="badge">${escapeHtml(snapshot.operating.evals.status)}</span></div>
+          <div class="panel-body">${renderRiskGates(snapshot.operating.todayPlan, snapshot.operating.evals)}</div>
+        </article>
+        <article class="panel span-6" data-panel="runbooks">
+          <div class="panel-header"><h2>Runbooks</h2><span class="badge">${snapshot.operating.runbooks.length} available</span></div>
+          <div class="panel-body"><ul class="list">${snapshot.operating.runbooks.map(renderRunbook).join("") || "<li>No runbooks available.</li>"}</ul></div>
+        </article>
+        <article class="panel span-6" data-panel="experiment-history">
+          <div class="panel-header"><h2>Experiment History</h2><span class="badge">${escapeHtml(snapshot.operating.experiments?.status || "planned")}</span></div>
+          <div class="panel-body">${renderExperiment(snapshot.operating.experiments)}</div>
         </article>
       </section>
 
@@ -791,6 +818,14 @@ function parseJson(value, fallback) {
   }
 }
 
+function safeValue(fn, fallback) {
+  try {
+    return fn();
+  } catch {
+    return fallback;
+  }
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -919,6 +954,46 @@ function renderArtifacts(artifacts) {
       </li>`
     )
     .join("");
+}
+
+function renderTodayPlan(plan) {
+  if (!plan) return `<p>No daily plan generated yet.</p>`;
+  return `<div data-search="${escapeHtml(`${plan.title} ${plan.objective} ${plan.status} daily plan cockpit`)}">
+    <h3>${escapeHtml(plan.objective)}</h3>
+    <p>${escapeHtml(plan.phase?.name || "Daily operations")} · ${escapeHtml(plan.status)}</p>
+    <ul class="list">${plan.steps.map((step) => `<li data-search="${escapeHtml(`${step.title} ${step.command} ${step.evidence} plan step`)}">
+      <div class="split"><h3>${escapeHtml(step.title)}</h3><code>${escapeHtml(step.command)}</code></div>
+      <p>${escapeHtml(step.evidence)}</p>
+    </li>`).join("")}</ul>
+  </div>`;
+}
+
+function renderRiskGates(plan, evals) {
+  const risks = plan?.risks || [];
+  const gates = plan?.gates || [];
+  return `<ul class="list">
+    <li data-search="eval status latest report"><div class="split"><h3>Latest Evals</h3><strong class="status-${escapeHtml(evals.status)}">${escapeHtml(evals.status)}</strong></div><p>${escapeHtml(evals.summary.passed)}/${escapeHtml(evals.summary.total)} passed · ${escapeHtml(evals.latestId || "no latest run")}</p></li>
+    ${risks.map((risk) => `<li data-search="${escapeHtml(`${risk.id} ${risk.level} ${risk.description} risk`)}"><div class="split"><h3>${escapeHtml(risk.id)}</h3><strong>${escapeHtml(risk.level)}</strong></div><p>${escapeHtml(risk.description)}</p></li>`).join("")}
+    <li data-search="verification gates commands"><div class="split"><h3>Verification Gates</h3><strong>${gates.length}</strong></div><p>${escapeHtml(gates.join(" · "))}</p></li>
+  </ul>`;
+}
+
+function renderRunbook(runbook) {
+  return `<li data-search="${escapeHtml(`${runbook.id} ${runbook.title} ${runbook.risk} runbook`)}">
+    <div class="split"><h3>${escapeHtml(runbook.title)}</h3><strong class="status-${escapeHtml(runbook.risk)}">${escapeHtml(runbook.risk)}</strong></div>
+    <p>${escapeHtml(runbook.stepCount)} steps · ${escapeHtml(runbook.verificationCount)} verification commands · ${runbook.requiresApproval ? "approval required" : "read-only"}</p>
+  </li>`;
+}
+
+function renderExperiment(experiment) {
+  if (!experiment) return `<p>No experiment history available yet.</p>`;
+  return `<ul class="list">
+    <li data-search="${escapeHtml(`${experiment.id} ${experiment.status} ${experiment.hypothesis} experiment`)}">
+      <div class="split"><h3>${escapeHtml(experiment.id)}</h3><strong class="status-${escapeHtml(experiment.status)}">${escapeHtml(experiment.status)}</strong></div>
+      <p>${escapeHtml(experiment.hypothesis)}</p>
+    </li>
+    <li data-search="experiment evaluation metric"><div class="split"><h3>Evaluation</h3><strong>${escapeHtml(experiment.evaluation?.metric || "metric")}</strong></div><p>${escapeHtml(experiment.evaluation?.command || "No command recorded.")}</p></li>
+  </ul>`;
 }
 
 export function createDashboardServer(options = {}) {
@@ -1116,6 +1191,7 @@ export const __dashboardTestInternals = {
   tableCount,
   tableCountWhere,
   safeQuery,
+  safeValue,
   parseJson,
   readRequestJson
 };

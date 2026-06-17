@@ -4,6 +4,7 @@ import path from "node:path";
 import { dashboardSnapshot, renderMetrics } from "../../dashboard/server.mjs";
 import { createMemoryStore } from "../../../packages/intelligence/memory-store.mjs";
 import { createProjectState } from "../../../packages/intelligence/project-state.mjs";
+import { createOperatingSnapshot, listRunbooks } from "../../../packages/intelligence/runbooks.mjs";
 
 export const kernelResources = [
   {
@@ -124,10 +125,18 @@ export const kernelResources = [
   {
     name: "sage.intelligence.runbooks",
     uri: "sage://intelligence/runbooks",
-    title: "Sage Intelligence Runbook Fixture",
-    description: "Validated runbook fixture showing steps and verification commands.",
+    title: "Sage Intelligence Runbooks",
+    description: "Validated runbook catalog showing steps, risks, and verification commands.",
     mimeType: "application/json",
-    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/runbook.json", {})
+    read: (root) => ({ runbooks: listRunbooks({ root }) })
+  },
+  {
+    name: "sage.intelligence.operating-cockpit",
+    uri: "sage://intelligence/operating-cockpit",
+    title: "Sage Intelligence Operating Cockpit",
+    description: "Daily plan, runbooks, eval status, and experiment fixture for cockpit workflows.",
+    mimeType: "application/json",
+    read: (root) => createOperatingSnapshot({ root })
   },
   {
     name: "sage.intelligence.semantic-adapters",

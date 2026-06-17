@@ -39,6 +39,10 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.scripts["semantic:smoke"], "node packages/intelligence/scripts/semantic-smoke.mjs");
   assert.equal(pkg.scripts["semantic:index"], "node packages/intelligence/scripts/semantic-index.mjs");
   assert.equal(pkg.scripts["semantic:search"], "node packages/intelligence/scripts/semantic-search.mjs");
+  assert.equal(pkg.scripts["runbooks:validate"], "node packages/intelligence/scripts/runbooks-validate.mjs");
+  assert.equal(pkg.scripts["runbooks:smoke"], "node packages/intelligence/scripts/runbooks-smoke.mjs");
+  assert.equal(pkg.scripts["plan:day"], "node packages/intelligence/scripts/plan-day.mjs");
+  assert.equal(pkg.scripts["adr:generate"], "node packages/intelligence/scripts/adr-generate.mjs");
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-lines=98/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-branches=90/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-functions=97/);
@@ -67,7 +71,10 @@ test("package metadata is ready for public OSS distribution", () => {
     "docker-compose.postgres.yml",
     "packages/intelligence/scripts/validate-intelligence.mjs",
     "packages/intelligence/scripts/semantic-smoke.mjs",
+    "packages/intelligence/scripts/runbooks-smoke.mjs",
     "packages/intelligence/semantic-code.mjs",
+    "packages/intelligence/runbooks.mjs",
+    "packages/intelligence/runbooks/release-readiness.json",
     "packages/intelligence/schemas/memory-record.schema.json",
     "packages/intelligence/schemas/eval-definition.schema.json",
     "packages/intelligence/schemas/experiment-run.schema.json",
@@ -110,7 +117,7 @@ test("intelligence contracts validate fixtures and reject unsafe shapes", () => 
   assert.equal(passing.status, "passed");
   assert.equal(passing.checked.schemas, 5);
   assert.equal(passing.checked.fixtures, 5);
-  assert.equal(passing.checked.evals, 7);
+  assert.equal(passing.checked.evals, 8);
   assert.deepEqual(passing.failures, []);
 
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-intelligence-"));

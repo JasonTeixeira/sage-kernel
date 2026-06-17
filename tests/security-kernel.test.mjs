@@ -11,7 +11,7 @@ import {
   verifyApprovalSignature
 } from "../packages/security/approvals.mjs";
 import { createPolicyEngine } from "../packages/core/policy-engine.mjs";
-import { signRecord } from "../packages/security/guard.mjs";
+import { assertToolAllowed, signRecord } from "../packages/security/guard.mjs";
 
 const schemaRoot = path.resolve(import.meta.dirname, "..");
 
@@ -122,4 +122,18 @@ test("policy engine enforces permission scopes", () => {
     () => wildcard.authorize({ name: "kernel.catalog.search", risk: "safe", permission: "catalog:read" }),
     /Missing permission scope/
   );
+});
+
+test("tool guard treats string true as read-only mode", () => {
+  const { root } = setup();
+  process.env.SAGE_KERNEL_READ_ONLY = "true";
+  try {
+    assert.throws(
+      () => assertToolAllowed(root, "jobs.enqueue", { job: "repo-health" }),
+      /Read-only mode blocks/
+    );
+    assert.equal(assertToolAllowed(root, "catalog.search", {}).allowed, true);
+  } finally {
+    delete process.env.SAGE_KERNEL_READ_ONLY;
+  }
 });

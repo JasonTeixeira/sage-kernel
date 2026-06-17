@@ -1,0 +1,19 @@
+{
+  "id": "eval_runbooks_cockpit",
+  "name": "Runbooks and daily cockpit",
+  "scope": "cli",
+  "version": 1,
+  "graders": [
+    {
+      "id": "runbooks_smoke",
+      "type": "command",
+      "command": "npm run runbooks:smoke",
+      "timeoutSeconds": 30
+    }
+  ],
+  "successCriteria": [
+    "Runbooks validate successfully.",
+    "Daily plan generation returns steps, risks, gates, and evidence.",
+    "ADR generation returns markdown without external services."
+  ]
+}

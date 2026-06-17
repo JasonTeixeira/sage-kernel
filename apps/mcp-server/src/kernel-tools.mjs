@@ -9,8 +9,12 @@ import { createSqliteAdapter } from "../../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../../packages/security/approvals.mjs";
 import { dashboardSnapshot } from "../../dashboard/server.mjs";
 import { createSemanticCode } from "../../../packages/intelligence/semantic-code.mjs";
+import { createAdr, createDailyPlan, listRunbooks } from "../../../packages/intelligence/runbooks.mjs";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const knownKernelToolNames = new Set(
+  JSON.parse(fs.readFileSync(path.join(sourceRoot, "apps/mcp-server/tools.json"), "utf8")).tools.map((tool) => tool.name)
+);
 
 export function readJson(root, relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
@@ -390,6 +394,7 @@ function workflowNextActions(qa) {
 }
 
 export async function callKernelTool(root, toolName, input = {}) {
+  if (!knownKernelToolNames.has(toolName)) throw new Error(`Unknown tool: ${toolName}`);
   assertToolAllowed(root, toolName.replace("kernel.", ""), input);
   switch (toolName) {
     case "kernel.phase.status":
@@ -510,6 +515,15 @@ export async function callKernelTool(root, toolName, input = {}) {
     case "kernel.semantic.summarize_module":
       return createSemanticCode({ root }).summarizeModule(input);
 
+    case "kernel.runbooks.list":
+      return { runbooks: listRunbooks({ root }) };
+
+    case "kernel.runbooks.plan_day":
+      return createDailyPlan({ root, objective: input.objective });
+
+    case "kernel.runbooks.generate_adr":
+      return createAdr(input, { root });
+
     case "kernel.dogfood.prod": {
       const output = runNode(root, "scripts/dogfood-production-audit.mjs", input.repos || []);
       return JSON.parse(output);
@@ -558,3 +572,7 @@ export function toMcpTextContent(value) {
     ]
   };
 }
+
+export const __kernelToolsTestInternals = {
+  knownKernelToolNames
+};

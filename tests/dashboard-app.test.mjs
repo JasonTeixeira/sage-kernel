@@ -30,6 +30,9 @@ test("dashboard snapshot exposes operational command-center panels", () => {
   assert.equal(Array.isArray(snapshot.repos.health), true);
   assert.equal(Array.isArray(snapshot.templates.readiness), true);
   assert.equal(Array.isArray(snapshot.artifacts.recent), true);
+  assert.equal(snapshot.operating.todayPlan.steps.length > 0, true);
+  assert.equal(snapshot.operating.runbooks.length > 0, true);
+  assert.equal(typeof snapshot.operating.evals.status, "string");
   assert.equal(snapshot.system.health.status, "operational");
   assert.equal(snapshot.system.coverage.line >= 80, true);
 });
@@ -52,7 +55,11 @@ test("dashboard HTML renders premium operations sections", () => {
     "Repo Health",
     "Template Readiness",
     "System Health",
-    "Artifact Ledger"
+    "Artifact Ledger",
+    "Today's Plan",
+    "Risk And Gates",
+    "Runbooks",
+    "Experiment History"
   ]) {
     assert.match(html, new RegExp(label));
   }
@@ -71,6 +78,8 @@ test("dashboard build emits static command center with operational panels", () =
   assert.match(html, /Approval Inbox/);
   assert.match(html, /Job Timeline/);
   assert.match(html, /System Health/);
+  assert.match(html, /Today's Plan/);
+  assert.match(html, /Risk And Gates/);
 });
 
 test("dashboard metrics expose health, tools, and DB record gauges", () => {
@@ -266,6 +275,8 @@ test("dashboard cockpit renders empty operational states without layout placehol
   assert.match(html, /No queued jobs visible/);
   assert.match(html, /No artifacts recorded yet/);
   assert.match(html, /Workflow Launcher/);
+  assert.match(html, /Today's Plan/);
+  assert.match(html, /Runbooks/);
   assert.match(html, /MCP Tool Explorer/);
   assert.match(html, /data-workflow-id="daily-summary"/);
   assert.match(html, /data-refresh-interval/);
@@ -308,6 +319,10 @@ test("dashboard internals cover defensive database and request parsing branches"
   assert.equal(__dashboardTestInternals.tableCount(throwingDb, "projects"), 0);
   assert.equal(__dashboardTestInternals.tableCountWhere(throwingDb, "approvals", "status='pending'"), 0);
   assert.deepEqual(__dashboardTestInternals.safeQuery(throwingDb, "SELECT 1"), []);
+  assert.equal(__dashboardTestInternals.safeValue(() => {
+    throw new Error("fallback");
+  }, "fallback"), "fallback");
+  assert.equal(__dashboardTestInternals.safeValue(() => "ok", "fallback"), "ok");
   assert.throws(() => __dashboardTestInternals.tableCount(throwingDb, "missing"), /Unsupported table/);
   assert.throws(() => __dashboardTestInternals.tableCountWhere(throwingDb, "missing", "1=1"), /Unsupported table/);
   assert.deepEqual(__dashboardTestInternals.parseJson("{bad", { ok: false }), { ok: false });
@@ -328,6 +343,17 @@ test("dashboard internals cover defensive database and request parsing branches"
   const largePromise = __dashboardTestInternals.readRequestJson(largeRequest, 2);
   largeRequest.emit("data", "too large");
   assert.deepEqual(await largePromise, {});
+});
+
+test("dashboard CLI entry starts a live server", async () => {
+  const child = spawnSync("node", ["apps/dashboard/server.mjs"], {
+    cwd: root,
+    env: { ...process.env, SAGE_DASHBOARD_PORT: "0" },
+    encoding: "utf8",
+    timeout: 1000
+  });
+  assert.equal(child.error?.code, "ETIMEDOUT");
+  assert.match(child.stdout, /Sage dashboard live/);
 });
 
 function createDashboardFixture() {

@@ -27,7 +27,10 @@ const SAFE_ACTIONS = new Set([
   "semantic.index_project",
   "semantic.search_symbol",
   "semantic.find_references",
-  "semantic.summarize_module"
+  "semantic.summarize_module",
+  "runbooks.list",
+  "runbooks.plan_day",
+  "runbooks.generate_adr"
 ]);
 
 const MUTATING_ACTIONS = new Set([
@@ -53,6 +56,12 @@ export function assertToolAllowed(root, action, payload = {}) {
     throw new Error(`Read-only mode blocks mutating action: ${action}`);
   }
   if (MUTATING_ACTIONS.has(action)) return { allowed: true, action };
+  if (payload.approvalId) {
+    const db = createSqliteAdapter({ root });
+    db.init();
+    const { approvalId, ...approvedPayload } = payload;
+    return createApprovalLedger({ db }).verify({ id: approvalId, action, payload: approvedPayload });
+  }
   const approval = requestApproval(root, action, `Unknown or high-risk action requires approval: ${action}`, payload);
   throw new Error(`Action requires approval before execution: ${approval.id}`);
 }

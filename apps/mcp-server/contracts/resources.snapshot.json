@@ -121,8 +121,16 @@
     {
       "name": "sage.intelligence.runbooks",
       "uri": "sage://intelligence/runbooks",
-      "title": "Sage Intelligence Runbook Fixture",
-      "description": "Validated runbook fixture showing steps and verification commands.",
+      "title": "Sage Intelligence Runbooks",
+      "description": "Validated runbook catalog showing steps, risks, and verification commands.",
+      "mimeType": "application/json",
+      "access": "read-only"
+    },
+    {
+      "name": "sage.intelligence.operating-cockpit",
+      "uri": "sage://intelligence/operating-cockpit",
+      "title": "Sage Intelligence Operating Cockpit",
+      "description": "Daily plan, runbooks, eval status, and experiment fixture for cockpit workflows.",
       "mimeType": "application/json",
       "access": "read-only"
     },

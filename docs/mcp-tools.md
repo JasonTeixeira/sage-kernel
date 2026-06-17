@@ -30,6 +30,9 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.semantic.search_symbol` | safe | `semantic:read` | No | none |
 | `kernel.semantic.find_references` | safe | `semantic:read` | No | none |
 | `kernel.semantic.summarize_module` | safe | `semantic:read` | No | none |
+| `kernel.runbooks.list` | safe | `runbooks:read` | No | none |
+| `kernel.runbooks.plan_day` | safe | `runbooks:read` | No | none |
+| `kernel.runbooks.generate_adr` | safe | `runbooks:read` | No | none |
 | `kernel.dogfood.prod` | safe | `dogfood:read` | No | none |
 | `kernel.workflow.audit_repo` | mutating | `workflow:write` | No | runs local QA commands and may write local audit records |
 | `kernel.workflow.run_full_qa` | mutating | `workflow:write` | No | runs local QA commands and may write local audit records |
@@ -364,6 +367,41 @@ Example input:
 }
 ```
 
+### `kernel.runbooks.list`
+
+Runbook catalog with ids, titles, risk, approval requirement, steps, and verification commands.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.runbooks.plan_day`
+
+Daily plan with objective, phase, risks, steps, gates, and evidence summary.
+
+Example input:
+
+```json
+{
+  "objective": "Advance Sage Kernel safely."
+}
+```
+
+### `kernel.runbooks.generate_adr`
+
+ADR object with id, title, status, markdown, and optional root-bounded output path.
+
+Example input:
+
+```json
+{
+  "title": "Use local-first runbooks",
+  "decision": "Keep runbooks in-repo and validated."
+}
+```
+
 ### `kernel.dogfood.prod`
 
 Dogfood audit report with configured source root, targets, checks, QA status, and failed QA checks.
@@ -626,6 +664,23 @@ Example input:
 - input.file is missing.
 - File path is outside the kernel root.
 - Module file is missing or unreadable.
+
+### `kernel.runbooks.list`
+
+- Runbook catalog JSON is missing or malformed.
+- Runbook validation fails.
+
+### `kernel.runbooks.plan_day`
+
+- Catalog phase file is missing or malformed.
+- Eval report is missing, producing a needs_attention plan.
+- Memory store cannot initialize, producing fallback evidence.
+
+### `kernel.runbooks.generate_adr`
+
+- Output path is outside the project root.
+- Output directory cannot be created.
+- ADR input contains unsupported values.
 
 ### `kernel.dogfood.prod`
 

@@ -662,6 +662,76 @@
       ]
     },
     {
+      "name": "kernel.runbooks.list",
+      "description": "List validated local runbooks for daily engineering operations.",
+      "risk": "safe",
+      "permission": "runbooks:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Runbook catalog with ids, titles, risk, approval requirement, steps, and verification commands.",
+      "examples": [
+        {
+          "description": "List available runbooks.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Runbook catalog JSON is missing or malformed.",
+        "Runbook validation fails."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.runbooks.plan_day",
+      "description": "Generate a local daily engineering plan grounded in phases, evals, runbooks, and memory.",
+      "risk": "safe",
+      "permission": "runbooks:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Daily plan with objective, phase, risks, steps, gates, and evidence summary.",
+      "examples": [
+        {
+          "description": "Plan today's work.",
+          "input": {
+            "objective": "Advance Sage Kernel safely."
+          }
+        }
+      ],
+      "failureModes": [
+        "Catalog phase file is missing or malformed.",
+        "Eval report is missing, producing a needs_attention plan.",
+        "Memory store cannot initialize, producing fallback evidence."
+      ],
+      "inputHash": "b883d9c6ab533507b5ea474639515f0108ce1edccd2b1c50526da04c29d582b8",
+      "required": []
+    },
+    {
+      "name": "kernel.runbooks.generate_adr",
+      "description": "Generate an Architecture Decision Record draft without executing commands.",
+      "risk": "safe",
+      "permission": "runbooks:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "ADR object with id, title, status, markdown, and optional root-bounded output path.",
+      "examples": [
+        {
+          "description": "Draft an ADR.",
+          "input": {
+            "title": "Use local-first runbooks",
+            "decision": "Keep runbooks in-repo and validated."
+          }
+        }
+      ],
+      "failureModes": [
+        "Output path is outside the project root.",
+        "Output directory cannot be created.",
+        "ADR input contains unsupported values."
+      ],
+      "inputHash": "b864f6e07b055846733e983e379f6709dc29538c709a898d08b0f97d268de053",
+      "required": []
+    },
+    {
       "name": "kernel.dogfood.prod",
       "description": "Audit three production repos against kernel QA readiness without mutating them.",
       "risk": "safe",

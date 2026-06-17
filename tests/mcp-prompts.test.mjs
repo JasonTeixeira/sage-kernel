@@ -22,9 +22,13 @@ test("MCP server exposes workflow prompts for daily kernel operations", async ()
     assert.deepEqual(names, [
       "sage.audit-repo",
       "sage.create-project",
+      "sage.execute-release-runbook",
+      "sage.explain-current-risk",
       "sage.explain-failed-job",
       "sage.inspect-approvals",
+      "sage.plan-my-day",
       "sage.prepare-release",
+      "sage.project-standup",
       "sage.run-full-qa",
       "sage.stress-test-server"
     ]);
@@ -58,7 +62,11 @@ test("kernel prompts render defaults and custom workflow arguments", async () =>
     "sage.inspect-approvals": { status: "approved" },
     "sage.prepare-release": { version: "v1.0.0" },
     "sage.stress-test-server": { url: "http://localhost:9999" },
-    "sage.explain-failed-job": { runId: "run_123" }
+    "sage.explain-failed-job": { runId: "run_123" },
+    "sage.plan-my-day": { objective: "finish Program 5" },
+    "sage.project-standup": { focus: "runbooks" },
+    "sage.execute-release-runbook": { runbook: "runbook_daily_release_readiness" },
+    "sage.explain-current-risk": { scope: "release" }
   };
 
   for (const prompt of registered) {

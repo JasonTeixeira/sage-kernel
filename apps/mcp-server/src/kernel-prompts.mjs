@@ -91,6 +91,77 @@ Report failures, throughput, p95 latency, and whether the server is acceptable f
     render: ({ runId = "latest failed run" }) => `Explain Sage Kernel job failure for ${runId}.
 
 Inspect run history, job definition, step outputs, approval state, retry/dead-letter behavior, and propose the smallest safe fix with verification commands.`
+  },
+  {
+    name: "sage.plan-my-day",
+    title: "Plan My Day",
+    description: "Create a daily engineering plan from current project state, runbooks, evals, and gates.",
+    argsSchema: {
+      objective: z.string().optional().describe("Primary objective for the day.")
+    },
+    render: ({ objective = "advance the project safely" }) => `Plan my engineering day to ${objective}.
+
+Use Sage Kernel project state, runbooks, latest eval report, pending approvals, and release gates. Return:
+- today's objective
+- 3-5 concrete steps
+- risks
+- verification commands
+- evidence that must be collected before calling the work complete.`
+  },
+  {
+    name: "sage.project-standup",
+    title: "Project Standup",
+    description: "Summarize current project status as a standup update.",
+    argsSchema: {
+      focus: z.string().optional().describe("Subsystem or goal to focus on.")
+    },
+    render: ({ focus = "current repo" }) => `Run a project standup for ${focus}.
+
+Summarize:
+- completed work
+- current state
+- blockers
+- risks
+- pending approvals
+- next verification commands.
+
+Use durable state and actual command evidence wherever available.`
+  },
+  {
+    name: "sage.execute-release-runbook",
+    title: "Execute Release Runbook",
+    description: "Walk through the release runbook with explicit verification and approval boundaries.",
+    argsSchema: {
+      runbook: z.string().optional().describe("Runbook id.")
+    },
+    render: ({ runbook = "runbook_daily_release_readiness" }) => `Execute the ${runbook} release runbook.
+
+Do not skip steps. For every step, record:
+- command or inspection performed
+- result
+- evidence path or output summary
+- whether approval is required before continuing.
+
+Stop on any failed verification and report the smallest fix.`
+  },
+  {
+    name: "sage.explain-current-risk",
+    title: "Explain Current Risk",
+    description: "Explain current project risk from evals, coverage, approvals, memory, and release state.",
+    argsSchema: {
+      scope: z.string().optional().describe("Risk scope.")
+    },
+    render: ({ scope = "current project" }) => `Explain current risk for ${scope}.
+
+Prioritize hard blockers first, then operational risks. Ground the answer in:
+- latest eval report
+- coverage and test gates
+- pending approvals
+- dashboard health
+- git working tree
+- release readiness.
+
+End with the next command that reduces the highest risk.`
   }
 ];
 

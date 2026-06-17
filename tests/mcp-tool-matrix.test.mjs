@@ -4,14 +4,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { createSqliteAdapter } from "../packages/db/adapter.mjs";
+import { createApprovalLedger } from "../packages/security/approvals.mjs";
 import { callToolCli } from "../apps/mcp-server/scripts/call-tool.mjs";
-import { callKernelTool, toMcpTextContent } from "../apps/mcp-server/src/kernel-tools.mjs";
+import { __kernelToolsTestInternals, callKernelTool, toMcpTextContent } from "../apps/mcp-server/src/kernel-tools.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
 function tempRoot() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sage-kernel-tools-"));
-  for (const item of ["catalog", "packages/qa", "packages/infra", "packages/db", "apps/worker", "apps/mcp-server"]) {
+  for (const item of ["catalog", "packages/qa", "packages/infra", "packages/db", "packages/intelligence/runbooks", "apps/worker", "apps/mcp-server"]) {
     fs.mkdirSync(path.join(dir, item), { recursive: true });
   }
   for (const file of [
@@ -25,8 +27,9 @@ function tempRoot() {
     "packages/infra/env-contract.json",
     "packages/infra/deploy-targets.json",
     "packages/infra/readiness-checks.json",
-    "packages/db/schema.sql",
-    "apps/worker/jobs.json",
+	    "packages/db/schema.sql",
+	    "packages/intelligence/runbooks/release-readiness.json",
+	    "apps/worker/jobs.json",
     "apps/mcp-server/tools.json"
   ]) {
     fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
@@ -64,10 +67,29 @@ test("MCP dispatcher covers catalog, template, QA, infra, deploy, dashboard, and
   assert.equal(semanticSummary.language, "json");
   const semanticReferences = await callKernelTool(sandbox, "kernel.semantic.find_references", { query: "version", limit: 5 });
   assert.equal(semanticReferences.results.length > 0, true);
+  const runbooks = await callKernelTool(sandbox, "kernel.runbooks.list", {});
+  assert.equal(runbooks.runbooks.length > 0, true);
+  const dayPlan = await callKernelTool(sandbox, "kernel.runbooks.plan_day", { objective: "test cockpit" });
+  assert.equal(dayPlan.objective, "test cockpit");
+  assert.equal(dayPlan.steps.length > 0, true);
+  const adr = await callKernelTool(sandbox, "kernel.runbooks.generate_adr", { title: "Test ADR", decision: "Use safe tools." });
+  assert.match(adr.markdown, /# ADR: Test ADR/);
 
   const content = toMcpTextContent({ ok: true });
   assert.equal(content.content[0].type, "text");
   assert.match(content.content[0].text, /"ok": true/);
+  await assert.rejects(() => callKernelTool(sandbox, "kernel.unknown", {}), /Unknown tool/);
+  const db = createSqliteAdapter({ root: sandbox, schemaRoot: root });
+  db.init();
+  const ledger = createApprovalLedger({ db, signer: "test-signer" });
+  const approval = ledger.request({ action: "fake_manifest_only", reason: "cover dispatcher default", payload: {} });
+  ledger.approve({ id: approval.id, decidedBy: "tester" });
+  __kernelToolsTestInternals.knownKernelToolNames.add("kernel.fake_manifest_only");
+  try {
+    await assert.rejects(() => callKernelTool(sandbox, "kernel.fake_manifest_only", { approvalId: approval.id }), /Unknown tool/);
+  } finally {
+    __kernelToolsTestInternals.knownKernelToolNames.delete("kernel.fake_manifest_only");
+  }
 });
 
 test("MCP dispatcher validates required input and unknown catalog references", async () => {
@@ -157,7 +179,7 @@ test("MCP dispatcher covers repo, QA, scaffold, and workflow edge branches", asy
   );
   await assert.rejects(
     () => callKernelTool(sandbox, "kernel.unknown", {}),
-    /Action requires approval before execution/
+    /Unknown tool/
   );
   process.env.SAGE_KERNEL_READ_ONLY = "1";
   try {

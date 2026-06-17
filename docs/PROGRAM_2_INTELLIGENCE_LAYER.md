@@ -487,7 +487,7 @@ Exit criteria:
 
 ### Phase 2.5: Agile Runbooks And Daily Operating Cockpit
 
-Status: planned.
+Status: complete.
 
 Tasks:
 
@@ -506,10 +506,52 @@ Tasks:
   - execute release runbook
   - explain current risk
 
+Implemented:
+
+- Added `packages/intelligence/runbooks.mjs` as the daily operating cockpit
+  core.
+- Added validated runbook catalog support through:
+  - `packages/intelligence/fixtures/runbook.json`
+  - `packages/intelligence/runbooks/release-readiness.json`
+- Added CLI scripts:
+  - `npm run runbooks:validate`
+  - `npm run runbooks:list`
+  - `npm run runbooks:smoke`
+  - `npm run plan:day`
+  - `npm run adr:generate`
+- Added safe MCP tools:
+  - `kernel.runbooks.list`
+  - `kernel.runbooks.plan_day`
+  - `kernel.runbooks.generate_adr`
+- Added read-only MCP resource:
+  - `sage://intelligence/operating-cockpit`
+- Added MCP prompts:
+  - `sage.plan-my-day`
+  - `sage.project-standup`
+  - `sage.execute-release-runbook`
+  - `sage.explain-current-risk`
+- Added dashboard Cockpit view for:
+  - today's plan
+  - risks and gates
+  - runbooks
+  - experiment history
+- Added deterministic eval `eval_runbooks_cockpit`.
+- Wired runbook validation into `npm run release:check`.
+
+Deferred:
+
+- Mutating runbook step execution remains intentionally deferred until each
+  executable step has approval, rollback, timeout, and audit-record boundaries.
+  Program 5 ships the safe daily cockpit, plan generation, ADR generation, and
+  read-only runbook control plane.
+
 Verification:
 
 ```bash
 npm run runbooks:validate
+npm run runbooks:smoke
+npm run plan:day
+npm run eval:run
 npm run dashboard:e2e
 npm run mcp:smoke
 npm run verify:fresh-install

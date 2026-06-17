@@ -62,6 +62,38 @@
       "arguments": [
         "runId"
       ]
+    },
+    {
+      "name": "sage.plan-my-day",
+      "title": "Plan My Day",
+      "description": "Create a daily engineering plan from current project state, runbooks, evals, and gates.",
+      "arguments": [
+        "objective"
+      ]
+    },
+    {
+      "name": "sage.project-standup",
+      "title": "Project Standup",
+      "description": "Summarize current project status as a standup update.",
+      "arguments": [
+        "focus"
+      ]
+    },
+    {
+      "name": "sage.execute-release-runbook",
+      "title": "Execute Release Runbook",
+      "description": "Walk through the release runbook with explicit verification and approval boundaries.",
+      "arguments": [
+        "runbook"
+      ]
+    },
+    {
+      "name": "sage.explain-current-risk",
+      "title": "Explain Current Risk",
+      "description": "Explain current project risk from evals, coverage, approvals, memory, and release state.",
+      "arguments": [
+        "scope"
+      ]
     }
   ]
 }

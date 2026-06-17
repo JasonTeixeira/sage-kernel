@@ -31,6 +31,7 @@ test("MCP server exposes read-only kernel resources", async () => {
       "sage://intelligence/evals",
       "sage://intelligence/experiments",
       "sage://intelligence/memory",
+      "sage://intelligence/operating-cockpit",
       "sage://intelligence/project-state",
       "sage://intelligence/runbooks",
       "sage://intelligence/semantic-adapters",
@@ -90,15 +91,25 @@ test("kernel resources provide bounded fallbacks and registration metadata", asy
   const contracts = kernelResources.find((resource) => resource.uri === "sage://intelligence/contracts").read(sandbox);
   assert.equal(Boolean(contracts.schemas["memory-record.schema.json"]), true);
   assert.equal(contracts.securityBoundaries.some((boundary) => boundary.action === "semantic_code.apply_refactor"), true);
-  const memory = kernelResources.find((resource) => resource.uri === "sage://intelligence/memory").read(sandbox);
-  assert.equal(memory.status, "available");
-  assert.equal(memory.audit.total, 0);
+	  const memory = kernelResources.find((resource) => resource.uri === "sage://intelligence/memory").read(sandbox);
+	  assert.equal(memory.status, "available");
+	  assert.equal(memory.audit.total, 0);
+	  const rootFile = path.join(sandbox, "not-a-directory");
+	  fs.writeFileSync(rootFile, "file root");
+	  const unavailableMemory = kernelResources.find((resource) => resource.uri === "sage://intelligence/memory").read(rootFile);
+	  assert.equal(unavailableMemory.status, "unavailable");
+	  assert.match(unavailableMemory.error, /not a directory|ENOTDIR|EEXIST/i);
   const projectState = kernelResources.find((resource) => resource.uri === "sage://intelligence/project-state").read(sandbox);
   assert.equal(projectState.project.name, "fixture");
   const evals = kernelResources.find((resource) => resource.uri === "sage://intelligence/evals").read(sandbox);
   assert.equal(evals.length > 0, true);
   const evalReport = kernelResources.find((resource) => resource.uri === "sage://intelligence/eval-report").read(sandbox);
   assert.equal(evalReport.status, "missing");
+  const runbooks = kernelResources.find((resource) => resource.uri === "sage://intelligence/runbooks").read(sandbox);
+  assert.equal(runbooks.runbooks.some((runbook) => runbook.id === "runbook_daily_release_readiness"), true);
+  const cockpit = kernelResources.find((resource) => resource.uri === "sage://intelligence/operating-cockpit").read(sandbox);
+  assert.equal(cockpit.todayPlan.steps.length > 0, true);
+  assert.equal(cockpit.runbooks.length > 0, true);
 
   const registered = [];
   registerKernelResources({

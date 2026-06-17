@@ -20,5 +20,6 @@ These resources are read-only. Use resources when an MCP client needs to inspect
 | Sage Intelligence Eval Definitions | `sage://intelligence/evals` | `application/json` | Validated eval definitions for deterministic release, MCP, dashboard, QA, and workflow checks. |
 | Sage Intelligence Latest Eval Report | `sage://intelligence/eval-report` | `application/json` | Latest local eval run report, or a missing-state object if no eval suite has run yet. |
 | Sage Intelligence Experiment Fixture | `sage://intelligence/experiments` | `application/json` | Validated experiment-run fixture showing bounded feedback-loop structure. |
-| Sage Intelligence Runbook Fixture | `sage://intelligence/runbooks` | `application/json` | Validated runbook fixture showing steps and verification commands. |
+| Sage Intelligence Runbooks | `sage://intelligence/runbooks` | `application/json` | Validated runbook catalog showing steps, risks, and verification commands. |
+| Sage Intelligence Operating Cockpit | `sage://intelligence/operating-cockpit` | `application/json` | Daily plan, runbooks, eval status, and experiment fixture for cockpit workflows. |
 | Sage Intelligence Semantic Adapter Fixture | `sage://intelligence/semantic-adapters` | `application/json` | Validated semantic-code adapter fixture showing read-only capability metadata. |

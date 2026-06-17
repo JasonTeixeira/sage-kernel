@@ -26,15 +26,17 @@ function tempProject() {
 
 test("semantic code indexes modules, symbols, markdown headings, and json keys", () => {
   const workspace = tempProject();
+  fs.writeFileSync(path.join(workspace, "broken.json"), "{");
   const semantic = createSemanticCode({ root: workspace });
   const index = semantic.indexProject({ projectPath: ".", limit: 20 });
 
   assert.equal(index.adapter.status, "available");
-  assert.equal(index.totals.files, 3);
+  assert.equal(index.totals.files, 4);
   assert.equal(index.symbols.some((symbol) => symbol.name === "SemanticRunner" && symbol.kind === "class"), true);
   assert.equal(index.symbols.some((symbol) => symbol.name === "createSemanticFixture" && symbol.exported), true);
   assert.equal(index.symbols.some((symbol) => symbol.name === "Semantic Fixture" && symbol.kind === "heading-1"), true);
   assert.equal(index.symbols.some((symbol) => symbol.name === "name" && symbol.kind === "json-key"), true);
+  assert.equal(index.symbols.some((symbol) => symbol.file === "broken.json"), false);
 });
 
 test("semantic code searches symbols, finds references, and summarizes modules", () => {
