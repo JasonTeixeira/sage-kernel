@@ -55,6 +55,7 @@ Required release workflow properties:
 - Trigger: GitHub Release `published`.
 - Runner: GitHub-hosted `ubuntu-latest`.
 - Permissions: `contents: read` and `id-token: write`.
+- Runtime: Node `22.14.0` or newer and npm `11.10.0` or newer.
 - Node setup: npm registry set to `https://registry.npmjs.org`.
 - Release build cache: package-manager cache disabled.
 - Publish command: `npm publish --provenance --access public`.
@@ -79,8 +80,20 @@ npm run release:provenance
 Before publishing the first npm release, configure npm trusted publishing for:
 
 - Repository: `JasonTeixeira/sage-kernel`
-- Workflow: `.github/workflows/release.yml`
+- Workflow filename: `release.yml`
 - Event: published GitHub release
+- Allowed action: `npm publish`
+
+For a brand-new npm package, the package name must exist before `npm trust`
+can manage trusted publishing from the CLI. If `npm view sage-kernel` returns
+`E404`, publish the initial package from a trusted local npm account, then run:
+
+```bash
+npx npm@latest trust github sage-kernel --repo JasonTeixeira/sage-kernel --file release.yml --allow-publish
+```
+
+After the trust relationship exists, future releases should publish through
+GitHub Actions instead of local `npm publish`.
 
 ## Fresh Install Verification
 

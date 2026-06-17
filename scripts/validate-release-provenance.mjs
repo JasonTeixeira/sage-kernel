@@ -30,8 +30,10 @@ export function validateReleaseProvenance(options = {}) {
     requirePattern(workflow, /types:\s*\[published]/, `${releaseWorkflow} must run only for published releases`, failures);
     requirePattern(workflow, /contents:\s*read/, `${releaseWorkflow} must request contents: read`, failures);
     requirePattern(workflow, /id-token:\s*write/, `${releaseWorkflow} must request id-token: write for provenance`, failures);
+    requirePattern(workflow, /node-version:\s*22\.14\.0/, `${releaseWorkflow} must use Node 22.14.0 or newer for trusted publishing`, failures);
     requirePattern(workflow, /registry-url:\s*['"]https:\/\/registry\.npmjs\.org['"]/, `${releaseWorkflow} must publish to npmjs registry`, failures);
     requirePattern(workflow, /package-manager-cache:\s*false/, `${releaseWorkflow} must disable package manager cache for release builds`, failures);
+    requirePattern(workflow, /npm install -g npm@\^11\.10\.0/, `${releaseWorkflow} must install npm 11.10+ for trusted publishing support`, failures);
     requirePattern(workflow, /npm ci/, `${releaseWorkflow} must install from lockfile`, failures);
     requirePattern(workflow, /npm run verify:fresh-install/, `${releaseWorkflow} must run fresh-install verification`, failures);
     requirePattern(workflow, /npm run release:check/, `${releaseWorkflow} must run release checks`, failures);

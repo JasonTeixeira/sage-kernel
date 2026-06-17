@@ -72,7 +72,9 @@ test("package metadata is ready for public OSS distribution", () => {
 
   const release = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
   assert.match(release, /id-token:\s*write/);
+  assert.match(release, /node-version:\s*22\.14\.0/);
   assert.match(release, /package-manager-cache:\s*false/);
+  assert.match(release, /npm install -g npm@\^11\.10\.0/);
   assert.match(release, /npm run verify:fresh-install/);
   assert.match(release, /npm run release:check/);
   assert.match(release, /npm publish --provenance --access public/);
@@ -118,6 +120,8 @@ test("release provenance validator enforces npm publishing safety requirements",
   assert.match(failures, /publishConfig.provenance must be true/);
   assert.match(failures, /Missing verify:fresh-install script/);
   assert.match(failures, /id-token: write/);
+  assert.match(failures, /Node 22.14.0/);
+  assert.match(failures, /npm 11.10\+/);
   assert.match(failures, /publish with provenance and public access/);
 
   fs.rmSync(path.join(workspace, ".github/workflows/release.yml"));
