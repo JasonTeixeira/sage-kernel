@@ -147,6 +147,23 @@ Infrastructure primitives:
 - readiness checks
 - infra plan and emit commands
 
+## Intelligence Layer Roadmap
+
+The next expansion layer is documented in
+[`PROGRAM_2_INTELLIGENCE_LAYER.md`](PROGRAM_2_INTELLIGENCE_LAYER.md).
+
+That program covers optional adapters and contracts for:
+
+- semantic code intelligence
+- durable project memory
+- eval harnesses
+- measured feedback loops
+- runbooks and daily planning
+- optional Serena and Graphiti-style integrations
+
+These systems should be added behind explicit contracts and validators before
+they become mutating MCP tools.
+
 ## Data Flow
 
 1. A user or AI client calls an MCP tool, CLI command, or dashboard action.
