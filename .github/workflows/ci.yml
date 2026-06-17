@@ -7,12 +7,8 @@ on:
 
 jobs:
   quality:
-    name: Quality Gates / Node ${{ matrix.node }}
+    name: Quality Gates / Node 22
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [20, 22]
 
     steps:
       - name: Checkout
@@ -21,7 +17,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 22
           cache: npm
 
       - name: Install system SQLite

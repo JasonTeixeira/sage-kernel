@@ -53,9 +53,9 @@ export function formatDoctorReport(report, options = {}) {
 
 function checkNodeVersion() {
   const major = Number(process.versions.node.split(".")[0]);
-  return major >= 20
+  return major >= 22
     ? { status: "passed", message: `Node ${process.versions.node}` }
-    : { status: "failed", message: `Node ${process.versions.node}; requires >=20` };
+    : { status: "failed", message: `Node ${process.versions.node}; requires >=22` };
 }
 
 function checkFile(root, file) {
@@ -143,5 +143,6 @@ function runCheck(root, command, args, options = {}) {
 
 export const __doctorTestInternals = {
   checkPermissions,
+  checkMcpClientConfig,
   checkDashboard
 };

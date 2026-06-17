@@ -102,7 +102,7 @@
     "postgres:integration": "node --test tests/postgres-integration.test.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

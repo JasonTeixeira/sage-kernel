@@ -87,6 +87,10 @@ test("doctor internals cover defensive permission and dashboard failure branches
   const denied = __doctorTestInternals.checkPermissions(path.join(os.tmpdir(), "sage-doctor-missing-root"));
   assert.equal(denied.status, "failed");
 
+  const malformedClient = __doctorTestInternals.checkMcpClientConfig(1, "all");
+  assert.equal(malformedClient.status, "failed");
+  assert.match(malformedClient.message, /path.*string/);
+
   const unreachable = await __doctorTestInternals.checkDashboard("http://127.0.0.1:1", {
     fetchImpl: async () => {
       throw new Error("offline");
