@@ -58,6 +58,20 @@ test("runbook validation covers malformed, missing, duplicate, and fallback bran
     steps: [{ id: "bad", title: "Bad", action: "execute_command", command: "", timeoutMs: 1, rollback: { description: "" } }],
     verification: ["npm test"]
   }, "badStep").join("\n"), /timeoutMs must be an integer between 1000 and 300000/);
+  assert.match(validateRunbookData({
+    id: "runbook_bad_rollback",
+    title: "Bad rollback",
+    risk: "medium",
+    steps: [{ id: "bad", title: "Bad", action: "execute_command", rollback: "manual" }],
+    verification: ["npm test"]
+  }, "badRollback").join("\n"), /rollback must be an object/);
+  assert.match(validateRunbookData({
+    id: "runbook_bad_rollback_command",
+    title: "Bad rollback command",
+    risk: "medium",
+    steps: [{ id: "bad", title: "Bad", action: "execute_command", rollback: { description: "undo", command: "" } }],
+    verification: ["npm test"]
+  }, "badRollbackCommand").join("\n"), /rollback.command must be a non-empty string/);
 
   const missingArrays = validateRunbookData({
     id: "runbook_missing_arrays",
@@ -116,6 +130,12 @@ test("ADR generation returns markdown and writes only inside the root", () => {
   assert.match(adr.markdown, /# ADR: Use runbooks/);
   assert.equal(fs.existsSync(path.join(workspace, adr.path)), true);
   assert.throws(() => createAdr({ title: "Bad", out: "../bad.md" }, { root: workspace }), /outside the project root/);
+
+  const defaultAdr = createAdr({ title: "!!!" }, { root: workspace });
+  assert.equal(defaultAdr.id, "adr_decision");
+  assert.equal(defaultAdr.status, "proposed");
+  assert.equal(defaultAdr.path, null);
+  assert.match(defaultAdr.markdown, /Context not provided/);
 });
 
 test("runbook execution plans, executes allowlisted commands, audits results, and blocks unsafe commands", () => {
@@ -147,6 +167,20 @@ test("runbook execution plans, executes allowlisted commands, audits results, an
   assert.equal(executed.status, "passed");
   assert.equal(executed.exitCode, 0);
   assert.equal(executed.rollback.required, true);
+
+  const failed = executeRunbookStep({
+    runbook: "runbook_release_verification",
+    step: "local_release_check",
+    dryRun: false
+  }, {
+    root: workspace,
+    schemaRoot: root,
+    runner: () => ({ status: 12, stdout: "x".repeat(9005), stderr: "failed runbook step" })
+  });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.exitCode, 12);
+  assert.equal(failed.stdout.length, 8000);
+  assert.equal(failed.stderr, "failed runbook step");
 
   assert.throws(() => executeRunbookStep({}, { root: workspace, schemaRoot: root }), /requires input.runbook and input.step/);
   assert.throws(() => executeRunbookStep({ runbook: "missing", step: "local_release_check" }, { root: workspace, schemaRoot: root }), /Unknown runbook/);
@@ -190,6 +224,23 @@ test("runbook execution plans, executes allowlisted commands, audits results, an
     dryRun: false
   }, { root: workspace, schemaRoot: root });
   assert.equal(realCommand.status, "passed");
+
+  const quietCommandRunbook = {
+    id: "runbook_quiet",
+    title: "Quiet command",
+    risk: "low",
+    requiresApproval: true,
+    steps: [{ id: "status", title: "Status", action: "execute_command", command: "git status --short" }],
+    verification: ["git status --short"]
+  };
+  fs.writeFileSync(path.join(workspace, "packages/intelligence/runbooks/quiet.json"), JSON.stringify(quietCommandRunbook));
+  const quiet = executeRunbookStep({
+    runbook: "runbook_quiet",
+    step: "status",
+    dryRun: false
+  }, { root: workspace, schemaRoot: root });
+  assert.equal(quiet.status, "passed");
+  assert.equal(quiet.command, "git status --short");
 
   const cli = spawnSync("node", [path.join(root, "packages/intelligence/scripts/runbooks-execute.mjs"), "--runbook=runbook_release_verification", "--step=local_release_check"], {
     cwd: workspace,

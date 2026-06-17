@@ -4,14 +4,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { createDbAdapter, createPersistentSqliteAdapter, createPostgresAdapter, createSqliteAdapter, detectDbProvider } from "../packages/db/adapter.mjs";
+import { bindSql, createDbAdapter, createPersistentSqliteAdapter, createPostgresAdapter, createSqliteAdapter, detectDbProvider } from "../packages/db/adapter.mjs";
 import {
   backupSqliteDb,
   exportKernelData,
   importKernelData,
   restoreSqliteDbBackup
 } from "../packages/db/persistence.mjs";
-import { migrateKernelDb, runKernelMigrations } from "../packages/db/migrations.mjs";
+import { KERNEL_MIGRATIONS, migrateKernelDb, runKernelMigrations } from "../packages/db/migrations.mjs";
 
 function tempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sage-kernel-db-"));
@@ -23,6 +23,14 @@ test("detectDbProvider defaults to sqlite and recognizes postgres urls", () => {
   assert.equal(detectDbProvider({ SAGE_DB_PROVIDER: "sqlite", DATABASE_URL: "postgresql://localhost/db" }), "sqlite");
   assert.equal(detectDbProvider({ DATABASE_URL: "postgres://user:pass@localhost:5432/db" }), "postgres");
   assert.equal(detectDbProvider({ DATABASE_URL: "postgresql://user:pass@localhost:5432/db" }), "postgres");
+});
+
+test("SQL binding covers primitive values, escaping, nullish values, and missing parameters", () => {
+  assert.equal(
+    bindSql("VALUES (?, ?, ?, ?, ?, ?)", ["O'Hara", true, false, null, undefined, Number.NaN]),
+    "VALUES ('O''Hara', 1, 0, NULL, NULL, NULL)"
+  );
+  assert.throws(() => bindSql("VALUES (?, ?)", ["only-one"]), /Missing SQL bind parameter/);
 });
 
 test("sqlite adapter initializes schema and supports parameterized writes", () => {
@@ -238,6 +246,51 @@ test("postgres migrations cover skipped columns and statement selection", async 
   assert.equal(calls.some((call) => call[1]?.includes?.("ALTER TABLE")), false);
 });
 
+test("postgres migrations add missing columns when schema inspection is partial", async () => {
+  const calls = [];
+  const existingColumns = new Set(["next_run_at", "signature"]);
+  const fakeDb = {
+    provider: "postgres",
+    async execute(sql, params = []) {
+      calls.push(["execute", sql, params]);
+    },
+    async executeBatch(statements = []) {
+      calls.push(["batch", statements]);
+    },
+    async query(sql) {
+      calls.push(["query", sql]);
+      if (sql.includes("schema_migrations")) return [];
+      if (sql.includes("information_schema.columns")) {
+        return [...existingColumns].map((name) => ({ name }));
+      }
+      return [];
+    }
+  };
+
+  await runKernelMigrations({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
+    db: fakeDb,
+    provider: "postgres",
+    now: () => "2026-01-01T00:00:00.000Z",
+    migrations: [
+      {
+        id: "partial_columns",
+        description: "partial columns",
+        async up(db, context) {
+          await KERNEL_MIGRATIONS[1].up(db, context);
+          await KERNEL_MIGRATIONS[2].up(db, context);
+        }
+      }
+    ]
+  });
+
+  const batches = calls.filter((call) => call[0] === "batch").flatMap((call) => call[1]);
+  assert.equal(batches.some((statement) => /locked_at/.test(statement)), true);
+  assert.equal(batches.some((statement) => /locked_by/.test(statement)), true);
+  assert.equal(batches.some((statement) => /decided_by/.test(statement)), true);
+});
+
 test("migration runner reports skipped migrations and sqlite column additions", async () => {
   const calls = [];
   const fakeDb = {
@@ -285,6 +338,49 @@ test("migration runner reports skipped migrations and sqlite column additions", 
   assert.equal(calls.some((call) => call[0] === "batch" && JSON.stringify(call[1]).includes("SELECT 1")), true);
 });
 
+test("migration runner selects provider statements and records custom timestamps", async () => {
+  const calls = [];
+  const fakeDb = {
+    provider: "postgres",
+    async execute(sql, params = []) {
+      calls.push(["execute", sql, params]);
+    },
+    async executeBatch(statements = []) {
+      calls.push(["batch", statements]);
+    },
+    async query(sql) {
+      calls.push(["query", sql]);
+      if (sql.includes("schema_migrations")) return [];
+      return [];
+    }
+  };
+
+  const result = await runKernelMigrations({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
+    db: fakeDb,
+    provider: "postgres",
+    now: () => "2026-06-17T00:00:00.000Z",
+    migrations: [
+      {
+        id: "provider_choice",
+        description: "provider choice",
+        statements: [
+          { sqlite: "SELECT 'sqlite-only'", postgres: "SELECT 'postgres-only'" },
+          "SELECT 'shared'"
+        ]
+      }
+    ]
+  });
+
+  assert.equal(result.applied, 1);
+  const batch = calls.find((call) => call[0] === "batch")[1];
+  assert.equal(batch[0], "SELECT 'postgres-only'");
+  assert.equal(batch[1], "SELECT 'shared'");
+  assert.deepEqual(batch[2].params, ["provider_choice", "provider choice", "2026-06-17T00:00:00.000Z"]);
+  assert.match(batch[2].sql, /\$1, \$2, \$3/);
+});
+
 test("sqlite persistence exports, imports, redacts, backs up, and restores data", () => {
   const root = tempRoot();
   const schemaRoot = path.resolve(import.meta.dirname, "..");
@@ -313,6 +409,13 @@ test("sqlite persistence exports, imports, redacts, backs up, and restores data"
   assert.doesNotMatch(JSON.stringify(redacted), /secret-token|secret-password/);
   assert.match(JSON.stringify(redacted), /REDACTED/);
 
+  db.execute(
+    "INSERT INTO audit_events (id, type, subject, metadata_json, created_at) VALUES (?, ?, ?, ?, ?)",
+    ["audit_array_secret", "tool.finished", "kernel.test", JSON.stringify([{ apiKey: "secret-array-key" }]), "2026-01-01T00:00:03.000Z"]
+  );
+  const redactedArray = exportKernelData({ root, schemaRoot, redacted: true });
+  assert.doesNotMatch(JSON.stringify(redactedArray), /secret-array-key/);
+
   const importedRoot = tempRoot();
   importKernelData({ root: importedRoot, schemaRoot, data: exported });
   const importedDb = createSqliteAdapter({ root: importedRoot, schemaRoot });
@@ -330,7 +433,7 @@ test("sqlite persistence exports, imports, redacts, backs up, and restores data"
   const restoredDb = createSqliteAdapter({ root: restoredRoot, schemaRoot });
   restoredDb.init();
   assert.equal(Number(restoredDb.scalar("SELECT COUNT(*) FROM approvals;")), 1);
-  assert.equal(Number(restoredDb.scalar("SELECT COUNT(*) FROM audit_events;")), 1);
+  assert.equal(Number(restoredDb.scalar("SELECT COUNT(*) FROM audit_events;")), 2);
   assert.equal(Number(restoredDb.scalar("SELECT COUNT(*) FROM schema_migrations;")), 1);
 });
 

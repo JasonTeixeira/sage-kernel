@@ -83,6 +83,24 @@ test("doctor report covers non-fast gates, dashboard HTTP status, and DB SQL hel
   assert.equal(sqlJson(null), "'{}'");
 });
 
+test("doctor report passes when all non-fast gates pass and dashboard is reachable", async () => {
+  const report = await createDoctorReport({
+    root,
+    fast: false,
+    dashboardUrl: "http://127.0.0.1:8787",
+    fetchImpl: async () => ({ ok: true, status: 200 }),
+    runCommand() {
+      return { status: 0, stdout: "ok\n", stderr: "" };
+    }
+  });
+
+  assert.equal(report.status, "passed");
+  assert.equal(report.checks.dashboard.status, "passed");
+  assert.equal(report.checks.catalog.status, "passed");
+  assert.equal(report.checks.security.status, "passed");
+  assert.match(report.summary, /0 failed/);
+});
+
 test("doctor internals cover defensive permission and dashboard failure branches", async () => {
   const denied = __doctorTestInternals.checkPermissions(path.join(os.tmpdir(), "sage-doctor-missing-root"));
   assert.equal(denied.status, "failed");

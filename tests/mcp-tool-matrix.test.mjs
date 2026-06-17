@@ -8,6 +8,14 @@ import { createSqliteAdapter } from "../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../packages/security/approvals.mjs";
 import { callToolCli } from "../apps/mcp-server/scripts/call-tool.mjs";
 import { __kernelToolsTestInternals, callKernelTool, toMcpTextContent } from "../apps/mcp-server/src/kernel-tools.mjs";
+import {
+  inspectRepo,
+  listRuns,
+  qaPlan,
+  warehouseSearch,
+  workflowExplainFailures,
+  workflowPendingApprovals
+} from "../apps/mcp-server/src/kernel-tool-helpers.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -201,6 +209,70 @@ test("MCP dispatcher handles optional source roots and warehouse configuration",
   } finally {
     delete process.env.AI_WAREHOUSE_ROOT;
   }
+});
+
+test("MCP helper functions cover direct catalog, repo, run, warehouse, and workflow branches", () => {
+  const sandbox = tempRoot();
+
+  assert.equal(qaPlan(sandbox, "next-saas-app", "unknown").runners.length > 0, true);
+  assert.deepEqual(listRuns(sandbox), []);
+
+  fs.mkdirSync(path.join(sandbox, ".sage-kernel/runs"), { recursive: true });
+  fs.writeFileSync(path.join(sandbox, ".sage-kernel/runs/a.json"), JSON.stringify({
+    runId: "run_a",
+    jobId: "job-a",
+    status: "passed",
+    durationMs: 1,
+    finishedAt: "2026-01-01T00:00:00.000Z"
+  }));
+  fs.writeFileSync(path.join(sandbox, ".sage-kernel/runs/b.json"), JSON.stringify({
+    runId: "run_b",
+    jobId: "job-b",
+    status: "failed",
+    durationMs: 2,
+    finishedAt: "2026-01-02T00:00:00.000Z"
+  }));
+  assert.equal(listRuns(sandbox, 1).length, 1);
+
+  const sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-helper-source-"));
+  const repoDir = path.join(sourceRoot, "nexural-platform-kits");
+  fs.mkdirSync(repoDir, { recursive: true });
+  fs.writeFileSync(path.join(repoDir, "pyproject.toml"), "[project]\nname='fixture'\n");
+  fs.writeFileSync(path.join(sandbox, "catalog/repos.json"), JSON.stringify({
+    sourceRoot,
+    repos: [{ name: "nexural-platform-kits", role: "source", target: "packages/source", score: 90, domains: ["qa"] }]
+  }));
+  const repo = inspectRepo(sandbox, "nexural-platform-kits");
+  assert.equal(repo.exists, true);
+  assert.equal(repo.package, null);
+  assert.equal(repo.hasPyproject, true);
+
+  const warehouseRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-helper-warehouse-"));
+  fs.writeFileSync(path.join(warehouseRoot, "index.json"), JSON.stringify({
+    tools: [
+      { slug: "description", name: "Description Tool", category: "docs", verdict: "watch", maturity: "beta", description: "Description fallback" },
+      { slug: "empty", name: "Empty Tool", category: "docs", verdict: "watch", maturity: "idea" }
+    ]
+  }));
+  process.env.AI_WAREHOUSE_ROOT = warehouseRoot;
+  try {
+    const described = warehouseSearch(sandbox, "fallback", 10);
+    assert.equal(described[0].summary, "Description fallback");
+    assert.deepEqual(described[0].tags, []);
+    const empty = warehouseSearch(sandbox, "empty", 10, "watch");
+    assert.equal(empty[0].summary, null);
+  } finally {
+    delete process.env.AI_WAREHOUSE_ROOT;
+  }
+
+  const clean = workflowExplainFailures(sandbox, { report: { checks: [] } });
+  assert.equal(clean.status, "passed");
+  assert.deepEqual(clean.nextActions, ["No failed checks found in the provided report."]);
+
+  const pending = workflowPendingApprovals(sandbox, { status: "approved" });
+  assert.equal(pending.status, "approved");
+  assert.equal(pending.count, 0);
+  assert.deepEqual(pending.nextActions, ["No pending approvals."]);
 });
 
 test("MCP dispatcher covers repo, QA, scaffold, and workflow edge branches", async () => {

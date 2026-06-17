@@ -148,6 +148,43 @@ test("project state summarizes git, evals, dashboard, memory, and next actions",
   assert.equal(state.nextActions.length > 0, true);
 });
 
+test("project state reports dirty git and ready state when evidence is clean", () => {
+  const workspace = tempRoot();
+  fs.writeFileSync(path.join(workspace, ".gitignore"), ".sage-kernel/\n");
+  spawnSync("git", ["add", ".gitignore"], { cwd: workspace, encoding: "utf8" });
+  spawnSync("git", ["-c", "user.email=sage@example.com", "-c", "user.name=Sage Kernel", "commit", "-m", "ignore kernel state"], { cwd: workspace, encoding: "utf8" });
+  fs.mkdirSync(path.join(workspace, ".sage-kernel/evals"), { recursive: true });
+  fs.mkdirSync(path.join(workspace, "catalog"), { recursive: true });
+  fs.mkdirSync(path.join(workspace, "apps/mcp-server"), { recursive: true });
+  fs.writeFileSync(path.join(workspace, ".sage-kernel/evals/latest.json"), JSON.stringify({
+    status: "passed",
+    summary: { total: 1, passed: 1, failed: 0 }
+  }));
+  fs.writeFileSync(path.join(workspace, "catalog/phases.json"), JSON.stringify({
+    phases: [{ id: 1, name: "Ready", status: "complete" }]
+  }));
+  fs.writeFileSync(path.join(workspace, "catalog/templates.json"), JSON.stringify({
+    templates: [{ id: "worker", qaProfile: "default", coverage: ["test"], defaultStack: ["node"] }]
+  }));
+  fs.writeFileSync(path.join(workspace, "apps/mcp-server/tools.json"), JSON.stringify({
+    tools: [{ name: "kernel.test" }]
+  }));
+  spawnSync("git", ["add", "catalog/phases.json", "catalog/templates.json", "apps/mcp-server/tools.json"], { cwd: workspace, encoding: "utf8" });
+  spawnSync("git", ["-c", "user.email=sage@example.com", "-c", "user.name=Sage Kernel", "commit", "-m", "add dashboard catalog"], { cwd: workspace, encoding: "utf8" });
+
+  let state = createProjectState({ root: workspace, schemaRoot: root });
+  assert.equal(state.git.clean, true);
+  assert.equal(state.status, "ready");
+  assert.deepEqual(state.nextActions, ["Continue with the next implementation program."]);
+
+  fs.writeFileSync(path.join(workspace, "dirty.txt"), "dirty\n");
+  state = createProjectState({ root: workspace, schemaRoot: root });
+  assert.equal(state.git.clean, false);
+  assert.equal(state.status, "needs_attention");
+  assert.equal(state.git.changed.some((item) => item.includes("dirty.txt")), true);
+  assert.equal(state.nextActions.includes("Review and commit or intentionally discard local changes."), true);
+});
+
 test("project state handles missing package metadata, non-git roots, and missing eval reports", () => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-memory-no-git-"));
   const state = createProjectState({ root: workspace, schemaRoot: root });

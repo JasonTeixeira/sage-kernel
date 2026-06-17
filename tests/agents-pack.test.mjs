@@ -159,6 +159,22 @@ test("agent pack reports malformed source packs and protects existing global fil
   assert.equal(report.coverage.globalAgentFile, false);
   assert.match(report.failures.join("\n"), /manifest\.json/);
 
+  copyDir(path.join(root, "agents"), path.join(sandbox, "agents"));
+  const manifestPath = path.join(sandbox, "agents/manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  manifest.version = 2;
+  manifest.id = "wrong-id";
+  manifest.profiles = manifest.profiles.filter((item) => !item.endsWith("mobile.md"));
+  manifest.mustHaveRules = ["missing-rule"];
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+  fs.writeFileSync(path.join(sandbox, "agents/profiles/web.md"), "# Web\n\nRequired Checks\n");
+  report = validateAgentPack({ root: sandbox });
+  assert.match(report.failures.join("\n"), /version must be 1/);
+  assert.match(report.failures.join("\n"), /id must be sage-global-agents/);
+  assert.match(report.failures.join("\n"), /Missing required agent profile: mobile/);
+  assert.match(report.failures.join("\n"), /missing required rule: missing-rule/);
+  assert.match(report.failures.join("\n"), /web\.md missing Review Questions section/);
+
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "sage-agents-no-force-"));
   fs.writeFileSync(path.join(home, "AGENTS.md"), "# Existing different policy\n");
   assert.throws(

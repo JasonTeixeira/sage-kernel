@@ -15,6 +15,7 @@ import {
   renderMetrics,
   runDashboardWorkflow
 } from "../apps/dashboard/server.mjs";
+import { renderDashboardHtmlView } from "../apps/dashboard/dashboard-render.mjs";
 import { createSqliteAdapter } from "../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../packages/security/approvals.mjs";
 import { EventEmitter } from "node:events";
@@ -64,6 +65,54 @@ test("dashboard HTML renders premium operations sections", () => {
     assert.match(html, new RegExp(label));
   }
   assert.match(html, /data-panel="approval-inbox"/);
+});
+
+test("dashboard HTML view renders populated and fallback cockpit branches safely", () => {
+  const snapshot = {
+    version: "0.3.0<script>",
+    generatedAt: "2026-06-17T00:00:00.000Z",
+    phases: [{ status: "complete" }, { status: "pending" }],
+    system: {
+      health: { status: "degraded", summary: "Needs <attention>" },
+      coverage: { line: 99, gate: "branch gate > 95" }
+    },
+    approvals: {
+      pending: 1,
+      inbox: [{ action: "deploy<prod>", status: "pending", signed: false, createdAt: "now", reason: "review & approve" }]
+    },
+    jobs: {
+      timeline: [{ id: "run_1", jobId: "qa", status: "failed", durationMs: 7, signed: true }],
+      queued: [{ id: "job_1", job_id: "release", status: "queued", priority: 3, attempts: 1, max_attempts: 2, next_run_at: "" }]
+    },
+    repos: {
+      health: [{ name: "repo", role: "source", target: "packages/repo", status: "available", score: 88, domains: ["qa", "mcp"] }]
+    },
+    templates: {
+      readiness: [{ id: "worker", qaProfile: "default", status: "ready", score: 100, coverage: ["tests"], stack: ["node"] }]
+    },
+    db: { projects: 1, queuedJobs: 1, runs: 1, approvals: 1, decisions: 0, artifacts: 0, auditEvents: 1, schemaMigrations: 6 },
+    artifacts: { recent: [{ id: "artifact_1", kind: "report", path: "reports/a.json", createdAt: "now" }] },
+    tools: ["kernel.qa.run"],
+    operating: {
+      todayPlan: null,
+      evals: { status: "failed", summary: { passed: 0, total: 1 }, latestId: null },
+      runbooks: [{ id: "runbook_test", title: "Test", risk: "low", stepCount: 1, verificationCount: 1, requiresApproval: false }],
+      experiments: null
+    }
+  };
+  const html = renderDashboardHtmlView(snapshot, [
+    { id: "daily-summary", label: "Daily", command: "sage daily", description: "Run daily", risk: "safe", requiresApproval: false },
+    { id: "full-qa", label: "Full QA", command: "sage full-qa .", description: "Run QA", risk: "local-compute", requiresApproval: true }
+  ]);
+
+  assert.match(html, /0\.3\.0&lt;script&gt;/);
+  assert.match(html, /Needs &lt;attention&gt;/);
+  assert.match(html, /No daily plan generated yet/);
+  assert.match(html, /No experiment history available yet/);
+  assert.match(html, /Request approval/);
+  assert.match(html, /signed/);
+  assert.match(html, /ready/);
+  assert.doesNotMatch(html, /deploy<prod>/);
 });
 
 test("dashboard build emits static command center with operational panels", () => {
