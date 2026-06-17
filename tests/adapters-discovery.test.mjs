@@ -140,4 +140,22 @@ test("optional adapter CLI commands are executable", () => {
     const parsed = JSON.parse(result.stdout);
     assert.equal(typeof parsed.status === "string" || Array.isArray(parsed.adapters), true);
   }
+
+  const invalidRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-adapters-invalid-cli-"));
+  fs.mkdirSync(path.join(invalidRoot, "packages/intelligence/adapters"), { recursive: true });
+  fs.writeFileSync(path.join(invalidRoot, "packages/intelligence/adapters/optional-adapters.json"), JSON.stringify({
+    version: 1,
+    adapters: [{ id: "", name: "", kind: "unknown", mode: "external", builtIn: false, capabilities: [], mutationPolicy: "disabled", permission: "bad" }]
+  }));
+  for (const script of [
+    "packages/intelligence/scripts/adapters-validate.mjs",
+    "packages/intelligence/scripts/adapters-smoke.mjs"
+  ]) {
+    const result = spawnSync("node", [path.join(root, script)], {
+      cwd: invalidRoot,
+      encoding: "utf8"
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout, /failed/);
+  }
 });

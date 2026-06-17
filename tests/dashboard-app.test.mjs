@@ -203,6 +203,30 @@ test("dashboard guarded workflows require matching signed approvals before execu
   assert.equal(executed.result.status, 1);
 });
 
+test("dashboard guarded workflow records approved failed runs and truncates large command output", async () => {
+  const sandbox = createDashboardFixture();
+  const requested = await runDashboardWorkflow({ id: "stress-dashboard" }, { root: sandbox });
+  const db = createSqliteAdapter({ root: sandbox });
+  db.init();
+  createApprovalLedger({ db }).approve({ id: requested.approval.id, decidedBy: "test" });
+
+  const executed = await runDashboardWorkflow({ id: "stress-dashboard", approvalId: requested.approval.id }, { root: sandbox });
+  assert.equal(executed.status, "failed");
+  assert.equal(executed.workflow.id, "stress-dashboard");
+
+  const rows = db.query("SELECT job_id, status, result_json FROM job_runs WHERE job_id = ?;", ["dashboard.stress-dashboard"]);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].status, "failed");
+  const result = JSON.parse(rows[0].result_json);
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout.length <= 6000, true);
+  assert.equal(result.stderr.length <= 2000, true);
+
+  const audits = db.query("SELECT type FROM audit_events WHERE subject = ? ORDER BY created_at;", ["stress-dashboard"]);
+  assert.equal(audits.some((row) => row.type === "dashboard.workflow.approval_requested"), true);
+  assert.equal(audits.some((row) => row.type === "dashboard.workflow.failed"), true);
+});
+
 test("dashboard daily workflow execution reports live degraded state", async () => {
   const sandbox = createDashboardFixture();
   const db = createSqliteAdapter({ root: sandbox });
@@ -411,6 +435,75 @@ test("dashboard internals cover defensive database and request parsing branches"
   const largePromise = __dashboardTestInternals.readRequestJson(largeRequest, 2);
   largeRequest.emit("data", "too large");
   assert.deepEqual(await largePromise, {});
+});
+
+test("dashboard internals cover snapshot helper fallback and row-mapping branches", () => {
+  const sandbox = createDashboardFixture();
+  assert.deepEqual(__dashboardTestInternals.readJson(sandbox, "missing.json", { fallback: true }), { fallback: true });
+  assert.equal(__dashboardTestInternals.catalogSourceRoot({ sourceRootEnv: "SAGE_DASHBOARD_SOURCE_FIXTURE", sourceRoot: "/fallback" }), "/fallback");
+  process.env.SAGE_DASHBOARD_SOURCE_FIXTURE = "/env-source";
+  try {
+    assert.equal(__dashboardTestInternals.catalogSourceRoot({ sourceRootEnv: "SAGE_DASHBOARD_SOURCE_FIXTURE", sourceRoot: "/fallback" }), "/env-source");
+  } finally {
+    delete process.env.SAGE_DASHBOARD_SOURCE_FIXTURE;
+  }
+
+  fs.mkdirSync(path.join(sandbox, ".sage-kernel/runs"), { recursive: true });
+  fs.writeFileSync(path.join(sandbox, ".sage-kernel/runs/no-id.json"), JSON.stringify({ startedAt: "2026-01-01T00:00:00.000Z" }));
+  fs.writeFileSync(path.join(sandbox, ".sage-kernel/runs/skip.txt"), "ignored");
+  const fallbackRuns = __dashboardTestInternals.latestRunFiles(sandbox, 5);
+  assert.equal(fallbackRuns[0].id, "no-id");
+  assert.equal(fallbackRuns[0].jobId, "unknown");
+  assert.equal(fallbackRuns[0].status, "unknown");
+  assert.equal(fallbackRuns[0].durationMs, 0);
+
+  const sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-dashboard-health-source-"));
+  fs.mkdirSync(path.join(sourceRoot, "py-repo"), { recursive: true });
+  fs.writeFileSync(path.join(sourceRoot, "py-repo", "pyproject.toml"), "[project]\nname='py-repo'\n");
+  fs.writeFileSync(path.join(sourceRoot, "py-repo", "readme.md"), "# Py Repo\n");
+  const health = __dashboardTestInternals.repoHealth(sandbox, {
+    sourceRoot,
+    repos: [
+      { name: "py-repo", role: "source", target: "packages/py", score: 110, domains: null },
+      { name: "missing-repo", role: "source", target: "packages/missing", score: 5, domains: ["qa"] }
+    ]
+  });
+  assert.equal(health[0].status, "available");
+  assert.equal(health[0].score, 100);
+  assert.equal(health[0].hasPyproject, true);
+  assert.deepEqual(health[0].domains, []);
+  assert.equal(health[1].status, "missing");
+  assert.equal(health[1].score, 0);
+
+  const mappedDb = {
+    query(sql) {
+      if (sql.includes("FROM approvals")) {
+        return [{ id: "approval", action: "deploy", status: "approved", reason: "ok", signature: "sig", decided_by: "me", created_at: "c", decided_at: "d" }];
+      }
+      if (sql.includes("FROM job_queue")) {
+        return [{ id: "queued", job_id: "qa", status: "queued", priority: 1, attempts: 0, max_attempts: 2, created_at: "c", next_run_at: null }];
+      }
+      if (sql.includes("FROM job_runs")) {
+        return [{ id: "run", job_id: "qa", status: "passed", duration_ms: null, result_json: "{}", signature: "sig", created_at: "c" }];
+      }
+      if (sql.includes("FROM artifacts")) {
+        return [{ id: "artifact", kind: "report", path: "report.json", metadata_json: "{\"ok\":true}", created_at: "c" }];
+      }
+      return [];
+    }
+  };
+  assert.equal(__dashboardTestInternals.latestApprovals(mappedDb)[0].signed, true);
+  assert.equal(__dashboardTestInternals.latestQueuedJobs(mappedDb)[0].id, "queued");
+  assert.equal(__dashboardTestInternals.latestJobRuns(mappedDb, sandbox)[0].durationMs, 0);
+  assert.deepEqual(__dashboardTestInternals.latestArtifacts(mappedDb)[0].metadata, { ok: true });
+
+  assert.equal(__dashboardTestInternals.systemHealth({
+    phases: [{ status: "complete" }, { status: "pending" }],
+    repoHealthRows: [{ status: "missing" }],
+    templates: [],
+    tools: [],
+    jobTimeline: [{ status: "failed" }]
+  }).status, "degraded");
 });
 
 test("dashboard CLI entry starts a live server", async () => {

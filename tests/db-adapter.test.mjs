@@ -448,7 +448,9 @@ test("sqlite persistence validates import formats, file imports, custom backup p
   );
 
   assert.throws(() => importKernelData({ root: tempRoot(), schemaRoot, data: { format: "wrong" } }), /Unsupported/);
+  assert.throws(() => importKernelData({ root: tempRoot(), schemaRoot, data: {} }), /Unsupported/);
   assert.throws(() => importKernelData({ root: tempRoot(), schemaRoot }), /Import requires/);
+  assert.throws(() => restoreSqliteDbBackup({ root: tempRoot() }), /Backup file does not exist/);
   assert.throws(() => restoreSqliteDbBackup({ root: tempRoot(), backupPath: "" }), /Backup file does not exist/);
 
   const exported = exportKernelData({ root, schemaRoot, redacted: true });
@@ -473,6 +475,19 @@ test("sqlite persistence validates import formats, file imports, custom backup p
   const backup = backupSqliteDb({ root, schemaRoot, path: customBackup });
   assert.equal(backup.path, customBackup);
   assert.equal(fs.existsSync(customBackup), true);
+
+  const backupDir = path.join(root, "nested-backups");
+  const backupInDir = backupSqliteDb({ root, schemaRoot, backupDir });
+  assert.equal(path.dirname(backupInDir.path), backupDir);
+  assert.match(path.basename(backupInDir.path), /^kernel-/);
+
+  const emptyImportRoot = tempRoot();
+  const emptyImport = importKernelData({
+    root: emptyImportRoot,
+    schemaRoot,
+    data: { format: "sage-kernel.export.v1", tables: null }
+  });
+  assert.equal(emptyImport.tables.approvals, 0);
 });
 
 test("sqlite migrations are tracked and idempotent", async () => {

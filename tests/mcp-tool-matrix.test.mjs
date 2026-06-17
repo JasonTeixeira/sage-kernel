@@ -12,9 +12,18 @@ import {
   inspectRepo,
   listRuns,
   qaPlan,
+  qaRun,
+  runNode,
+  searchCatalog,
   warehouseSearch,
+  workflowAuditRepo,
+  workflowCreateApp,
+  workflowDailySummary,
   workflowExplainFailures,
-  workflowPendingApprovals
+  workflowPendingApprovals,
+  workflowReleaseReadiness,
+  workflowRunFullQa,
+  workflowStressDashboard
 } from "../apps/mcp-server/src/kernel-tool-helpers.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -214,7 +223,20 @@ test("MCP dispatcher handles optional source roots and warehouse configuration",
 test("MCP helper functions cover direct catalog, repo, run, warehouse, and workflow branches", () => {
   const sandbox = tempRoot();
 
+  assert.equal(searchCatalog(sandbox, "definitely-not-found").length, 0);
+  assert.equal(searchCatalog(sandbox, "kernel", 1).length <= 1, true);
+  assert.throws(() => runNode(sandbox, "scripts/does-not-exist.mjs"), /Cannot find module|Command failed/);
+
   assert.equal(qaPlan(sandbox, "next-saas-app", "unknown").runners.length > 0, true);
+  assert.equal(qaPlan(sandbox, "next-saas-app", "fast").mode, "fast");
+  assert.equal(qaPlan(sandbox, "next-saas-app", "deep").runners.length >= qaPlan(sandbox, "next-saas-app", "standard").runners.length, true);
+  assert.throws(() => qaPlan(sandbox, "missing-template", "fast"), /Unknown template/);
+  const originalTemplates = JSON.parse(fs.readFileSync(path.join(sandbox, "catalog/templates.json"), "utf8"));
+  fs.writeFileSync(path.join(sandbox, "catalog/templates.json"), JSON.stringify({
+    templates: [{ ...originalTemplates.templates[0], id: "missing-profile-template", qaProfile: "missing-profile" }]
+  }));
+  assert.throws(() => qaPlan(sandbox, "missing-profile-template", "fast"), /Missing QA profile/);
+  fs.writeFileSync(path.join(sandbox, "catalog/templates.json"), JSON.stringify(originalTemplates));
   assert.deepEqual(listRuns(sandbox), []);
 
   fs.mkdirSync(path.join(sandbox, ".sage-kernel/runs"), { recursive: true });
@@ -246,6 +268,12 @@ test("MCP helper functions cover direct catalog, repo, run, warehouse, and workf
   assert.equal(repo.exists, true);
   assert.equal(repo.package, null);
   assert.equal(repo.hasPyproject, true);
+  assert.throws(() => inspectRepo(sandbox, "missing-repo"), /Unknown catalog repo/);
+  fs.writeFileSync(path.join(sandbox, "catalog/repos.json"), JSON.stringify({
+    sourceRootEnv: "SAGE_MISSING_SOURCE_ROOT",
+    repos: [{ name: "nexural-platform-kits", role: "source", target: "packages/source", score: 90, domains: ["qa"] }]
+  }));
+  assert.throws(() => inspectRepo(sandbox, "nexural-platform-kits"), /source root is not configured/);
 
   const warehouseRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-helper-warehouse-"));
   fs.writeFileSync(path.join(warehouseRoot, "index.json"), JSON.stringify({
@@ -273,6 +301,79 @@ test("MCP helper functions cover direct catalog, repo, run, warehouse, and workf
   assert.equal(pending.status, "approved");
   assert.equal(pending.count, 0);
   assert.deepEqual(pending.nextActions, ["No pending approvals."]);
+});
+
+test("MCP helper workflows cover failure, fallback, and guarded execution branches", () => {
+  const sandbox = tempRoot();
+  assert.throws(() => workflowCreateApp(sandbox, { template: "worker-service" }), /requires input.template and input.name/);
+  assert.throws(() => qaRun(sandbox, path.join(os.tmpdir(), "outside-project"), "fast"), /outside allowed roots/);
+
+  const allowedOutside = fs.mkdtempSync(path.join(os.tmpdir(), "sage-qa-allowed-outside-"));
+  fs.writeFileSync(path.join(allowedOutside, "package.json"), JSON.stringify({ name: "allowed-outside", scripts: {} }));
+  const previousAllowedRoots = process.env.SAGE_KERNEL_ALLOWED_ROOTS;
+  process.env.SAGE_KERNEL_ALLOWED_ROOTS = allowedOutside;
+  try {
+    const qa = qaRun(sandbox, allowedOutside, "deep");
+    assert.equal(qa.status, "passed");
+    assert.equal(qa.mode, "deep");
+  } finally {
+    if (previousAllowedRoots === undefined) delete process.env.SAGE_KERNEL_ALLOWED_ROOTS;
+    else process.env.SAGE_KERNEL_ALLOWED_ROOTS = previousAllowedRoots;
+  }
+
+  const fullQa = workflowRunFullQa(sandbox, { projectPath: ".", mode: "fast" });
+  assert.equal(fullQa.workflow, "run_full_qa");
+  assert.equal(["passed", "failed"].includes(fullQa.status), true);
+  assert.equal(Array.isArray(fullQa.failures), true);
+  assert.equal(workflowRunFullQa(sandbox, {}).mode, undefined);
+  assert.equal(workflowRunFullQa(sandbox, {}).qa.mode, "standard");
+
+  const auditDefault = workflowAuditRepo(sandbox, {});
+  assert.equal(auditDefault.workflow, "audit_repo");
+  assert.equal(["passed", "needs_attention"].includes(auditDefault.status), true);
+
+  const failedExplanation = workflowExplainFailures(sandbox, {
+    report: {
+      status: "failed",
+      checks: [
+        { name: "lint", status: "failed", result: { command: "npm run lint", stdout: "out", stderr: "err" } },
+        { name: "test", status: "passed" }
+      ]
+    }
+  });
+  assert.equal(failedExplanation.status, "failed");
+  assert.equal(failedExplanation.failures[0].command, "npm run lint");
+  assert.match(failedExplanation.nextActions[0], /Fix failed check lint/);
+  const implicitExplanation = workflowExplainFailures(sandbox, { projectPath: ".", mode: "fast" });
+  assert.equal(implicitExplanation.workflow, "explain_failures");
+  assert.equal(["passed", "failed"].includes(implicitExplanation.status), true);
+
+  const release = workflowReleaseReadiness(sandbox, { template: "worker-service", target: "docker" });
+  assert.equal(release.workflow, "release_readiness");
+  assert.equal(["ready", "blocked"].includes(release.status), true);
+  assert.equal(release.checks.some((check) => check.name === "deployment-plan"), true);
+
+  const stress = workflowStressDashboard(sandbox, { url: "http://127.0.0.1:1", count: 1, concurrency: 1, endpoint: "/health" });
+  assert.equal(stress.workflow, "stress_dashboard");
+  assert.equal(stress.command, "node");
+  assert.equal(["passed", "failed"].includes(stress.status), true);
+  const defaultStress = workflowStressDashboard(sandbox, {});
+  assert.equal(defaultStress.workflow, "stress_dashboard");
+  assert.equal(["passed", "failed"].includes(defaultStress.status), true);
+
+  const daily = workflowDailySummary(sandbox);
+  assert.equal(daily.workflow, "daily_summary");
+  assert.equal(["ready", "needs_attention"].includes(daily.status), true);
+  assert.equal(daily.dashboard.tools >= 0, true);
+
+  const db = createSqliteAdapter({ root: sandbox });
+  db.init();
+  db.execute(
+    "INSERT INTO job_runs (id, job_id, status, duration_ms, result_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ["run_failed_helper", "qa", "failed", 1, "{}", "2026-01-01T00:00:00.000Z"]
+  );
+  const degradedDaily = workflowDailySummary(sandbox);
+  assert.equal(degradedDaily.status, "needs_attention");
 });
 
 test("MCP dispatcher covers repo, QA, scaffold, and workflow edge branches", async () => {

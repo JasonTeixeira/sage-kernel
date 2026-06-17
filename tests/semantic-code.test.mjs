@@ -27,27 +27,41 @@ function tempProject() {
 test("semantic code indexes modules, symbols, markdown headings, and json keys", () => {
   const workspace = tempProject();
   fs.writeFileSync(path.join(workspace, "broken.json"), "{");
+  fs.writeFileSync(path.join(workspace, "array.json"), JSON.stringify(["not", "object"]));
+  fs.writeFileSync(path.join(workspace, "plain.txt"), "plain text is intentionally unsupported by the default extension set\n");
   const semantic = createSemanticCode({ root: workspace });
   const index = semantic.indexProject({ projectPath: ".", limit: 20 });
 
   assert.equal(index.adapter.status, "available");
-  assert.equal(index.totals.files, 4);
+  assert.equal(index.totals.files, 5);
   assert.equal(index.symbols.some((symbol) => symbol.name === "SemanticRunner" && symbol.kind === "class"), true);
   assert.equal(index.symbols.some((symbol) => symbol.name === "createSemanticFixture" && symbol.exported), true);
   assert.equal(index.symbols.some((symbol) => symbol.name === "Semantic Fixture" && symbol.kind === "heading-1"), true);
   assert.equal(index.symbols.some((symbol) => symbol.name === "name" && symbol.kind === "json-key"), true);
   assert.equal(index.symbols.some((symbol) => symbol.file === "broken.json"), false);
+  assert.equal(index.modules.some((module) => module.file === "plain.txt"), false);
+
+  const textOnly = semantic.indexProject({ projectPath: ".", extensions: ["txt"], limit: 99 });
+  assert.equal(textOnly.modules.length, 1);
+  assert.equal(textOnly.modules[0].language, "text");
+
+  const clamped = semantic.indexProject({ projectPath: ".", limit: Number.NaN });
+  assert.equal(clamped.totals.files >= index.totals.files, true);
 });
 
 test("semantic code searches symbols, finds references, and summarizes modules", () => {
   const workspace = tempProject();
+  fs.writeFileSync(path.join(workspace, "src/variants.cjs"), "var commonValue = 1;\nmodule.exports = commonValue;\n");
+  fs.writeFileSync(path.join(workspace, "src/typed.ts"), "export let typedValue = 1;\n");
+  fs.writeFileSync(path.join(workspace, "src/view.tsx"), "export const View = () => null;\n");
+  fs.writeFileSync(path.join(workspace, "src/legacy.jsx"), "export const Legacy = () => null;\n");
   const semantic = createSemanticCode({ root: workspace });
 
-  const search = semantic.searchSymbol({ query: "semanticfixture", limit: 5 });
+  const search = semantic.searchSymbol({ query: "semanticfixture", limit: 0, indexLimit: Number.NaN });
   assert.equal(search.results.length >= 1, true);
   assert.equal(search.results[0].searchText, undefined);
 
-  const references = semantic.findReferences({ query: "SemanticRunner", limit: 5 });
+  const references = semantic.findReferences({ query: "SemanticRunner", limit: 500 });
   assert.equal(references.results.length >= 1, true);
   assert.equal(references.results[0].file, "src/index.mjs");
 
@@ -55,6 +69,11 @@ test("semantic code searches symbols, finds references, and summarizes modules",
   assert.equal(summary.language, "javascript");
   assert.equal(summary.symbols.some((symbol) => symbol.name === "semanticAnswer"), true);
   assert.match(summary.summary, /src\/index\.mjs is a javascript module/);
+
+  assert.equal(semantic.summarizeModule({ file: "src/variants.cjs" }).language, "javascript");
+  assert.equal(semantic.summarizeModule({ file: "src/typed.ts" }).language, "typescript");
+  assert.equal(semantic.summarizeModule({ file: "src/view.tsx" }).language, "typescript-react");
+  assert.equal(semantic.summarizeModule({ file: "src/legacy.jsx" }).language, "javascript-react");
 });
 
 test("semantic code rejects missing inputs and paths outside the root", () => {

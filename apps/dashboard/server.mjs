@@ -386,6 +386,15 @@ function readRequestJson(request, limit = 64 * 1024) {
 }
 
 export const __dashboardTestInternals = {
+  catalogSourceRoot,
+  latestApprovals,
+  latestArtifacts,
+  latestJobRuns,
+  latestQueuedJobs,
+  latestRunFiles,
+  readJson,
+  repoHealth,
+  systemHealth,
   tableCount,
   tableCountWhere,
   safeQuery,

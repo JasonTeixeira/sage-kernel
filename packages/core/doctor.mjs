@@ -142,7 +142,13 @@ function runCheck(root, command, args, options = {}) {
 }
 
 export const __doctorTestInternals = {
+  checkDb,
+  checkFile,
+  checkJsonArray,
+  checkMcpServer,
+  checkNodeVersion,
   checkPermissions,
   checkMcpClientConfig,
-  checkDashboard
+  checkDashboard,
+  runCheck
 };

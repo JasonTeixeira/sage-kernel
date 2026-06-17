@@ -105,9 +105,22 @@ test("doctor internals cover defensive permission and dashboard failure branches
   const denied = __doctorTestInternals.checkPermissions(path.join(os.tmpdir(), "sage-doctor-missing-root"));
   assert.equal(denied.status, "failed");
 
+  const missingRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-doctor-internals-"));
+  assert.equal(__doctorTestInternals.checkFile(missingRoot, "package.json").status, "failed");
+  fs.writeFileSync(path.join(missingRoot, "package.json"), "{}");
+  assert.equal(__doctorTestInternals.checkFile(missingRoot, "package.json").status, "passed");
+  assert.equal(__doctorTestInternals.checkJsonArray(missingRoot, "missing.json", "tools").status, "failed");
+  fs.mkdirSync(path.join(missingRoot, "apps/mcp-server/src"), { recursive: true });
+  fs.writeFileSync(path.join(missingRoot, "apps/mcp-server/tools.json"), JSON.stringify({ tools: [] }));
+  assert.equal(__doctorTestInternals.checkJsonArray(missingRoot, "apps/mcp-server/tools.json", "tools").status, "failed");
+  assert.equal(__doctorTestInternals.checkMcpServer(missingRoot).status, "failed");
+  assert.equal(["passed", "failed"].includes(__doctorTestInternals.checkNodeVersion().status), true);
+
   const malformedClient = __doctorTestInternals.checkMcpClientConfig(1, "all");
   assert.equal(malformedClient.status, "failed");
   assert.match(malformedClient.message, /path.*string/);
+  const codexClient = __doctorTestInternals.checkMcpClientConfig(root, "codex");
+  assert.equal(codexClient.status, "passed");
 
   const unreachable = await __doctorTestInternals.checkDashboard("http://127.0.0.1:1", {
     fetchImpl: async () => {
@@ -116,4 +129,13 @@ test("doctor internals cover defensive permission and dashboard failure branches
   });
   assert.equal(unreachable.status, "warning");
   assert.match(unreachable.message, /not currently reachable/);
+
+  const failedRun = __doctorTestInternals.runCheck(root, "npm", ["run", "fixture"], {
+    runCommand() {
+      return { status: 1, stdout: "", stderr: "" };
+    }
+  });
+  assert.equal(failedRun.status, "failed");
+  assert.equal(failedRun.stdout, "");
+  assert.equal(failedRun.stderr, "");
 });

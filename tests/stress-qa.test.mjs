@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 
-import { createQaReport, parseMode, runQaCli, staticChecks } from "../packages/qa/scripts/qa-runner.mjs";
+import { createQaReport, packageChecks, parseMode, run, runQaCli, staticChecks } from "../packages/qa/scripts/qa-runner.mjs";
 import { createDogfoodReport, inspectRepo, sourceRootForCatalog } from "../scripts/dogfood-production-audit.mjs";
 import { createDashboardStressReport, parseDashboardStressArgs } from "../scripts/stress-dashboard.mjs";
 import { createQueueStressReport, parseQueueStressArgs } from "../scripts/stress-queue.mjs";
@@ -351,6 +351,25 @@ test("QA runner covers mode selection, static checks, failures, and root boundar
   });
   assert.equal(failedReport.status, "failed");
   assert.equal(failedReport.checks.some((check) => check.status === "failed"), true);
+
+  const noPackage = fs.mkdtempSync(path.join(os.tmpdir(), "sage-qa-no-package-"));
+  assert.deepEqual(packageChecks(noPackage), []);
+  assert.equal(staticChecks(noPackage).every((check) => check.status === "warning"), true);
+
+  const fallbackRun = run("node", ["-e", ""], workspace, 1000, () => ({ status: null, stdout: null, stderr: null }));
+  assert.equal(fallbackRun.status, 1);
+  assert.equal(fallbackRun.stdout, "");
+  assert.equal(fallbackRun.stderr, "");
+
+  const defaultCli = runQaCli([], {
+    root: workspace,
+    env: {},
+    spawn() {
+      return { status: 0, stdout: "ok", stderr: "" };
+    }
+  });
+  assert.equal(defaultCli.status, 0);
+  assert.match(defaultCli.stdout, /"mode": "fast"/);
 
   const denied = runQaCli(["/tmp/outside-sage-kernel"], { root: workspace, env: {} });
   assert.equal(denied.status, 1);
