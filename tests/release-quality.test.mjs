@@ -20,6 +20,7 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.license, "MIT");
   assert.equal(pkg.repository.type, "git");
   assert.equal(Array.isArray(pkg.files), true);
+  assert.equal(pkg.files.includes("assets"), true);
   assert.equal(pkg.scripts["stress:queue"], "node scripts/stress-queue.mjs");
   assert.equal(pkg.scripts["stress:dashboard"], "node scripts/stress-dashboard.mjs");
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-lines=98/);
@@ -42,6 +43,8 @@ test("package metadata is ready for public OSS distribution", () => {
     ".github/ISSUE_TEMPLATE/feature_request.md",
     "docs/SECURITY_MODEL.md",
     "docs/RELEASE_PROCESS.md",
+    "assets/sage-kernel-architecture.svg",
+    "assets/sage-kernel-workflow.svg",
     "docker-compose.postgres.yml",
     "scripts/release-check.mjs",
     "scripts/verify-fresh-install.mjs",

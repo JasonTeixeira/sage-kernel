@@ -27,6 +27,7 @@
     "apps/dashboard/server.mjs",
     "apps/mcp-server",
     "apps/worker",
+    "assets",
     "bin",
     "catalog",
     "docs",
