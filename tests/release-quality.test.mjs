@@ -60,7 +60,9 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.match(ci, /npm run test:coverage/);
   assert.match(ci, /npm run public:validate/);
   assert.match(ci, /Postgres Integration/);
+  assert.match(ci, /Fresh Install Verification/);
   assert.match(ci, /SAGE_RUN_POSTGRES_TESTS/);
+  assert.match(ci, /npm run verify:fresh-install/);
 
   const securityModel = fs.readFileSync(path.join(root, "docs/SECURITY_MODEL.md"), "utf8");
   assert.match(securityModel, /Approval Rules/);

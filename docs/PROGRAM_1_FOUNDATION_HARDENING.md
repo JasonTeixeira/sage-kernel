@@ -107,11 +107,44 @@ Residual risks:
 
 ## Phase 1.3: Fresh-Install Verification Hardening
 
-Status: pending.
+Status: complete.
 
 Goal:
 
 - Extend fresh-install checks to prove the installed `sage` executable, MCP smoke, package visuals, and dashboard build from a clean clone.
+
+Implemented:
+
+- Hardened `scripts/verify-fresh-install.mjs` to verify:
+  - clean clone or worktree copy
+  - `npm ci`
+  - public surface validation
+  - MCP manifest validation
+  - MCP contract generation
+  - MCP smoke through npm script
+  - MCP smoke through the `sage` CLI
+  - `sage doctor --fast --json`
+  - `sage mcp config all --json`
+  - dashboard build
+  - release package dry run
+  - package inclusion for the `sage` binary and public visual assets
+- Added a dedicated GitHub Actions job: `Fresh Install Verification`.
+- Added release-quality assertions so CI must keep the fresh-install job.
+
+Verification:
+
+```bash
+npm run verify:fresh-install -- --worktree-copy
+node --test tests/release-quality.test.mjs
+npm run release:check
+npm run test:coverage
+git diff --check
+```
+
+Residual risks:
+
+- Fresh install verifies local package behavior, not npm registry install behavior.
+- A real npm provenance publish remains Phase 1.4 scope.
 
 ## Phase 1.4: Release Packaging And Provenance
 

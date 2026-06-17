@@ -90,3 +90,26 @@ jobs:
           SAGE_RUN_POSTGRES_TESTS: "1"
           DATABASE_URL: postgresql://sage:sage@127.0.0.1:5432/sage_kernel
         run: npm run postgres:integration
+
+  fresh-install:
+    name: Fresh Install Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install system SQLite
+        run: sudo apt-get update && sudo apt-get install -y sqlite3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify fresh install
+        run: npm run verify:fresh-install
