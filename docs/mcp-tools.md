@@ -26,6 +26,10 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.approvals.list` | safe | `approvals:read` | No | none |
 | `kernel.approvals.approve` | mutating | `approvals:write` | No | writes signed local SQLite approval state |
 | `kernel.dashboard.snapshot` | safe | `dashboard:read` | No | none |
+| `kernel.semantic.index_project` | safe | `semantic:read` | No | none |
+| `kernel.semantic.search_symbol` | safe | `semantic:read` | No | none |
+| `kernel.semantic.find_references` | safe | `semantic:read` | No | none |
+| `kernel.semantic.summarize_module` | safe | `semantic:read` | No | none |
 | `kernel.dogfood.prod` | safe | `dogfood:read` | No | none |
 | `kernel.workflow.audit_repo` | mutating | `workflow:write` | No | runs local QA commands and may write local audit records |
 | `kernel.workflow.run_full_qa` | mutating | `workflow:write` | No | runs local QA commands and may write local audit records |
@@ -309,6 +313,57 @@ Example input:
 {}
 ```
 
+### `kernel.semantic.index_project`
+
+Semantic index with adapter metadata, module summaries, extracted symbols, and bounded reference terms.
+
+Example input:
+
+```json
+{
+  "projectPath": ".",
+  "limit": 200
+}
+```
+
+### `kernel.semantic.search_symbol`
+
+Symbol search result with query, count, and matching symbol records.
+
+Example input:
+
+```json
+{
+  "query": "createSemanticCode",
+  "limit": 5
+}
+```
+
+### `kernel.semantic.find_references`
+
+Reference search result with file, line, and trimmed text for each hit.
+
+Example input:
+
+```json
+{
+  "query": "semantic",
+  "limit": 10
+}
+```
+
+### `kernel.semantic.summarize_module`
+
+Module summary with language, line count, symbols, imports, exports, and a short generated summary.
+
+Example input:
+
+```json
+{
+  "file": "packages/intelligence/semantic-code.mjs"
+}
+```
+
 ### `kernel.dogfood.prod`
 
 Dogfood audit report with configured source root, targets, checks, QA status, and failed QA checks.
@@ -547,6 +602,30 @@ Example input:
 
 - Dashboard database initialization fails.
 - Catalog files are missing or malformed.
+
+### `kernel.semantic.index_project`
+
+- Project path is outside the kernel root.
+- Project files are unreadable.
+- Configured extension list is invalid.
+
+### `kernel.semantic.search_symbol`
+
+- input.query is missing.
+- Project path is outside the kernel root.
+- Project files are unreadable.
+
+### `kernel.semantic.find_references`
+
+- input.query is missing.
+- Project path is outside the kernel root.
+- Project files are unreadable.
+
+### `kernel.semantic.summarize_module`
+
+- input.file is missing.
+- File path is outside the kernel root.
+- Module file is missing or unreadable.
 
 ### `kernel.dogfood.prod`
 

@@ -6,8 +6,8 @@
   "capabilities": [
     "index_project",
     "search_symbol",
+    "find_references",
     "summarize_module"
   ],
   "mutationPolicy": "read_only"
 }
-

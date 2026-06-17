@@ -8,6 +8,7 @@ import { assertToolAllowed, listApprovals, requestApproval } from "../../../pack
 import { createSqliteAdapter } from "../../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../../packages/security/approvals.mjs";
 import { dashboardSnapshot } from "../../dashboard/server.mjs";
+import { createSemanticCode } from "../../../packages/intelligence/semantic-code.mjs";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -496,6 +497,18 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.dashboard.snapshot":
       return dashboardSnapshot({ root });
+
+    case "kernel.semantic.index_project":
+      return createSemanticCode({ root }).indexProject(input);
+
+    case "kernel.semantic.search_symbol":
+      return createSemanticCode({ root }).searchSymbol(input);
+
+    case "kernel.semantic.find_references":
+      return createSemanticCode({ root }).findReferences(input);
+
+    case "kernel.semantic.summarize_module":
+      return createSemanticCode({ root }).summarizeModule(input);
 
     case "kernel.dogfood.prod": {
       const output = runNode(root, "scripts/dogfood-production-audit.mjs", input.repos || []);

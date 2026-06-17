@@ -23,7 +23,11 @@ const SAFE_ACTIONS = new Set([
   "workflow.release_readiness",
   "workflow.pending_approvals",
   "workflow.stress_dashboard",
-  "workflow.daily_summary"
+  "workflow.daily_summary",
+  "semantic.index_project",
+  "semantic.search_symbol",
+  "semantic.find_references",
+  "semantic.summarize_module"
 ]);
 
 const MUTATING_ACTIONS = new Set([

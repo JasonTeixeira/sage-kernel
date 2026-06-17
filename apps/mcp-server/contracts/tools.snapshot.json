@@ -557,6 +557,111 @@
       "required": []
     },
     {
+      "name": "kernel.semantic.index_project",
+      "description": "Build a bounded read-only semantic index for a project path.",
+      "risk": "safe",
+      "permission": "semantic:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Semantic index with adapter metadata, module summaries, extracted symbols, and bounded reference terms.",
+      "examples": [
+        {
+          "description": "Index the current project.",
+          "input": {
+            "projectPath": ".",
+            "limit": 200
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside the kernel root.",
+        "Project files are unreadable.",
+        "Configured extension list is invalid."
+      ],
+      "inputHash": "eff0a23ef00545a7a55b227a99cdd98dd3203c5849f570976f9b90c7b379da81",
+      "required": []
+    },
+    {
+      "name": "kernel.semantic.search_symbol",
+      "description": "Search detected symbols in the bounded local semantic index.",
+      "risk": "safe",
+      "permission": "semantic:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Symbol search result with query, count, and matching symbol records.",
+      "examples": [
+        {
+          "description": "Find semantic runtime symbols.",
+          "input": {
+            "query": "createSemanticCode",
+            "limit": 5
+          }
+        }
+      ],
+      "failureModes": [
+        "input.query is missing.",
+        "Project path is outside the kernel root.",
+        "Project files are unreadable."
+      ],
+      "inputHash": "60cb395fcd4c7eb54b102d4bacc7acc5941692a18cadd2120c2b91bd32f1998b",
+      "required": [
+        "query"
+      ]
+    },
+    {
+      "name": "kernel.semantic.find_references",
+      "description": "Find bounded text references for a symbol or term in the local semantic index.",
+      "risk": "safe",
+      "permission": "semantic:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Reference search result with file, line, and trimmed text for each hit.",
+      "examples": [
+        {
+          "description": "Find references to semantic code.",
+          "input": {
+            "query": "semantic",
+            "limit": 10
+          }
+        }
+      ],
+      "failureModes": [
+        "input.query is missing.",
+        "Project path is outside the kernel root.",
+        "Project files are unreadable."
+      ],
+      "inputHash": "60cb395fcd4c7eb54b102d4bacc7acc5941692a18cadd2120c2b91bd32f1998b",
+      "required": [
+        "query"
+      ]
+    },
+    {
+      "name": "kernel.semantic.summarize_module",
+      "description": "Summarize one module using the local semantic analyzer.",
+      "risk": "safe",
+      "permission": "semantic:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Module summary with language, line count, symbols, imports, exports, and a short generated summary.",
+      "examples": [
+        {
+          "description": "Summarize the semantic baseline implementation.",
+          "input": {
+            "file": "packages/intelligence/semantic-code.mjs"
+          }
+        }
+      ],
+      "failureModes": [
+        "input.file is missing.",
+        "File path is outside the kernel root.",
+        "Module file is missing or unreadable."
+      ],
+      "inputHash": "1af6cdeb0f3c017ebfe45b768e8a7007b2015721d7ad45e9a9bf923cd6ff2acc",
+      "required": [
+        "file"
+      ]
+    },
+    {
       "name": "kernel.dogfood.prod",
       "description": "Audit three production repos against kernel QA readiness without mutating them.",
       "risk": "safe",

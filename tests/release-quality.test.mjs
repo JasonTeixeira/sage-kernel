@@ -35,6 +35,10 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.equal(pkg.scripts["memory:smoke"], "node packages/intelligence/scripts/memory-smoke.mjs");
   assert.equal(pkg.scripts["memory:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
   assert.equal(pkg.scripts["memory:state"], "node packages/intelligence/scripts/project-state.mjs");
+  assert.equal(pkg.scripts["semantic:validate"], "node packages/intelligence/scripts/validate-intelligence.mjs");
+  assert.equal(pkg.scripts["semantic:smoke"], "node packages/intelligence/scripts/semantic-smoke.mjs");
+  assert.equal(pkg.scripts["semantic:index"], "node packages/intelligence/scripts/semantic-index.mjs");
+  assert.equal(pkg.scripts["semantic:search"], "node packages/intelligence/scripts/semantic-search.mjs");
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-lines=98/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-branches=90/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-functions=97/);
@@ -62,6 +66,8 @@ test("package metadata is ready for public OSS distribution", () => {
     "assets/sage-kernel-workflow.svg",
     "docker-compose.postgres.yml",
     "packages/intelligence/scripts/validate-intelligence.mjs",
+    "packages/intelligence/scripts/semantic-smoke.mjs",
+    "packages/intelligence/semantic-code.mjs",
     "packages/intelligence/schemas/memory-record.schema.json",
     "packages/intelligence/schemas/eval-definition.schema.json",
     "packages/intelligence/schemas/experiment-run.schema.json",
@@ -104,7 +110,7 @@ test("intelligence contracts validate fixtures and reject unsafe shapes", () => 
   assert.equal(passing.status, "passed");
   assert.equal(passing.checked.schemas, 5);
   assert.equal(passing.checked.fixtures, 5);
-  assert.equal(passing.checked.evals, 6);
+  assert.equal(passing.checked.evals, 7);
   assert.deepEqual(passing.failures, []);
 
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-intelligence-"));

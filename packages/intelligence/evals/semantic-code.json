@@ -1,0 +1,18 @@
+{
+  "id": "eval_semantic_code",
+  "name": "Semantic code baseline",
+  "scope": "cli",
+  "version": 1,
+  "graders": [
+    {
+      "id": "semantic_smoke",
+      "type": "command",
+      "command": "npm run semantic:smoke",
+      "timeoutSeconds": 30
+    }
+  ],
+  "successCriteria": [
+    "Local semantic index can inspect the repository without external services.",
+    "Symbol search, module summary, and reference lookup all produce bounded output."
+  ]
+}

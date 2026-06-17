@@ -420,7 +420,7 @@ Exit criteria:
 
 ### Phase 2.4: Semantic Code Intelligence
 
-Status: planned.
+Status: complete.
 
 Tasks:
 
@@ -431,6 +431,44 @@ Tasks:
   lookup.
 - Keep edit/refactor tools approval-required.
 
+Implemented:
+
+- Added a local read-only semantic baseline in
+  `packages/intelligence/semantic-code.mjs`.
+- Added bounded project indexing for JavaScript, TypeScript, JSON, and
+  Markdown files.
+- Added deterministic symbol extraction for:
+  - functions
+  - classes
+  - constants
+  - Markdown headings
+  - JSON top-level keys
+- Added reference search over bounded line excerpts.
+- Added module summaries with imports, exports, symbols, language, and line
+  counts.
+- Added root-boundary validation so semantic tools cannot inspect paths outside
+  the project root.
+- Added CLI scripts:
+  - `npm run semantic:index`
+  - `npm run semantic:search`
+  - `npm run semantic:references`
+  - `npm run semantic:summary`
+  - `npm run semantic:smoke`
+- Added MCP tools:
+  - `kernel.semantic.index_project`
+  - `kernel.semantic.search_symbol`
+  - `kernel.semantic.find_references`
+  - `kernel.semantic.summarize_module`
+- Added deterministic eval `eval_semantic_code`.
+- Added tests for indexing, symbol search, reference lookup, module summary,
+  path-boundary rejection, CLI smoke, and MCP dispatcher coverage.
+
+Deferred:
+
+- Serena discovery remains optional adapter work.
+- Refactor planning and refactor application remain outside the read-only
+  baseline. Any future apply path must stay approval-required with diff preview.
+
 Verification:
 
 ```bash
@@ -438,6 +476,8 @@ npm run semantic:validate
 npm run semantic:smoke
 npm run mcp:contracts
 npm run dashboard:e2e
+npm run eval:run
+npm test
 ```
 
 Exit criteria:

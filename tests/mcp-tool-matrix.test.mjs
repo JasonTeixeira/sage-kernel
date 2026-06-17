@@ -56,6 +56,15 @@ test("MCP dispatcher covers catalog, template, QA, infra, deploy, dashboard, and
   const dashboard = await callKernelTool(sandbox, "kernel.dashboard.snapshot", {});
   assert.equal(dashboard.version, "0.3.0");
 
+  const semanticIndex = await callKernelTool(sandbox, "kernel.semantic.index_project", { projectPath: ".", limit: 100 });
+  assert.equal(semanticIndex.totals.files > 0, true);
+  const semanticSearch = await callKernelTool(sandbox, "kernel.semantic.search_symbol", { query: "version", limit: 5 });
+  assert.equal(semanticSearch.results.length > 0, true);
+  const semanticSummary = await callKernelTool(sandbox, "kernel.semantic.summarize_module", { file: "package.json" });
+  assert.equal(semanticSummary.language, "json");
+  const semanticReferences = await callKernelTool(sandbox, "kernel.semantic.find_references", { query: "version", limit: 5 });
+  assert.equal(semanticReferences.results.length > 0, true);
+
   const content = toMcpTextContent({ ok: true });
   assert.equal(content.content[0].type, "text");
   assert.match(content.content[0].text, /"ok": true/);
@@ -75,6 +84,10 @@ test("MCP dispatcher validates required input and unknown catalog references", a
   await assert.rejects(() => callKernelTool(sandbox, "kernel.jobs.enqueue", {}), /requires input.job/);
   await assert.rejects(() => callKernelTool(sandbox, "kernel.approvals.request", {}), /requires input.action and input.reason/);
   await assert.rejects(() => callKernelTool(sandbox, "kernel.approvals.approve", {}), /requires input.id/);
+  await assert.rejects(() => callKernelTool(sandbox, "kernel.semantic.search_symbol", {}), /requires input.query/);
+  await assert.rejects(() => callKernelTool(sandbox, "kernel.semantic.find_references", {}), /requires input.query/);
+  await assert.rejects(() => callKernelTool(sandbox, "kernel.semantic.summarize_module", {}), /requires input.file/);
+  await assert.rejects(() => callKernelTool(sandbox, "kernel.semantic.index_project", { projectPath: ".." }), /outside the semantic project root/);
 });
 
 test("MCP dispatcher handles optional source roots and warehouse configuration", async () => {
