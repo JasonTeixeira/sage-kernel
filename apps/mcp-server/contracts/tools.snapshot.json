@@ -1731,6 +1731,198 @@
       "required": []
     },
     {
+      "name": "kernel.testing.strategy",
+      "description": "Generate a profile-aware test strategy with required layers, proof expectations, commands, and evidence.",
+      "risk": "safe",
+      "permission": "testing:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Test strategy with profile, layers, missing layers, required commands, evidence, and definition of done.",
+      "examples": [
+        {
+          "description": "Generate testing strategy for current repo.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "Project profile cannot be detected."
+      ],
+      "inputHash": "d8e844f6593338fa681b1d9a20bfdc31a62f654216f2c44c18e1504e15070cc5",
+      "required": []
+    },
+    {
+      "name": "kernel.testing.playwright_template",
+      "description": "Generate Playwright starter files for browser, mobile viewport, and page-object E2E proof.",
+      "risk": "safe",
+      "permission": "testing:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Playwright template file map with config, smoke spec, page object, and setup instructions.",
+      "examples": [
+        {
+          "description": "Generate Playwright template for current repo.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "Project profile cannot be detected."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
+      "name": "kernel.testing.performance_budget",
+      "description": "Generate performance budgets and stress/soak profiles for the detected project type.",
+      "risk": "safe",
+      "permission": "testing:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Performance budget with latency, memory, throughput, stress profiles, and release evidence requirements.",
+      "examples": [
+        {
+          "description": "Generate performance budget.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "Unknown project profile."
+      ],
+      "inputHash": "f84e2c6d576919d8beec799a80bf4ecbafa7d5de79f0149dce42461bf574977a",
+      "required": []
+    },
+    {
+      "name": "kernel.testing.proof",
+      "description": "Run the complete testing lab proof across strategy, Playwright template, performance budgets, and long-soak plan.",
+      "risk": "safe",
+      "permission": "testing:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Testing lab proof with strategy, Playwright template, performance budget, and release soak plan.",
+      "examples": [
+        {
+          "description": "Run testing lab proof.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "Testing proof cannot be constructed."
+      ],
+      "inputHash": "d8e844f6593338fa681b1d9a20bfdc31a62f654216f2c44c18e1504e15070cc5",
+      "required": []
+    },
+    {
+      "name": "kernel.memory.policy",
+      "description": "Evaluate whether a proposed memory write is allowed, approval-required, or blocked by policy.",
+      "risk": "safe",
+      "permission": "memory:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Memory policy decision with status, scope, approval requirement, confidence, failures, and allowed kinds.",
+      "examples": [
+        {
+          "description": "Check a project memory write.",
+          "input": {
+            "summary": "Use contract tests for MCP tools.",
+            "evidenceRef": "review"
+          }
+        }
+      ],
+      "failureModes": [
+        "Summary is missing.",
+        "Memory contains secret-like material.",
+        "Confidence is too low."
+      ],
+      "inputHash": "f1232e7248acbbdfb1bdc37285373e4c868885552e3bd5897a97444748b90eb3",
+      "required": []
+    },
+    {
+      "name": "kernel.memory.graph",
+      "description": "Build a local engineering knowledge graph from project, framework, route, test, and dependency evidence.",
+      "risk": "safe",
+      "permission": "memory:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Knowledge graph with nodes, edges, project metadata, and queryable relationships.",
+      "examples": [
+        {
+          "description": "Build graph for current repo.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "Project profile cannot be detected."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
+      "name": "kernel.memory.learning_propose",
+      "description": "Propose a policy-checked memory update from a failure and fix without writing permanent memory.",
+      "risk": "safe",
+      "permission": "memory:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Learning proposal with policy decision and normalized memory record candidate.",
+      "examples": [
+        {
+          "description": "Propose a learning update.",
+          "input": {
+            "projectPath": ".",
+            "failure": "Test failed.",
+            "fix": "Added regression test."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed roots.",
+        "Memory policy blocks the update."
+      ],
+      "inputHash": "03f22e20530ec9900dd11e748a31cf825693a1001b990a3db879ea66a1baac9a",
+      "required": []
+    },
+    {
+      "name": "kernel.memory.learning_approve",
+      "description": "Approve a previously proposed learning update and return the approved memory record.",
+      "risk": "safe",
+      "permission": "memory:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Approved learning update with approved memory record and approval metadata.",
+      "examples": [
+        {
+          "description": "Approve a proposal.",
+          "input": {
+            "proposal": {
+              "status": "proposed"
+            }
+          }
+        }
+      ],
+      "failureModes": [
+        "Proposal is missing.",
+        "Proposal was not in proposed state."
+      ],
+      "inputHash": "9090fdf2b7d930dcc196f0baafe4d05d7dd4c68362d34c8e1623eac564ddf1f4",
+      "required": [
+        "proposal"
+      ]
+    },
+    {
       "name": "kernel.drift.map",
       "description": "Create a drift map for scope, architecture, routes, MCP tools, docs, tests, and permissions.",
       "risk": "safe",

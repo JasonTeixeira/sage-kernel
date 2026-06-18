@@ -48,6 +48,18 @@ import {
   generateThreatModel
 } from "../../../packages/security/supply-chain.mjs";
 import {
+  createPerformanceBudget,
+  createPlaywrightTemplate,
+  createTestingLabProof,
+  generateTestStrategy
+} from "../../../packages/testing/testing-lab.mjs";
+import {
+  approveLearningUpdate,
+  createKnowledgeGraph,
+  enforceMemoryPolicy,
+  proposeLearningUpdate
+} from "../../../packages/intelligence/knowledge-graph.mjs";
+import {
   detectProjectProfile,
   generateDefinitionOfDone
 } from "../../../packages/profiles/project-detector.mjs";
@@ -385,6 +397,46 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.security.proof":
       return createSecurityProof({ root, projectPath: input.projectPath || "." });
+
+    case "kernel.testing.strategy":
+      return generateTestStrategy({ root, projectPath: input.projectPath || ".", risk: input.risk });
+
+    case "kernel.testing.playwright_template":
+      return createPlaywrightTemplate({ root, projectPath: input.projectPath || "." });
+
+    case "kernel.testing.performance_budget":
+      return createPerformanceBudget({ root, projectPath: input.projectPath || ".", profile: input.profile });
+
+    case "kernel.testing.proof":
+      return createTestingLabProof({ root, projectPath: input.projectPath || ".", risk: input.risk });
+
+    case "kernel.memory.policy":
+      return enforceMemoryPolicy({
+        projectId: input.projectId || "sage-kernel",
+        scope: input.scope || "project",
+        kind: input.kind || "episode",
+        source: input.source || "mcp",
+        summary: input.summary,
+        confidence: input.confidence,
+        evidenceRef: input.evidenceRef || "mcp"
+      });
+
+    case "kernel.memory.graph":
+      return createKnowledgeGraph({ root, projectPath: input.projectPath || "." });
+
+    case "kernel.memory.learning_propose":
+      return proposeLearningUpdate({
+        root,
+        projectPath: input.projectPath || ".",
+        failure: input.failure,
+        fix: input.fix,
+        scope: input.scope,
+        summary: input.summary,
+        evidenceRef: input.evidenceRef
+      });
+
+    case "kernel.memory.learning_approve":
+      return approveLearningUpdate(input.proposal, { approvedBy: input.approvedBy || "mcp-user" });
 
     case "kernel.drift.map":
       return createDriftMap({ root });

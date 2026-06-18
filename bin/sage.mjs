@@ -49,6 +49,20 @@ import {
   generateThreatModel
 } from "../packages/security/supply-chain.mjs";
 import {
+  createPerformanceBudget,
+  createPlaywrightTemplate,
+  createTestingLabProof,
+  formatTestingLabOutput,
+  generateTestStrategy
+} from "../packages/testing/testing-lab.mjs";
+import {
+  approveLearningUpdate,
+  createKnowledgeGraph,
+  enforceMemoryPolicy,
+  formatKnowledgeOutput,
+  proposeLearningUpdate
+} from "../packages/intelligence/knowledge-graph.mjs";
+import {
   detectProjectProfile,
   formatProfileOutput,
   generateDefinitionOfDone,
@@ -142,6 +156,8 @@ Usage:
   sage done generate [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--profile=id] [--json]
   sage review [inspect|architecture|clean-code|tests|security|diff|routes|score|senior|prove] [projectPath] [--json]
   sage security [threat-model|supply-chain|prove] [projectPath] [--json]
+  sage testing [strategy|playwright|budget|proof] [projectPath] [--json]
+  sage memory [policy|graph|learn|approve] [projectPath] [--summary=text] [--failure=text] [--fix=text] [--json]
   sage drift [map|scope|audit|prove] [--json]
   sage mcp [start|config|smoke]
   sage daily
@@ -594,6 +610,75 @@ switch (command) {
         break;
       }
       console.log(formatSecurityOutput(value, { json }));
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "testing": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "proof", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = subcommand === "strategy"
+        ? generateTestStrategy({ root, projectPath, risk: valueArg(args, "--risk") || undefined })
+        : subcommand === "playwright"
+          ? createPlaywrightTemplate({ root, projectPath })
+          : subcommand === "budget"
+            ? createPerformanceBudget({ root, projectPath })
+            : subcommand === "proof"
+              ? createTestingLabProof({ root, projectPath, risk: valueArg(args, "--risk") || undefined })
+              : null;
+      if (!value) {
+        console.error(`Unknown testing subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatTestingLabOutput(value, { json }));
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "memory": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "graph", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const proposal = proposeLearningUpdate({
+        root,
+        projectPath,
+        summary: valueArg(args, "--summary") || undefined,
+        failure: valueArg(args, "--failure") || undefined,
+        fix: valueArg(args, "--fix") || undefined,
+        scope: valueArg(args, "--scope") || undefined
+      });
+      const value = subcommand === "policy"
+        ? enforceMemoryPolicy({
+            projectId: "sage-kernel",
+            scope: valueArg(args, "--scope") || "project",
+            kind: valueArg(args, "--kind") || "episode",
+            summary: valueArg(args, "--summary") || "Validate memory policy.",
+            confidence: Number(valueArg(args, "--confidence") || 0.8),
+            evidenceRef: valueArg(args, "--evidence") || "cli"
+          })
+        : subcommand === "graph"
+          ? createKnowledgeGraph({ root, projectPath })
+          : subcommand === "learn"
+            ? proposal
+            : subcommand === "approve"
+              ? approveLearningUpdate(proposal, { approvedBy: valueArg(args, "--approved-by") || "local-user" })
+              : null;
+      if (!value) {
+        console.error(`Unknown memory subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatKnowledgeOutput(value, { json }));
     } catch (error) {
       console.error(error.message);
       process.exitCode = 1;

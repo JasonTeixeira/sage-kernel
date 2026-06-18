@@ -9,12 +9,14 @@ import {
   createPerformanceBudget,
   createPlaywrightTemplate,
   createTestingLabProof,
+  formatTestingLabOutput,
   generateTestStrategy
 } from "../packages/testing/testing-lab.mjs";
 import {
   approveLearningUpdate,
   createKnowledgeGraph,
   enforceMemoryPolicy,
+  formatKnowledgeOutput,
   proposeLearningUpdate
 } from "../packages/intelligence/knowledge-graph.mjs";
 import { callKernelTool } from "../apps/mcp-server/src/kernel-tools.mjs";
@@ -47,6 +49,7 @@ test("testing lab generates profile-aware strategy, Playwright template, budgets
     scripts: { test: "node --test", "test:coverage": "node --test --experimental-test-coverage" }
   });
   process.env.SAGE_REVIEW_ALLOWED_ROOTS = workspace;
+  process.env.SAGE_PROFILE_ALLOWED_ROOTS = workspace;
   try {
     const strategy = generateTestStrategy({ root, projectPath: workspace, risk: "high" });
     assert.equal(strategy.profile, "web-app");
@@ -68,7 +71,7 @@ test("testing lab generates profile-aware strategy, Playwright template, budgets
     assert.equal(proof.longSoak.profile, "release");
 
     const cli = run(["node", "bin/sage.mjs", "testing", "proof", workspace, "--json"], {
-      env: { ...process.env, SAGE_REVIEW_ALLOWED_ROOTS: workspace }
+      env: { ...process.env, SAGE_REVIEW_ALLOWED_ROOTS: workspace, SAGE_PROFILE_ALLOWED_ROOTS: workspace }
     });
     assert.equal(cli.status, 0, cli.stderr || cli.stdout);
     assert.equal(JSON.parse(cli.stdout).performance.status, "passed");
@@ -77,6 +80,7 @@ test("testing lab generates profile-aware strategy, Playwright template, budgets
     assert.equal(mcp.strategy.profile, "web-app");
   } finally {
     delete process.env.SAGE_REVIEW_ALLOWED_ROOTS;
+    delete process.env.SAGE_PROFILE_ALLOWED_ROOTS;
   }
 });
 
@@ -87,6 +91,7 @@ test("memory graph enforces policy, queries relationships, and approves learning
     scripts: { test: "node --test" }
   });
   process.env.SAGE_REVIEW_ALLOWED_ROOTS = workspace;
+  process.env.SAGE_PROFILE_ALLOWED_ROOTS = workspace;
   try {
     const safe = enforceMemoryPolicy({
       projectId: "memory-graph-app",
@@ -142,7 +147,7 @@ test("memory graph enforces policy, queries relationships, and approves learning
     assert.equal(approved.memory.source, "learning-loop");
 
     const cli = run(["node", "bin/sage.mjs", "memory", "graph", workspace, "--json"], {
-      env: { ...process.env, SAGE_REVIEW_ALLOWED_ROOTS: workspace }
+      env: { ...process.env, SAGE_REVIEW_ALLOWED_ROOTS: workspace, SAGE_PROFILE_ALLOWED_ROOTS: workspace }
     });
     assert.equal(cli.status, 0, cli.stderr || cli.stdout);
     assert.equal(JSON.parse(cli.stdout).status, "passed");
@@ -157,5 +162,95 @@ test("memory graph enforces policy, queries relationships, and approves learning
     assert.equal(mcpProposal.status, "proposed");
   } finally {
     delete process.env.SAGE_REVIEW_ALLOWED_ROOTS;
+    delete process.env.SAGE_PROFILE_ALLOWED_ROOTS;
+  }
+});
+
+test("testing lab covers alternate profiles, budgets, and text formatters", () => {
+  const backend = makeProject({
+    name: "api-service",
+    dependencies: { express: "latest" },
+    scripts: { test: "node --test", "security:scan": "node scan.mjs" }
+  });
+  const library = makeProject({
+    name: "library-package",
+    scripts: {}
+  });
+  fs.rmSync(path.join(library, "tests"), { recursive: true, force: true });
+  fs.rmSync(path.join(library, "src"), { recursive: true, force: true });
+  process.env.SAGE_PROFILE_ALLOWED_ROOTS = [backend, library].join(path.delimiter);
+  try {
+    const backendStrategy = generateTestStrategy({ root, projectPath: backend, risk: "critical" });
+    assert.equal(backendStrategy.profile, "backend-api");
+    assert.equal(backendStrategy.requiredCommands.includes("npm run soak:quick"), true);
+    assert.equal(backendStrategy.requiredCommands.includes("npm run security:scan"), true);
+    assert.match(formatTestingLabOutput(backendStrategy), /^Test strategy passed:/);
+
+    const backendBudget = createPerformanceBudget({ root, projectPath: backend });
+    assert.equal(backendBudget.budgets.http.p95Ms, 300);
+    assert.match(formatTestingLabOutput(backendBudget), /^Performance budget passed:/);
+
+    const defaultBudget = createPerformanceBudget({ profile: "unknown-profile" });
+    assert.equal(defaultBudget.budgets.http.p95Ms, 750);
+
+    const template = createPlaywrightTemplate({ root, projectPath: backend });
+    assert.match(formatTestingLabOutput(template), /^Playwright template passed:/);
+
+    const lab = createTestingLabProof({ root, projectPath: backend });
+    assert.match(formatTestingLabOutput(lab), /^Testing lab passed:/);
+    assert.match(formatTestingLabOutput({ ok: true }), /"ok": true/);
+
+    const libraryStrategy = generateTestStrategy({ root, projectPath: library });
+    assert.equal(libraryStrategy.profile, "library");
+    assert.equal(libraryStrategy.missingLayers.includes("unit"), true);
+  } finally {
+    delete process.env.SAGE_PROFILE_ALLOWED_ROOTS;
+  }
+});
+
+test("memory graph covers blocked learning, invalid approval, formatter, and malformed metadata branches", () => {
+  const malformed = fs.mkdtempSync(path.join(os.tmpdir(), "sage-memory-graph-malformed-"));
+  fs.writeFileSync(path.join(malformed, "package.json"), "{bad-json");
+  fs.mkdirSync(path.join(malformed, "src", "api"), { recursive: true });
+  fs.writeFileSync(path.join(malformed, "src", "api", "orphan.js"), "export default 1;\n");
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), "sage-memory-graph-empty-"));
+
+  process.env.SAGE_PROFILE_ALLOWED_ROOTS = [malformed, empty].join(path.delimiter);
+  try {
+    const blocked = proposeLearningUpdate({
+      root,
+      projectPath: malformed,
+      summary: "secret token abcdefghijklmnop should persist",
+      evidenceRef: "bad-memory"
+    });
+    assert.equal(blocked.status, "blocked");
+    assert.equal(blocked.memory.record, null);
+    assert.match(formatKnowledgeOutput(blocked), /^Learning update blocked:/);
+
+    assert.throws(() => approveLearningUpdate(blocked), /Only proposed/);
+    assert.throws(() => approveLearningUpdate(null), /Only proposed/);
+
+    const policy = enforceMemoryPolicy({
+      scope: "bad",
+      summary: "",
+      confidence: 0.1
+    });
+    assert.equal(policy.status, "blocked");
+    assert.equal(policy.failures.length >= 3, true);
+    assert.match(formatKnowledgeOutput(policy), /^Memory policy blocked:/);
+
+    const graph = createKnowledgeGraph({ root, projectPath: malformed });
+    assert.equal(graph.status, "passed");
+    assert.equal(graph.query({ id: "missing" }).length, 0);
+    assert.equal(graph.query({ label: "orphan" }).length, 1);
+    assert.match(formatKnowledgeOutput(graph), /^Knowledge graph passed:/);
+    assert.match(formatKnowledgeOutput(graph, { json: true }), /"nodes"/);
+    assert.match(formatKnowledgeOutput({ ok: true }), /"ok": true/);
+
+    const emptyGraph = createKnowledgeGraph({ root: empty, projectPath: "." });
+    assert.equal(emptyGraph.nodes.some((node) => node.type === "project"), true);
+    assert.match(formatKnowledgeOutput(null, { json: true }), /null/);
+  } finally {
+    delete process.env.SAGE_PROFILE_ALLOWED_ROOTS;
   }
 });

@@ -75,6 +75,14 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.security.threat_model` | safe | `security:read` | No | none |
 | `kernel.security.supply_chain` | safe | `security:read` | No | none |
 | `kernel.security.proof` | safe | `security:read` | No | none |
+| `kernel.testing.strategy` | safe | `testing:read` | No | none |
+| `kernel.testing.playwright_template` | safe | `testing:read` | No | none |
+| `kernel.testing.performance_budget` | safe | `testing:read` | No | none |
+| `kernel.testing.proof` | safe | `testing:read` | No | none |
+| `kernel.memory.policy` | safe | `memory:read` | No | none |
+| `kernel.memory.graph` | safe | `memory:read` | No | none |
+| `kernel.memory.learning_propose` | safe | `memory:read` | No | none |
+| `kernel.memory.learning_approve` | safe | `memory:read` | No | none |
 | `kernel.drift.map` | safe | `drift:read` | No | none |
 | `kernel.drift.scope` | safe | `drift:read` | No | none |
 | `kernel.drift.self_audit` | safe | `drift:read` | No | none |
@@ -953,6 +961,107 @@ Example input:
 }
 ```
 
+### `kernel.testing.strategy`
+
+Test strategy with profile, layers, missing layers, required commands, evidence, and definition of done.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.testing.playwright_template`
+
+Playwright template file map with config, smoke spec, page object, and setup instructions.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.testing.performance_budget`
+
+Performance budget with latency, memory, throughput, stress profiles, and release evidence requirements.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.testing.proof`
+
+Testing lab proof with strategy, Playwright template, performance budget, and release soak plan.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.memory.policy`
+
+Memory policy decision with status, scope, approval requirement, confidence, failures, and allowed kinds.
+
+Example input:
+
+```json
+{
+  "summary": "Use contract tests for MCP tools.",
+  "evidenceRef": "review"
+}
+```
+
+### `kernel.memory.graph`
+
+Knowledge graph with nodes, edges, project metadata, and queryable relationships.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.memory.learning_propose`
+
+Learning proposal with policy decision and normalized memory record candidate.
+
+Example input:
+
+```json
+{
+  "projectPath": ".",
+  "failure": "Test failed.",
+  "fix": "Added regression test."
+}
+```
+
+### `kernel.memory.learning_approve`
+
+Approved learning update with approved memory record and approval metadata.
+
+Example input:
+
+```json
+{
+  "proposal": {
+    "status": "proposed"
+  }
+}
+```
+
 ### `kernel.drift.map`
 
 Drift map with architecture directories, MCP parity counts, dashboard routes, docs, tests, permissions, and findings.
@@ -1379,6 +1488,47 @@ Example input:
 
 - Project path is outside allowed security roots.
 - Security proof cannot be constructed.
+
+### `kernel.testing.strategy`
+
+- Project path is outside allowed roots.
+- Project profile cannot be detected.
+
+### `kernel.testing.playwright_template`
+
+- Project path is outside allowed roots.
+- Project profile cannot be detected.
+
+### `kernel.testing.performance_budget`
+
+- Project path is outside allowed roots.
+- Unknown project profile.
+
+### `kernel.testing.proof`
+
+- Project path is outside allowed roots.
+- Testing proof cannot be constructed.
+
+### `kernel.memory.policy`
+
+- Summary is missing.
+- Memory contains secret-like material.
+- Confidence is too low.
+
+### `kernel.memory.graph`
+
+- Project path is outside allowed roots.
+- Project profile cannot be detected.
+
+### `kernel.memory.learning_propose`
+
+- Project path is outside allowed roots.
+- Memory policy blocks the update.
+
+### `kernel.memory.learning_approve`
+
+- Proposal is missing.
+- Proposal was not in proposed state.
 
 ### `kernel.drift.map`
 
