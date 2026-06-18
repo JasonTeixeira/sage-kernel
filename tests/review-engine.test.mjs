@@ -12,8 +12,11 @@ import {
   auditTests,
   createReleaseProof,
   createReviewScore,
+  createSeniorReview,
   formatReviewOutput,
-  inspectRepository
+  inspectRepository,
+  mapRoutesToTests,
+  reviewDiff
 } from "../packages/review/review-engine.mjs";
 import { callKernelTool } from "../apps/mcp-server/src/kernel-tools.mjs";
 import { validateReviewReport } from "../packages/review/review-report.mjs";
@@ -153,4 +156,70 @@ test("review MCP tools inspect, score, prove, and enforce project path boundarie
     () => callKernelTool(root, "kernel.review.inspect_repo", { projectPath: "/tmp" }),
     /outside allowed review roots/
   );
+});
+
+test("senior review engine maps routes to tests and scores risky diffs", async () => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "sage-review-senior-repo-"));
+  fs.mkdirSync(path.join(fixture, "src", "routes"), { recursive: true });
+  fs.mkdirSync(path.join(fixture, "tests", "routes"), { recursive: true });
+  fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({
+    name: "senior-app",
+    scripts: {
+      test: "node --test",
+      "test:coverage": "node --test --experimental-test-coverage",
+      "security:scan": "node scripts/security-scan.mjs",
+      "release:check": "node scripts/release-check.mjs"
+    }
+  }));
+  fs.writeFileSync(path.join(fixture, "SECURITY.md"), "# Security\n");
+  fs.writeFileSync(path.join(fixture, "README.md"), "# Senior App\n");
+  fs.writeFileSync(path.join(fixture, "src", "routes", "payments.js"), "export async function postPayment() { return fetch('/pay'); }\n");
+  fs.writeFileSync(path.join(fixture, "src", "routes", "admin.js"), "export async function adminDelete() { return process.env.SECRET_KEY; }\n");
+  fs.writeFileSync(path.join(fixture, "tests", "routes", "payments.test.js"), "import '../../src/routes/payments.js';\n");
+
+  process.env.SAGE_REVIEW_ALLOWED_ROOTS = fixture;
+  try {
+    const routes = mapRoutesToTests({ root, projectPath: fixture });
+    assert.equal(routes.status, "needs_work");
+    assert.equal(routes.routes.some((route) => route.route === "src/routes/payments.js" && route.tested), true);
+    assert.equal(routes.routes.some((route) => route.route === "src/routes/admin.js" && !route.tested), true);
+
+    const diff = reviewDiff({
+      root,
+      projectPath: fixture,
+      diff: [
+        "diff --git a/src/routes/admin.js b/src/routes/admin.js",
+        "+++ b/src/routes/admin.js",
+        "@@",
+        "+export async function adminDelete(req) {",
+        "+  return process.env.SECRET_KEY;",
+        "+}",
+        "diff --git a/src/routes/payments.js b/src/routes/payments.js",
+        "+++ b/src/routes/payments.js",
+        "@@",
+        "+export async function pay() { return fetch('/pay'); }"
+      ].join("\n")
+    });
+    assert.equal(diff.status, "needs_work");
+    assert.equal(diff.findings.some((finding) => finding.severity === "high" && finding.confidence >= 0.8), true);
+    assert.equal(diff.changedFiles.some((file) => file.path === "src/routes/admin.js" && file.risk === "high"), true);
+
+    const senior = createSeniorReview({ root, projectPath: fixture, diff: diff.diff });
+    assert.equal(validateReviewReport(senior.report).status, "passed");
+    assert.equal(senior.report.categories.length, 5);
+    assert.equal(senior.routeTestMap.routes.length, 2);
+    assert.equal(senior.diffReview.findings.length > 0, true);
+    assert.equal(senior.report.remaining.some((item) => /untested route/i.test(item)), true);
+
+    const cli = run(["node", "bin/sage.mjs", "review", "senior", fixture, "--json"], {
+      env: { ...process.env, SAGE_REVIEW_ALLOWED_ROOTS: fixture }
+    });
+    assert.equal(cli.status, 0, cli.stderr || cli.stdout);
+    assert.equal(JSON.parse(cli.stdout).routeTestMap.status, "needs_work");
+
+    const mcp = await callKernelTool(root, "kernel.review.senior_review", { projectPath: fixture });
+    assert.equal(mcp.routeTestMap.status, "needs_work");
+  } finally {
+    delete process.env.SAGE_REVIEW_ALLOWED_ROOTS;
+  }
 });
