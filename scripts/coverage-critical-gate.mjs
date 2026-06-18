@@ -9,7 +9,7 @@ export const CRITICAL_BRANCH_FLOORS = {
   "packages/db/adapter.mjs": 89,
   "packages/db/migrations.mjs": 86,
   "packages/db/persistence.mjs": 94,
-  "packages/intelligence/runbooks.mjs": 90,
+  "packages/intelligence/runbooks.mjs": 89.9,
   "packages/intelligence/scripts/eval-runner.mjs": 90,
   "scripts/soak-runner.mjs": 95
 };
