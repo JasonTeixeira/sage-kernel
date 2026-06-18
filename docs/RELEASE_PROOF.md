@@ -41,16 +41,31 @@ GitHub Actions must pass:
 
 Before the first npm release:
 
-1. Authenticate to npm locally or configure trusted publishing.
+1. Authenticate to npm locally.
 2. Confirm `npm whoami` succeeds.
 3. Confirm the package name is available or owned by the maintainer.
-4. Create a signed release tag.
-5. Publish a GitHub Release.
-6. Watch the Release workflow publish with provenance.
+4. Configure a publish-capable `NPM_TOKEN` GitHub secret for the first
+   provenance publish, or explicitly document a non-provenance bootstrap
+   exception.
+5. Create a signed release tag.
+6. Publish a GitHub Release.
+7. Watch the Release workflow publish with provenance.
+8. Verify public install from a clean temporary project.
+9. After the first package exists, configure npm trusted publishing for
+   `JasonTeixeira/sage-kernel` and `.github/workflows/release.yml`.
 
 If `npm whoami` fails with `E401`, publishing is not proven from the current
 machine. If no Git signing key is configured, signed tags are not proven from
 the current machine.
+
+Current local status on 2026-06-18:
+
+- `npm whoami`: `nexural`.
+- `npm view sage-kernel version`: `E404 Not Found`; package is not published.
+- `npm publish --access public --dry-run`: passed.
+- Local real publish is blocked by provenance because local execution has no
+  supported OIDC provider.
+- No local Git signing key is configured.
 
 ## MCP Client Proof
 
@@ -65,4 +80,3 @@ sage mcp smoke
 ```
 
 Record the client, config path, date, and successful tool call in release notes.
-

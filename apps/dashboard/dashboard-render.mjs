@@ -95,7 +95,7 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
 
       <section id="workflows" class="view grid" data-view="workflows">
         <article class="panel span-12"><div class="panel-header"><h2>Daily Workflows</h2><span class="badge badge-ok">ready</span></div><div class="panel-body command-grid">${workflowCommands.map(renderCommand).join("")}</div></article>
-        <article class="panel span-12"><div class="panel-header"><h2>Workflow Status</h2><span class="badge">live</span></div><div class="panel-body"><pre id="workflow-status" class="status-box">Ready.</pre></div></article>
+        <article class="panel span-12"><div class="panel-header"><h2>Workflow Result Summary</h2><span class="badge">live</span></div><div class="panel-body"><div id="workflow-status" class="status-box">Ready.</div></div></article>
       </section>
 
       <section id="approvals" class="view grid" data-view="approvals">
@@ -166,10 +166,10 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
             body: JSON.stringify({ id })
           });
           const payload = await response.json();
-          setWorkflowStatus(JSON.stringify(payload, null, 2));
+          setWorkflowStatus(payload);
           await refreshSnapshot();
         } catch (error) {
-          setWorkflowStatus("Workflow failed: " + error.message);
+          setWorkflowStatus({ status: "failed", error: error.message });
         } finally {
           button.disabled = false;
         }
@@ -187,7 +187,100 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
       }
     }
     function setWorkflowStatus(value) {
-      if (workflowStatus) workflowStatus.textContent = value;
+      if (!workflowStatus) return;
+      if (typeof value === "string") {
+        workflowStatus.textContent = value;
+        return;
+      }
+      workflowStatus.replaceChildren(renderWorkflowResult(value));
+    }
+    function renderWorkflowResult(payload) {
+      const wrap = document.createElement("div");
+      wrap.className = "workflow-result";
+      const status = String(payload?.status || "unknown");
+      const workflow = payload?.workflow || {};
+      const result = payload?.result || {};
+      const stdout = parseJsonish(result.stdout);
+      const stderr = String(result.stderr || "");
+      const title = workflow.label || workflow.id || payload?.approval?.action || "Workflow";
+      const rows = [
+        ["Status", status],
+        ["Workflow", workflow.id || "n/a"],
+        ["Tool", workflow.tool || inferTool(stdout) || "n/a"],
+        ["Risk", workflow.risk || "n/a"],
+        ["Exit", result.status ?? "n/a"]
+      ];
+      if (payload?.approval?.id) rows.push(["Approval", payload.approval.id]);
+      if (payload?.error) rows.push(["Error", payload.error]);
+      const headline = document.createElement("div");
+      headline.className = "workflow-headline";
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+      const badge = document.createElement("span");
+      badge.className = "badge " + badgeClassFor(status);
+      badge.textContent = status;
+      headline.append(heading, badge);
+      const grid = document.createElement("dl");
+      grid.className = "workflow-kv";
+      for (const [key, raw] of rows) {
+        const dt = document.createElement("dt");
+        dt.textContent = key;
+        const dd = document.createElement("dd");
+        dd.textContent = String(raw);
+        grid.append(dt, dd);
+      }
+      wrap.append(headline, grid);
+      const highlights = workflowHighlights(stdout, result, stderr, payload);
+      if (highlights.length) {
+        const list = document.createElement("ul");
+        list.className = "list workflow-highlights";
+        for (const item of highlights) {
+          const li = document.createElement("li");
+          li.textContent = item;
+          list.append(li);
+        }
+        wrap.append(list);
+      }
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "Raw audit payload";
+      const pre = document.createElement("pre");
+      pre.textContent = JSON.stringify(payload, null, 2);
+      details.append(summary, pre);
+      wrap.append(details);
+      return wrap;
+    }
+    function parseJsonish(value) {
+      if (!value || typeof value !== "string") return null;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
+    }
+    function inferTool(stdout) {
+      return stdout?.tool || stdout?.workflow || null;
+    }
+    function badgeClassFor(status) {
+      if (["executed", "passed", "ready", "ok"].includes(status)) return "badge-ok";
+      if (["approval_required", "queued", "pending"].includes(status)) return "badge-warn";
+      return "badge-danger";
+    }
+    function workflowHighlights(stdout, result, stderr, payload) {
+      const items = [];
+      if (stdout?.profile?.id) items.push("Profile: " + stdout.profile.id);
+      if (Array.isArray(stdout?.commands)) items.push("Verification commands: " + stdout.commands.length);
+      if (Array.isArray(stdout?.phases)) items.push("Loop phases: " + stdout.phases.length);
+      if (Array.isArray(stdout?.run)) {
+        const failed = stdout.run.filter((item) => item.status !== "passed").length;
+        items.push("Run checks: " + stdout.run.length + " total, " + failed + " needing attention");
+      }
+      if (Array.isArray(stdout?.nextActions) && stdout.nextActions.length) items.push("Next action: " + stdout.nextActions[0]);
+      if (stdout?.pendingApprovals !== undefined) items.push("Pending approvals: " + stdout.pendingApprovals);
+      if (payload?.approval?.id) items.push("Approval requested: " + payload.approval.id);
+      if (stderr) items.push("Stderr: " + stderr.slice(0, 240));
+      if (!items.length && result.stdout) items.push(String(result.stdout).slice(0, 320));
+      return items;
     }
     const refreshMs = Number(shell?.dataset.refreshInterval || 0);
     if (refreshMs > 0) setInterval(() => { refreshSnapshot().catch(() => {}); }, refreshMs);

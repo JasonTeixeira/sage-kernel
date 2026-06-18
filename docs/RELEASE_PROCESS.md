@@ -81,7 +81,26 @@ Validate the release/provenance configuration with:
 npm run release:provenance
 ```
 
-Before publishing the first npm release, configure npm trusted publishing for:
+Before publishing the first npm release, prefer GitHub Actions provenance over a
+local publish. The current package sets `publishConfig.provenance=true`, so a
+local `npm publish` will fail outside a supported CI/OIDC provider with
+`Automatic provenance generation not supported for provider: null`.
+
+First-publish options:
+
+1. Provenance-first release:
+   - Create a publish-capable npm token in npm.
+   - Store it as the GitHub secret `NPM_TOKEN`.
+   - Publish a GitHub Release and let `.github/workflows/release.yml` run
+     `npm publish --provenance --access public` on a GitHub-hosted runner.
+   - Verify the npm package exists and shows provenance.
+2. Bootstrap exception:
+   - Temporarily publish without provenance from a trusted local account.
+   - Immediately configure trusted publishing.
+   - Treat this as a documented supply-chain exception. Do not call this a
+     full premium provenance release.
+
+After the package exists, configure npm trusted publishing for:
 
 - Repository: `JasonTeixeira/sage-kernel`
 - Workflow filename: `release.yml`
@@ -89,8 +108,7 @@ Before publishing the first npm release, configure npm trusted publishing for:
 - Allowed action: `npm publish`
 
 For a brand-new npm package, the package name must exist before `npm trust`
-can manage trusted publishing from the CLI. If `npm view sage-kernel` returns
-`E404`, publish the initial package from a trusted local npm account, then run:
+can manage trusted publishing from the CLI. After the first package exists, run:
 
 ```bash
 npx npm@latest trust github sage-kernel --repo JasonTeixeira/sage-kernel --file release.yml --allow-publish

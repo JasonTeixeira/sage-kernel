@@ -99,6 +99,10 @@ Proof:
 - Safe loop planning executes through the dashboard workflow API.
 - Loop execution requests approval before running.
 - Approved loop execution runs through the dashboard workflow API.
+- The dashboard now renders workflow responses as structured result summaries
+  with status, workflow/tool metadata, approval IDs, command exit code,
+  highlights, and collapsible raw audit payloads instead of exposing only raw
+  JSON.
 
 ## Phase 3.6 Framework Refinements
 
@@ -124,11 +128,20 @@ Focused verification:
 - `npm run workflows:prove`: passed.
 - `npm run mcp:validate`: passed with 61 tools.
 - `npm run mcp:contracts`: passed with 61 tools, 11 prompts, and 21 resources.
-- `node --test tests/dashboard-app.test.mjs`: passed.
+- `node --test tests/dashboard-app.test.mjs`: passed, including workflow result
+  summary rendering and approval-boundary workflow API tests.
 - `node --test tests/workflows-closed-loop.test.mjs`: passed.
 - `npm run profiles:prove-paths -- .`: passed and detected `sage-kernel` as
   `mcp-server` with secondary `ai-agent-app`, `cli-tool`, and `infrastructure`
   project types.
+- `SAGE_PROFILE_ALLOWED_ROOTS="/Users/Sage/revenue-os:/Users/Sage/audit-trayd/trayd:/Users/Sage/ig-winner-mindset-carousel" npm run profiles:prove-paths -- . /Users/Sage/revenue-os /Users/Sage/audit-trayd/trayd /Users/Sage/ig-winner-mindset-carousel`:
+  passed.
+  - `.`: `mcp-server`, confidence 100.
+  - `/Users/Sage/revenue-os`: `cli-tool`, confidence 80.
+  - `/Users/Sage/audit-trayd/trayd`: `web-app`, confidence 95, with backend,
+    infrastructure, and AI-agent secondary signals.
+  - `/Users/Sage/ig-winner-mindset-carousel`: `library`, confidence 65, with a
+    warning that no automated tests were detected.
 
 Full-gate verification:
 
@@ -147,10 +160,10 @@ Full-gate verification:
 
 ## What Is Left
 
-1. Push and prove CI on GitHub.
-2. Finish external publish residue: npm auth, signed release, provenance
+1. Push and prove CI on GitHub for the dashboard summary polish.
+2. Finish external publish residue: first-publish npm token, signed release, provenance
    publish, and public npm install proof.
-3. Run `profiles:prove-paths` against additional real external repositories
-   after their paths are available and allowlisted.
+3. Keep running `profiles:prove-paths` against additional real repositories as
+   their paths are available and allowlisted.
 4. Keep raising branch coverage for newly added workflow/profile branches as
    new profiles are added.

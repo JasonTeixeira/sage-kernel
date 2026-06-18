@@ -205,7 +205,6 @@ export const dashboardStyles = `    :root {
     .hidden { display: none; }
     .status-box {
       margin: 0;
-      white-space: pre-wrap;
       overflow-wrap: anywhere;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -213,6 +212,51 @@ export const dashboardStyles = `    :root {
       min-height: 72px;
       background: #090c0f;
       color: var(--muted);
+    }
+    .workflow-result { display: grid; gap: 12px; }
+    .workflow-headline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .workflow-kv {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+    }
+    .workflow-kv dt {
+      color: var(--faint);
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .workflow-kv dd {
+      margin: 3px 0 0;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+    }
+    .workflow-highlights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #101419;
+      overflow: hidden;
+    }
+    summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      color: var(--ink);
+    }
+    details pre {
+      margin: 0;
+      border-top: 1px solid var(--line);
+      padding: 12px;
+      white-space: pre-wrap;
+      color: var(--muted);
+      overflow: auto;
     }
     @media (max-width: 1040px) {
       .shell { grid-template-columns: 1fr; }
@@ -229,6 +273,8 @@ export const dashboardStyles = `    :root {
       .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .toolbar { align-items: stretch; flex-direction: column; }
       .button { width: 100%; }
+      .workflow-headline { align-items: flex-start; flex-direction: column; }
+      .workflow-kv, .workflow-highlights { grid-template-columns: 1fr; }
       h1 { font-size: 1.45rem; }
       .metric { font-size: 1.7rem; overflow-wrap: anywhere; }
       .panel-body { padding: 12px; }

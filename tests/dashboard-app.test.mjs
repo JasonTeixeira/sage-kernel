@@ -113,6 +113,8 @@ test("dashboard HTML view renders populated and fallback cockpit branches safely
   assert.match(html, /Request approval/);
   assert.match(html, /signed/);
   assert.match(html, /ready/);
+  assert.match(html, /Workflow Result Summary/);
+  assert.match(html, /workflow-result/);
   assert.doesNotMatch(html, /deploy<prod>/);
 });
 

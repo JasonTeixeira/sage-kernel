@@ -201,11 +201,17 @@ function browserAssertions() {
       checks.push("view-clicks");
 
       document.querySelector('[data-workflow-id="daily-summary"] [data-workflow-action]').click();
-      await wait(() => document.querySelector("#workflow-status")?.textContent.includes('"status": "executed"'));
+      await wait(() => {
+        const text = document.querySelector("#workflow-status")?.textContent || "";
+        return text.includes("executed") && text.includes("Raw audit payload");
+      });
       checks.push("safe-workflow-click");
 
       document.querySelector('[data-workflow-id="full-qa"] [data-workflow-action]').click();
-      await wait(() => document.querySelector("#workflow-status")?.textContent.includes("approval_required"));
+      await wait(() => {
+        const text = document.querySelector("#workflow-status")?.textContent || "";
+        return text.includes("approval_required") && text.includes("Approval requested");
+      });
       checks.push("approval-workflow-click");
 
       const response = await fetch("/api/workflows");

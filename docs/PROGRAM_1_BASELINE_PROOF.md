@@ -57,7 +57,8 @@ Evidence:
 
 ## Phase 1.3 Public Release Readiness
 
-Status: partially proven, blocked on npm authentication for publish proof.
+Status: partially proven, blocked on first-publish credentials/provenance
+execution.
 
 Already proven:
 
@@ -66,22 +67,35 @@ Already proven:
 - `npm pack --dry-run` through `npm run release:check`.
 - Fresh install from a worktree copy.
 
-Pending external proof:
+Current npm proof:
 
-- `npm whoami` failed with `E401 Unauthorized` on 2026-06-18.
-- `npm view sage-kernel version dist-tags --json` returned `E404 Not Found` on
-  2026-06-18, which means the package is not currently published in the npm
+- `npm login --auth-type=web`: completed on 2026-06-18.
+- `npm whoami`: `nexural`.
+- `npm profile get name email email_verified`: `nexural`, `sage@sageideas.org`,
+  verified.
+- `npm view sage-kernel version dist-tags --json`: still returns `E404 Not
+  Found`, which means the package is not currently published in the npm
   registry.
-- Rechecked on 2026-06-18 after Program 3:
-  - `npm whoami`: still blocked with `E401 Unauthorized`.
-  - `npm view sage-kernel version`: still returns `E404 Not Found`.
-- Package ownership/availability must be confirmed during authenticated publish
-  setup.
+- `npm publish --access public --dry-run`: passed for `sage-kernel@0.3.0`.
+- `npm publish --access public`: intentionally did not publish because
+  `publishConfig.provenance=true` made npm attempt automatic provenance and
+  local provenance failed with `Automatic provenance generation not supported
+  for provider: null`.
+
+Conclusion:
+
+- Local npm authentication is now proven.
+- The package remains unpublished.
+- A premium first publish must run from GitHub Actions with OIDC provenance and
+  either `NPM_TOKEN` configured as a GitHub secret or another npm-supported
+  first-publish path.
+- A local one-time publish without provenance is possible only if the project
+  explicitly accepts a lower first-release supply-chain bar.
 
 ## Phase 1.4 First Public Release Proof
 
-Status: partially complete; npm publishing remains blocked on external
-authentication/signing configuration.
+Status: partially complete; npm publishing remains blocked on first-publish
+token/trusted-publisher setup and release signing configuration.
 
 Completed evidence:
 
@@ -112,7 +126,10 @@ Environment hardening added during proof:
 
 Required before completion:
 
-- Configure npm trusted publishing or `NPM_TOKEN`.
+- Configure `NPM_TOKEN` for first GitHub Actions provenance publish, or choose
+  a documented non-provenance bootstrap exception.
+- After the package exists, configure npm trusted publishing for
+  `JasonTeixeira/sage-kernel` and `.github/workflows/release.yml`.
 - Configure signing policy for release tags.
 - Create release tag.
 - Publish package with provenance.
@@ -120,7 +137,7 @@ Required before completion:
 
 ## What Is Left After Program 1.1
 
-1. Configure npm authentication or trusted publishing.
+1. Configure first-publish npm credentials in GitHub Actions.
 2. Configure release signing policy.
 3. Complete Phase 1.4 only after npm publish credentials and release-tag
    signing policy are available.
