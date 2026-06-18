@@ -15,8 +15,10 @@ import {
   validateAgentPack
 } from "../packages/agents/agent-pack.mjs";
 import {
+  __agentRuntimeTestInternals,
   createAgentScorecard,
   evaluateAgentRuntime,
+  formatAgentRuntimeOutput,
   listAgentRoles,
   reviewWithCouncil,
   runAgentTask,
@@ -321,6 +323,41 @@ test("agent runtime rejects unknown roles and validates deterministic evals", ()
   const evalReport = evaluateAgentRuntime({ root });
   assert.equal(evalReport.status, "passed");
   assert.equal(evalReport.evals.every((item) => item.status === "passed"), true);
+});
+
+test("agent runtime covers role variants, formatters, and council decision branches", () => {
+  const roles = listAgentRoles({ root });
+  assert.match(formatAgentRuntimeOutput(roles), /architect\tArchitecture Agent/);
+
+  const builder = runAgentTask({ role: "builder", projectPath: "." }, { root });
+  assert.equal(builder.findings.length, 0);
+  assert.match(builder.nextActions[0], /found no blockers/);
+  assert.match(formatAgentRuntimeOutput(builder), /Agent builder passed/);
+
+  const release = runAgentTask({ role: "release-engineer", projectPath: "." }, { root });
+  assert.equal(release.evidence[0].kind, "release-proof");
+  const docs = runAgentTask({ role: "documentation-engineer", projectPath: "." }, { root });
+  assert.equal(docs.evidence[0].kind, "release-proof");
+  const tests = runAgentTask({ role: "test-engineer", projectPath: "." }, { root });
+  assert.equal(tests.evidence[0].kind, "category-audit");
+  const security = runAgentTask({ role: "security-engineer", projectPath: "." }, { root });
+  assert.equal(security.evidence[0].kind, "category-audit");
+
+  const council = reviewWithCouncil({ roles: ["builder"], projectPath: "." }, { root });
+  assert.equal(council.decision, "pass");
+  assert.match(formatAgentRuntimeOutput(council), /Council pass/);
+  assert.match(formatAgentRuntimeOutput(evaluateAgentRuntime({ root })), /Agent evals passed/);
+  assert.match(formatAgentRuntimeOutput({ ok: true }), /"ok": true/);
+
+  assert.equal(__agentRuntimeTestInternals.councilDecision([{ severity: "critical" }]), "blocked");
+  assert.equal(__agentRuntimeTestInternals.councilDecision([{ severity: "high" }]), "needs-work");
+  assert.equal(__agentRuntimeTestInternals.councilDecision([{ severity: "low" }]), "pass-with-notes");
+  assert.equal(__agentRuntimeTestInternals.councilDecision([]), "pass");
+  assert.equal(__agentRuntimeTestInternals.dedupeFindings([
+    { severity: "low", message: "same", evidence: "x" },
+    { severity: "low", message: "same", evidence: "x" },
+    { severity: "critical", message: "top", evidence: "y" }
+  ]).length, 2);
 });
 
 function copyDir(source, destination) {

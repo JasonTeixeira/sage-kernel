@@ -1539,6 +1539,124 @@
       ]
     },
     {
+      "name": "kernel.agent.roles",
+      "description": "List executable agent roles, missions, allowed tools, forbidden actions, and policies.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "agents:read",
+      "outputShape": "Executable agent role catalog with bounded permissions, quality checklist, memory policy, and approval policy.",
+      "examples": [
+        {
+          "description": "List executable agent roles.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Agent role catalog is invalid."
+      ]
+    },
+    {
+      "name": "kernel.agent.validate",
+      "description": "Validate executable agent role manifests and policy coverage.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "agents:read",
+      "outputShape": "Agent runtime validation report with role count, required-role coverage, policy coverage, and failures.",
+      "examples": [
+        {
+          "description": "Validate executable agent runtime contracts.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "A role is missing permissions, policies, or quality checklist.",
+        "Duplicate role ids exist."
+      ]
+    },
+    {
+      "name": "kernel.agent.run",
+      "description": "Run one bounded read-only agent against a project and return evidence-backed findings and scorecard inputs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string" },
+          "projectPath": { "type": "string" },
+          "objective": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "agents:read",
+      "outputShape": "Agent task result with role metadata, project evidence, findings, permission policy, and next actions.",
+      "examples": [
+        {
+          "description": "Run the reviewer agent against the active repo.",
+          "input": { "role": "reviewer", "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Unknown role.",
+        "Project path is outside allowed review roots.",
+        "Review evidence cannot be generated."
+      ]
+    },
+    {
+      "name": "kernel.agent.eval",
+      "description": "Run deterministic evals for executable agent role contracts, task execution, and council review.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "agents:read",
+      "outputShape": "Agent eval report with pass/fail status for role contracts, agent execution, and council review.",
+      "examples": [
+        {
+          "description": "Run agent runtime evals.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Agent role validation fails.",
+        "Agent execution eval fails.",
+        "Council eval fails."
+      ]
+    },
+    {
+      "name": "kernel.council.review",
+      "description": "Run multiple bounded agent roles and merge their findings into one engineering council decision.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" },
+          "objective": { "type": "string" },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "risk": "safe",
+      "permission": "agents:read",
+      "outputShape": "Council review result with per-agent results, scorecards, deduplicated severity-ranked findings, decision, and next actions.",
+      "examples": [
+        {
+          "description": "Run the default engineering council against the active repo.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "No roles were provided.",
+        "Unknown role.",
+        "Project path is outside allowed review roots."
+      ]
+    },
+    {
       "name": "kernel.review.inspect_repo",
       "description": "Inspect a project for scripts, docs, tests, CI, package metadata, and engineering surfaces.",
       "inputSchema": {

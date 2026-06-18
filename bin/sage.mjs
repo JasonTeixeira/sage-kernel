@@ -12,6 +12,14 @@ import {
   listAgentProfiles,
   validateAgentPack
 } from "../packages/agents/agent-pack.mjs";
+import {
+  evaluateAgentRuntime,
+  formatAgentRuntimeOutput,
+  listAgentRoles,
+  reviewWithCouncil,
+  runAgentTask,
+  validateAgentRuntime
+} from "../packages/agents/runtime.mjs";
 import { createDoctorReport, formatDoctorReport } from "../packages/core/doctor.mjs";
 import { formatMcpClientConfig } from "../packages/core/mcp-client-config.mjs";
 import {
@@ -117,6 +125,8 @@ Usage:
   sage dogfood-prod [repo...]
   sage doctor [--json] [--fast] [--client=codex|claude|cursor|all]
   sage agents [list|validate|install|doctor] [--json] [--force] [--home=/path]
+  sage agent [roles|validate|eval|run] [role] [projectPath] [--objective=text] [--json]
+  sage council review [projectPath] [--roles=a,b,c] [--objective=text] [--json]
   sage profile [detect|validate] [projectPath] [--json]
   sage loop [plan|dry-run|run|validate|prove] [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--json]
   sage workflow [validate|prove|run] [workflow-json-file] [--json]
@@ -351,6 +361,65 @@ switch (command) {
       }
       console.error(`Unknown agents subcommand: ${subcommand}`);
       process.exitCode = 1;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "agent": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "roles", role = "reviewer", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = subcommand === "roles"
+        ? listAgentRoles({ root })
+        : subcommand === "validate"
+          ? validateAgentRuntime({ root })
+          : subcommand === "eval"
+            ? evaluateAgentRuntime({ root })
+            : subcommand === "run"
+              ? runAgentTask({
+                role,
+                projectPath,
+                objective: valueArg(args, "--objective") || undefined
+              }, { root })
+              : null;
+      if (!value) {
+        console.error(`Unknown agent subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatAgentRuntimeOutput(value, { json }));
+      process.exitCode = value.status === "failed" ? 1 : 0;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "council": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "review", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      if (subcommand !== "review") {
+        console.error(`Unknown council subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      const roles = valueArg(args, "--roles")
+        ?.split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const value = reviewWithCouncil({
+        projectPath,
+        roles,
+        objective: valueArg(args, "--objective") || undefined
+      }, { root });
+      console.log(formatAgentRuntimeOutput(value, { json }));
     } catch (error) {
       console.error(error.message);
       process.exitCode = 1;

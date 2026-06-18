@@ -1320,6 +1320,118 @@
       "required": []
     },
     {
+      "name": "kernel.agent.roles",
+      "description": "List executable agent roles, missions, allowed tools, forbidden actions, and policies.",
+      "risk": "safe",
+      "permission": "agents:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Executable agent role catalog with bounded permissions, quality checklist, memory policy, and approval policy.",
+      "examples": [
+        {
+          "description": "List executable agent roles.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Agent role catalog is invalid."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.agent.validate",
+      "description": "Validate executable agent role manifests and policy coverage.",
+      "risk": "safe",
+      "permission": "agents:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Agent runtime validation report with role count, required-role coverage, policy coverage, and failures.",
+      "examples": [
+        {
+          "description": "Validate executable agent runtime contracts.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "A role is missing permissions, policies, or quality checklist.",
+        "Duplicate role ids exist."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.agent.run",
+      "description": "Run one bounded read-only agent against a project and return evidence-backed findings and scorecard inputs.",
+      "risk": "safe",
+      "permission": "agents:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Agent task result with role metadata, project evidence, findings, permission policy, and next actions.",
+      "examples": [
+        {
+          "description": "Run the reviewer agent against the active repo.",
+          "input": {
+            "role": "reviewer",
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Unknown role.",
+        "Project path is outside allowed review roots.",
+        "Review evidence cannot be generated."
+      ],
+      "inputHash": "5191086af19b8c9d70d4eef6c0adcecb36259806bed69508e4951088b25be3e4",
+      "required": []
+    },
+    {
+      "name": "kernel.agent.eval",
+      "description": "Run deterministic evals for executable agent role contracts, task execution, and council review.",
+      "risk": "safe",
+      "permission": "agents:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Agent eval report with pass/fail status for role contracts, agent execution, and council review.",
+      "examples": [
+        {
+          "description": "Run agent runtime evals.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Agent role validation fails.",
+        "Agent execution eval fails.",
+        "Council eval fails."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.council.review",
+      "description": "Run multiple bounded agent roles and merge their findings into one engineering council decision.",
+      "risk": "safe",
+      "permission": "agents:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Council review result with per-agent results, scorecards, deduplicated severity-ranked findings, decision, and next actions.",
+      "examples": [
+        {
+          "description": "Run the default engineering council against the active repo.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "No roles were provided.",
+        "Unknown role.",
+        "Project path is outside allowed review roots."
+      ],
+      "inputHash": "f791bd4a049ad92c07ad922edb3bc5dfa6054d74085ffac067f0b84a01090b94",
+      "required": []
+    },
+    {
       "name": "kernel.review.inspect_repo",
       "description": "Inspect a project for scripts, docs, tests, CI, package metadata, and engineering surfaces.",
       "risk": "safe",

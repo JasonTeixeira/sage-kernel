@@ -57,6 +57,11 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.agents.validate` | safe | `agents:read` | No | none |
 | `kernel.agents.doctor` | safe | `agents:read` | No | none |
 | `kernel.agents.install_global` | mutating | `agents:write` | Yes | writes AGENTS.md and profile files under the selected user home |
+| `kernel.agent.roles` | safe | `agents:read` | No | none |
+| `kernel.agent.validate` | safe | `agents:read` | No | none |
+| `kernel.agent.run` | safe | `agents:read` | No | none |
+| `kernel.agent.eval` | safe | `agents:read` | No | none |
+| `kernel.council.review` | safe | `agents:read` | No | none |
 | `kernel.review.inspect_repo` | safe | `review:read` | No | none |
 | `kernel.review.architecture_audit` | safe | `review:read` | No | none |
 | `kernel.review.clean_code_audit` | safe | `review:read` | No | none |
@@ -731,6 +736,61 @@ Example input:
 }
 ```
 
+### `kernel.agent.roles`
+
+Executable agent role catalog with bounded permissions, quality checklist, memory policy, and approval policy.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.agent.validate`
+
+Agent runtime validation report with role count, required-role coverage, policy coverage, and failures.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.agent.run`
+
+Agent task result with role metadata, project evidence, findings, permission policy, and next actions.
+
+Example input:
+
+```json
+{
+  "role": "reviewer",
+  "projectPath": "."
+}
+```
+
+### `kernel.agent.eval`
+
+Agent eval report with pass/fail status for role contracts, agent execution, and council review.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.council.review`
+
+Council review result with per-agent results, scorecards, deduplicated severity-ranked findings, decision, and next actions.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
 ### `kernel.review.inspect_repo`
 
 Repository inspection summary with project metadata, counts, scripts, docs, CI, surfaces, and findings.
@@ -1149,6 +1209,33 @@ Example input:
 - Agent pack validation fails.
 - Existing AGENTS.md requires --force.
 - Selected home is not writable.
+
+### `kernel.agent.roles`
+
+- Agent role catalog is invalid.
+
+### `kernel.agent.validate`
+
+- A role is missing permissions, policies, or quality checklist.
+- Duplicate role ids exist.
+
+### `kernel.agent.run`
+
+- Unknown role.
+- Project path is outside allowed review roots.
+- Review evidence cannot be generated.
+
+### `kernel.agent.eval`
+
+- Agent role validation fails.
+- Agent execution eval fails.
+- Council eval fails.
+
+### `kernel.council.review`
+
+- No roles were provided.
+- Unknown role.
+- Project path is outside allowed review roots.
 
 ### `kernel.review.inspect_repo`
 

@@ -77,6 +77,7 @@
     "adapters:list": "node packages/intelligence/scripts/adapters-list.mjs",
     "adapters:smoke": "node packages/intelligence/scripts/adapters-smoke.mjs",
     "agents:validate": "node packages/agents/scripts/agents-validate.mjs",
+    "agents:eval": "node packages/agents/scripts/agents-eval.mjs --json",
     "profiles:validate": "node packages/profiles/scripts/profiles-validate.mjs",
     "profiles:prove": "node packages/profiles/scripts/profiles-prove.mjs",
     "profiles:prove-paths": "node packages/profiles/scripts/profiles-prove-paths.mjs",

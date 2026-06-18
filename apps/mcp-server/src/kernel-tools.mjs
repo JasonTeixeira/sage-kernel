@@ -20,6 +20,13 @@ import {
   listAgentProfiles,
   validateAgentPack
 } from "../../../packages/agents/agent-pack.mjs";
+import {
+  evaluateAgentRuntime,
+  listAgentRoles,
+  reviewWithCouncil,
+  runAgentTask,
+  validateAgentRuntime
+} from "../../../packages/agents/runtime.mjs";
 import { listAdapters } from "../../../packages/intelligence/adapters.mjs";
 import { createSemanticCode } from "../../../packages/intelligence/semantic-code.mjs";
 import { createAdr, createDailyPlan, executeRunbookStep, listRunbooks } from "../../../packages/intelligence/runbooks.mjs";
@@ -301,6 +308,29 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.agents.install_global":
       return installGlobalAgentPack({ root, home: input.home, force: input.force });
+
+    case "kernel.agent.roles":
+      return listAgentRoles({ root });
+
+    case "kernel.agent.validate":
+      return validateAgentRuntime({ root });
+
+    case "kernel.agent.run":
+      return runAgentTask({
+        role: input.role || "reviewer",
+        projectPath: input.projectPath || ".",
+        objective: input.objective
+      }, { root });
+
+    case "kernel.agent.eval":
+      return evaluateAgentRuntime({ root });
+
+    case "kernel.council.review":
+      return reviewWithCouncil({
+        projectPath: input.projectPath || ".",
+        objective: input.objective,
+        roles: input.roles
+      }, { root });
 
     case "kernel.review.inspect_repo":
       return inspectRepository({ root, projectPath: input.projectPath || "." });

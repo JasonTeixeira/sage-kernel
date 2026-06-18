@@ -6,6 +6,7 @@ const checks = [
   ["npm", ["run", "intelligence:validate"]],
   ["npm", ["run", "adapters:validate"]],
   ["npm", ["run", "agents:validate"]],
+  ["npm", ["run", "agents:eval"]],
   ["npm", ["run", "profiles:validate"]],
   ["npm", ["run", "profiles:prove"]],
   ["npm", ["run", "profiles:prove-paths"]],
