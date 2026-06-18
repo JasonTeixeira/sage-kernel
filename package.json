@@ -82,6 +82,8 @@
     "profiles:prove-paths": "node packages/profiles/scripts/profiles-prove-paths.mjs",
     "workflows:validate": "node packages/workflows/scripts/workflows-validate.mjs",
     "workflows:prove": "node packages/workflows/scripts/workflows-prove.mjs",
+    "workflows:engine": "node bin/sage.mjs workflow validate",
+    "workflows:e2e": "node bin/sage.mjs workflow prove",
     "review:validate": "node packages/review/scripts/review-validate.mjs",
     "review:inspect": "node bin/sage.mjs review inspect --json",
     "review:score": "node bin/sage.mjs review score --json",

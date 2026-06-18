@@ -118,6 +118,68 @@ Closed-loop workflows now add profile-specific commands and evidence for:
 
 Fallback behavior remains generic and safe for unknown profiles.
 
+## Phase 3.7 Workflow Engine Runtime
+
+Status: implemented and locally proven.
+
+Deliverables:
+
+- `packages/workflows/engine.mjs`
+- `sage workflow validate --json`
+- `sage workflow prove --json`
+- `sage workflow run <workflow-json-file> --json`
+- `npm run workflows:engine`
+- `npm run workflows:e2e`
+
+Runtime capabilities:
+
+- Validates workflow IDs, unique step IDs, known step types, and command-bearing
+  steps.
+- Tracks explicit workflow states:
+  - `proposed`
+  - `planned`
+  - `approved`
+  - `running`
+  - `verifying`
+  - `reviewing`
+  - `fixing`
+  - `blocked`
+  - `failed`
+  - `passed`
+  - `released`
+- Supports step types:
+  - `inspect`
+  - `plan`
+  - `command`
+  - `test`
+  - `review`
+  - `security`
+  - `stress`
+  - `docs`
+  - `memory`
+  - `approval`
+  - `rollback`
+  - `release`
+- Blocks approval-gated steps when approval evidence is missing.
+- Retries failed steps within a configured retry budget.
+- Calls a bounded repair hook before retry.
+- Executes rollback commands for completed steps after downstream failure.
+- Records an in-memory audit trail and supports an injected audit sink.
+- Produces a repair-plan-style next-action list on failure.
+
+E2E fixture proof:
+
+- Creates a temporary project with a deliberately failing test.
+- Runs the workflow engine against the fixture.
+- Uses a controlled repair hook to patch the bug.
+- Reruns the exact failing command.
+- Verifies the fixture test fails before repair and passes after repair.
+
+Release gate integration:
+
+- `npm run workflows:engine` and `npm run workflows:e2e` now run inside
+  `npm run release:check`.
+
 ## Verification
 
 Focused verification:
@@ -126,6 +188,9 @@ Focused verification:
 - `npm run profiles:prove-paths -- .`: passed.
 - `npm run workflows:validate`: passed.
 - `npm run workflows:prove`: passed.
+- `node --test tests/workflows-engine.test.mjs`: passed.
+- `npm run workflows:engine`: passed.
+- `npm run workflows:e2e`: passed.
 - `npm run mcp:validate`: passed with 61 tools.
 - `npm run mcp:contracts`: passed with 61 tools, 11 prompts, and 21 resources.
 - `node --test tests/dashboard-app.test.mjs`: passed, including workflow result
@@ -167,3 +232,5 @@ Full-gate verification:
    their paths are available and allowlisted.
 4. Keep raising branch coverage for newly added workflow/profile branches as
    new profiles are added.
+5. Next Program 3 pass: expose the workflow engine through MCP and dashboard
+   active-workflow views, then use it as the substrate for Program 4 agents.

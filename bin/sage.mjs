@@ -44,6 +44,12 @@ import {
   proveClosedLoopWorkflows,
   validateClosedLoopWorkflows
 } from "../packages/workflows/closed-loop.mjs";
+import {
+  createWorkflowEngineFixture,
+  formatWorkflowEngineOutput,
+  runWorkflow,
+  validateWorkflowDefinition
+} from "../packages/workflows/engine.mjs";
 
 const currentFile = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(currentFile), "..");
@@ -112,6 +118,7 @@ Usage:
   sage agents [list|validate|install|doctor] [--json] [--force] [--home=/path]
   sage profile [detect|validate] [projectPath] [--json]
   sage loop [plan|dry-run|run|validate|prove] [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--json]
+  sage workflow [validate|prove|run] [workflow-json-file] [--json]
   sage done generate [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--profile=id] [--json]
   sage review [inspect|architecture|clean-code|tests|security|score|prove] [projectPath] [--json]
   sage drift [map|scope|audit|prove] [--json]
@@ -400,6 +407,33 @@ switch (command) {
     break;
   }
 
+  case "workflow": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "validate", workflowFile] = positional;
+    const json = args.includes("--json");
+    try {
+      const definition = workflowFile ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), workflowFile), "utf8")) : defaultWorkflowDefinition();
+      const value = subcommand === "validate"
+        ? validateWorkflowDefinition(definition)
+        : subcommand === "prove"
+          ? createWorkflowEngineFixture({ root })
+          : subcommand === "run"
+            ? runWorkflow(definition, { root })
+            : null;
+      if (!value) {
+        console.error(`Unknown workflow subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatWorkflowEngineOutput(value, { json }));
+      process.exitCode = value.status === "failed" || value.status === "blocked" ? 1 : 0;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
   case "done": {
     const positional = args.filter((arg) => !arg.startsWith("--"));
     const [subcommand = "generate", projectPath = "."] = positional;
@@ -558,4 +592,16 @@ switch (command) {
 function valueArg(values, name) {
   const arg = values.find((item) => item.startsWith(`${name}=`));
   return arg ? arg.slice(name.length + 1) : null;
+}
+
+function defaultWorkflowDefinition() {
+  return {
+    id: "default_workflow",
+    objective: "Validate the Sage workflow engine runtime.",
+    steps: [
+      { id: "inspect", type: "inspect" },
+      { id: "verify", type: "test", command: "npm run workflows:validate" },
+      { id: "review", type: "review" }
+    ]
+  };
 }

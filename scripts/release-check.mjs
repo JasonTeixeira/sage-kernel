@@ -11,6 +11,8 @@ const checks = [
   ["npm", ["run", "profiles:prove-paths"]],
   ["npm", ["run", "workflows:validate"]],
   ["npm", ["run", "workflows:prove"]],
+  ["npm", ["run", "workflows:engine"]],
+  ["npm", ["run", "workflows:e2e"]],
   ["npm", ["run", "review:validate"]],
   ["npm", ["run", "drift:validate"]],
   ["npm", ["run", "runbooks:validate"]],

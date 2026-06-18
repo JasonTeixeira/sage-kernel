@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 import {
+  __workflowEngineTestInternals,
   createWorkflowEngineFixture,
   formatWorkflowEngineOutput,
   runWorkflow,
@@ -134,4 +135,113 @@ test("workflow engine CLI exposes validation and fixture proof", () => {
   assert.equal(JSON.parse(prove.stdout).status, "passed");
 
   assert.match(formatWorkflowEngineOutput(JSON.parse(prove.stdout)), /Workflow engine proof passed/);
+});
+
+test("workflow engine covers defensive branches and explicit workflow file runs", () => {
+  const invalidRun = runWorkflow({ id: "bad workflow", steps: [] }, { root });
+  assert.equal(invalidRun.status, "failed");
+  assert.equal(invalidRun.state, "failed");
+  assert.match(invalidRun.nextActions.join("\n"), /Invalid workflow id/);
+
+  const auditEvents = [];
+  const approved = runWorkflow({
+    id: "approved_loop",
+    retryLimit: "bogus",
+    steps: [
+      { id: "gate", type: "approval", requiresApproval: true, approvalId: "approval_gate" },
+      { id: "docs", type: "docs", command: "npm run docs", retries: 2, rollback: ["undo docs", "undo cache"] }
+    ]
+  }, {
+    root,
+    approvals: [{ id: "approval_gate" }],
+    auditSink(event) {
+      auditEvents.push(event);
+    },
+    runner(command) {
+      return command === "npm run docs"
+        ? { status: 0, stdout: "docs ok", stderr: "" }
+        : { status: 0, stdout: `rolled back ${command}`, stderr: "" };
+    }
+  });
+  assert.equal(approved.status, "passed");
+  assert.equal(approved.steps[0].status, "passed");
+  assert.equal(auditEvents.length > 0, true);
+
+  const noRepair = runWorkflow({
+    id: "no_repair_loop",
+    steps: [{ id: "security", type: "security", command: "npm run security:scan", retries: 1 }]
+  }, {
+    root,
+    runner(command) {
+      return { command, status: 9, stdout: "out", stderr: "" };
+    }
+  });
+  assert.equal(noRepair.status, "failed");
+  assert.match(noRepair.nextActions.join("\n"), /Failure signal: out/);
+
+  const workflowFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "sage-workflow-file-")), "workflow.json");
+  fs.writeFileSync(workflowFile, JSON.stringify({
+    id: "file_workflow",
+    steps: [{ id: "inspect", type: "inspect" }]
+  }));
+  const cli = spawnSync("node", ["bin/sage.mjs", "workflow", "run", workflowFile, "--json"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.equal(cli.status, 0, cli.stderr || cli.stdout);
+  assert.equal(JSON.parse(cli.stdout).status, "passed");
+
+  assert.match(formatWorkflowEngineOutput({ status: "passed", id: "", state: "" }), /workflow/);
+  assert.equal(__workflowEngineTestInternals.requiresCommand({ type: "inspect" }), false);
+  assert.equal(__workflowEngineTestInternals.requiresCommand({ type: "release" }), true);
+  assert.equal(__workflowEngineTestInternals.proofCommandResult("x", { status: 0 }).status, "passed");
+  assert.equal(__workflowEngineTestInternals.proofCommandResult("x", { status: 1 }).status, "failed");
+});
+
+test("workflow engine covers approval variants, rollback arrays, and formatter branches", () => {
+  const validation = validateWorkflowDefinition({
+    id: "missing_command",
+    steps: [{ id: "release", type: "release" }]
+  });
+  assert.equal(validation.status, "failed");
+  assert.match(validation.failures.join("\n"), /requires a command/);
+
+  const approvedByStep = runWorkflow({
+    id: "approved_by_step",
+    steps: [{ id: "approval_step", type: "approval", requiresApproval: true }]
+  }, {
+    root,
+    approvals: ["approval_step"]
+  });
+  assert.equal(approvedByStep.status, "passed");
+
+  const rollbackArray = runWorkflow({
+    id: "rollback_array",
+    steps: [
+      { id: "generate", type: "command", command: "generate", rollback: ["rollback one", "rollback two"] },
+      { id: "test", type: "test", command: "fail" }
+    ]
+  }, {
+    root,
+    runner(command) {
+      return command === "fail"
+        ? { command, status: 1, stdout: "", stderr: "" }
+        : { command, status: 0, stdout: "", stderr: "" };
+    }
+  });
+  assert.deepEqual(rollbackArray.rollback.map((entry) => entry.command), ["rollback one", "rollback two"]);
+  assert.match(rollbackArray.nextActions.join("\n"), /Step failed: test/);
+
+  const badWorkflowCli = spawnSync("node", ["bin/sage.mjs", "workflow", "unknown"], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.equal(badWorkflowCli.status, 1);
+  assert.match(badWorkflowCli.stderr, /Unknown workflow subcommand/);
+
+  const validOutput = validateWorkflowDefinition({ id: "ok", steps: [{ id: "inspect", type: "inspect" }] });
+  assert.match(formatWorkflowEngineOutput(validOutput), /Workflow engine validation passed/);
+  assert.match(formatWorkflowEngineOutput(validOutput, { json: true }), /"status": "passed"/);
+  assert.equal(__workflowEngineTestInternals.compactStates(["proposed", "planned", "planned", "", null, "passed"]).join(","), "proposed,planned,passed");
+  assert.equal(__workflowEngineTestInternals.normalizeCommandResult("x", { stdout: null, stderr: null }).status, 1);
 });
