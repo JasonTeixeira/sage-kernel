@@ -12,8 +12,24 @@ import {
 } from "../packages/security/approvals.mjs";
 import { createPolicyEngine } from "../packages/core/policy-engine.mjs";
 import { assertToolAllowed, signRecord } from "../packages/security/guard.mjs";
+import {
+  createSecurityProof,
+  createSupplyChainReport,
+  generateThreatModel
+} from "../packages/security/supply-chain.mjs";
+import { callKernelTool } from "../apps/mcp-server/src/kernel-tools.mjs";
+import { spawnSync } from "node:child_process";
 
 const schemaRoot = path.resolve(import.meta.dirname, "..");
+
+function run(args, options = {}) {
+  return spawnSync(args[0], args.slice(1), {
+    cwd: schemaRoot,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 8,
+    ...options
+  });
+}
 
 function setup() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "sage-kernel-security-"));
@@ -135,5 +151,70 @@ test("tool guard treats string true as read-only mode", () => {
     assert.equal(assertToolAllowed(root, "catalog.search", {}).allowed, true);
   } finally {
     delete process.env.SAGE_KERNEL_READ_ONLY;
+  }
+});
+
+test("security program generates threat models, supply-chain reports, and proof gates", async () => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "sage-security-program-"));
+  fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({
+    name: "secure-app",
+    license: "MIT",
+    scripts: {
+      "security:scan": "node scripts/security-scan.mjs",
+      "test": "node --test"
+    },
+    dependencies: {
+      zod: "^4.4.3"
+    },
+    devDependencies: {
+      "@playwright/test": "^1.57.0"
+    }
+  }));
+  fs.writeFileSync(path.join(fixture, "README.md"), "# Secure App\n");
+  fs.writeFileSync(path.join(fixture, "SECURITY.md"), "# Security Policy\n");
+
+  process.env.SAGE_REVIEW_ALLOWED_ROOTS = fixture;
+  try {
+    const threat = generateThreatModel({
+      root: schemaRoot,
+      projectPath: fixture,
+      systemName: "Secure App",
+      assets: ["customer data"],
+      externalSystems: ["stripe"],
+      identities: ["user", "admin"]
+    });
+    assert.equal(threat.status, "passed");
+    assert.equal(threat.assets.some((asset) => asset.name === "customer data"), true);
+    assert.equal(threat.threats.some((item) => item.category === "secrets"), true);
+
+    const supply = createSupplyChainReport({ root: schemaRoot, projectPath: fixture });
+    assert.equal(supply.status, "passed");
+    assert.equal(supply.sbom.components.some((component) => component.name === "zod"), true);
+    assert.equal(supply.license.status, "passed");
+    assert.equal(supply.scorecard.score >= 80, true);
+
+    const proof = createSecurityProof({ root: schemaRoot, projectPath: fixture });
+    assert.equal(proof.status, "passed");
+    assert.equal(proof.threatModel.status, "passed");
+    assert.equal(proof.supplyChain.status, "passed");
+
+    const cliThreat = run(["node", "bin/sage.mjs", "security", "threat-model", fixture, "--json"], {
+      env: { ...process.env, SAGE_REVIEW_ALLOWED_ROOTS: fixture }
+    });
+    assert.equal(cliThreat.status, 0, cliThreat.stderr || cliThreat.stdout);
+    assert.equal(JSON.parse(cliThreat.stdout).status, "passed");
+
+    const cliSupply = run(["node", "bin/sage.mjs", "security", "supply-chain", fixture, "--json"], {
+      env: { ...process.env, SAGE_REVIEW_ALLOWED_ROOTS: fixture }
+    });
+    assert.equal(cliSupply.status, 0, cliSupply.stderr || cliSupply.stdout);
+    assert.equal(JSON.parse(cliSupply.stdout).status, "passed");
+
+    const mcpThreat = await callKernelTool(schemaRoot, "kernel.security.threat_model", { projectPath: fixture });
+    assert.equal(mcpThreat.status, "passed");
+    const mcpSupply = await callKernelTool(schemaRoot, "kernel.security.supply_chain", { projectPath: fixture });
+    assert.equal(mcpSupply.status, "passed");
+  } finally {
+    delete process.env.SAGE_REVIEW_ALLOWED_ROOTS;
   }
 });
