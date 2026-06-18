@@ -78,6 +78,42 @@ Release gate additions:
 
 These now run inside `npm run release:check`.
 
+## Phase 3.5 Dashboard Loop Controls
+
+Status: implemented and locally proven.
+
+Dashboard workflow additions:
+
+- `loop-plan`
+  - Command: `sage loop plan . --risk=high`
+  - Tool: `kernel.loop.plan`
+  - Approval: not required.
+- `loop-run`
+  - Command: `sage loop run . --risk=low`
+  - Tool: `kernel.loop.run`
+  - Approval: required.
+
+Proof:
+
+- Dashboard workflow list includes both loop controls.
+- Safe loop planning executes through the dashboard workflow API.
+- Loop execution requests approval before running.
+- Approved loop execution runs through the dashboard workflow API.
+
+## Phase 3.6 Framework Refinements
+
+Status: implemented and locally proven.
+
+Closed-loop workflows now add profile-specific commands and evidence for:
+
+- MCP servers.
+- Web apps.
+- Backend APIs.
+- CLI tools.
+- Infrastructure projects.
+
+Fallback behavior remains generic and safe for unknown profiles.
+
 ## Verification
 
 Focused verification:
@@ -88,15 +124,21 @@ Focused verification:
 - `npm run workflows:prove`: passed.
 - `npm run mcp:validate`: passed with 61 tools.
 - `npm run mcp:contracts`: passed with 61 tools, 11 prompts, and 21 resources.
+- `node --test tests/dashboard-app.test.mjs`: passed.
+- `node --test tests/workflows-closed-loop.test.mjs`: passed.
+- `npm run profiles:prove-paths -- .`: passed and detected `sage-kernel` as
+  `mcp-server` with secondary `ai-agent-app`, `cli-tool`, and `infrastructure`
+  project types.
 
 Full-gate verification:
 
 - `npm run test:coverage`: passed.
 - Coverage after this pass:
-  - Lines: 99.28%.
-  - Branches: 92.55%.
-  - Functions: 98.25%.
-- `npm run coverage:critical -- /tmp/sage-program3-coverage-output.txt`: passed.
+  - Lines: 99.29%.
+  - Branches: 92.91%.
+  - Functions: 98.26%.
+  - `packages/workflows/closed-loop.mjs` branch coverage: 95.77%.
+- `npm run coverage:critical -- /tmp/sage-program3-dashboard-loop-coverage-output.txt`: passed.
 - `npm run release:check`: passed.
 - `npm run verify:fresh-install -- --worktree-copy`: passed.
 - `npm run security:scan`: passed.
@@ -106,7 +148,9 @@ Full-gate verification:
 ## What Is Left
 
 1. Push and prove CI on GitHub.
-2. Connect the loop engine to dashboard workflow controls.
-3. Add per-framework loop refinements as real projects are scanned.
-4. Finish external publish residue: npm auth, signed release, provenance
+2. Finish external publish residue: npm auth, signed release, provenance
    publish, and public npm install proof.
+3. Run `profiles:prove-paths` against additional real external repositories
+   after their paths are available and allowlisted.
+4. Keep raising branch coverage for newly added workflow/profile branches as
+   new profiles are added.

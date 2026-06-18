@@ -179,6 +179,8 @@ test("dashboard workflow API exposes an allowlisted executable control plane", a
   const workflows = listDashboardWorkflows();
   assert.equal(workflows.some((workflow) => workflow.id === "daily-summary" && workflow.risk === "safe"), true);
   assert.equal(workflows.some((workflow) => workflow.id === "full-qa" && workflow.requiresApproval), true);
+  assert.equal(workflows.some((workflow) => workflow.id === "loop-plan" && workflow.tool === "kernel.loop.plan" && !workflow.requiresApproval), true);
+  assert.equal(workflows.some((workflow) => workflow.id === "loop-run" && workflow.tool === "kernel.loop.run" && workflow.requiresApproval), true);
 
   const safe = await runDashboardWorkflow({ id: "pending-approvals" }, { root: sandbox });
   assert.equal(safe.status, "executed");
@@ -189,8 +191,36 @@ test("dashboard workflow API exposes an allowlisted executable control plane", a
   assert.equal(blocked.status, "approval_required");
   assert.match(blocked.approval.id, /^approval_/);
 
+  const loopBlocked = await runDashboardWorkflow({ id: "loop-run" }, { root: sandbox });
+  assert.equal(loopBlocked.status, "approval_required");
+  assert.equal(loopBlocked.workflow.tool, "kernel.loop.run");
+
   const invalid = await runDashboardWorkflow({ id: "rm -rf ." }, { root: sandbox });
   assert.equal(invalid.status, "rejected");
+});
+
+test("dashboard exposes closed-loop plan and run workflows", async () => {
+  const sandbox = createDashboardFixture();
+  fs.mkdirSync(path.join(sandbox, "apps/mcp-server/scripts"), { recursive: true });
+  fs.writeFileSync(path.join(sandbox, "apps/mcp-server/scripts/call-tool.mjs"), [
+    "const [, , tool, input] = process.argv;",
+    "console.log(JSON.stringify({ tool, input: JSON.parse(input), status: 'passed' }));"
+  ].join("\n"));
+
+  const planned = await runDashboardWorkflow({ id: "loop-plan" }, { root: sandbox });
+  assert.equal(planned.status, "executed");
+  assert.equal(planned.workflow.tool, "kernel.loop.plan");
+  assert.match(planned.result.stdout, /kernel.loop.plan/);
+
+  const requested = await runDashboardWorkflow({ id: "loop-run" }, { root: sandbox });
+  const db = createSqliteAdapter({ root: sandbox });
+  db.init();
+  createApprovalLedger({ db }).approve({ id: requested.approval.id, decidedBy: "test" });
+
+  const executed = await runDashboardWorkflow({ id: "loop-run", approvalId: requested.approval.id }, { root: sandbox });
+  assert.equal(executed.status, "executed");
+  assert.equal(executed.workflow.tool, "kernel.loop.run");
+  assert.match(executed.result.stdout, /kernel.loop.run/);
 });
 
 test("dashboard guarded workflows require matching signed approvals before execution", async () => {
@@ -468,6 +498,8 @@ test("dashboard cockpit renders empty operational states without layout placehol
   assert.match(html, /Runbooks/);
   assert.match(html, /MCP Tool Explorer/);
   assert.match(html, /data-workflow-id="daily-summary"/);
+  assert.match(html, /data-workflow-id="loop-plan"/);
+  assert.match(html, /data-workflow-id="loop-run"/);
   assert.match(html, /data-refresh-interval/);
   assert.match(html, /workflow-status/);
 });

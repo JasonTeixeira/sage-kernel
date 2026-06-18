@@ -32,6 +32,28 @@ const workflowDefinitions = [
     input: { projectPath: ".", mode: "fast" }
   },
   {
+    id: "loop-plan",
+    label: "Loop Plan",
+    command: "sage loop plan . --risk=high",
+    description: "Create a profile-aware closed-loop SDLC plan.",
+    risk: "safe",
+    permission: "dashboard.workflow.read",
+    requiresApproval: false,
+    tool: "kernel.loop.plan",
+    input: { projectPath: ".", objective: "Plan the next verified engineering sprint.", risk: "high" }
+  },
+  {
+    id: "loop-run",
+    label: "Loop Run",
+    command: "sage loop run . --risk=low",
+    description: "Execute allowlisted closed-loop verification commands.",
+    risk: "local-compute",
+    permission: "dashboard.workflow.qa",
+    requiresApproval: true,
+    tool: "kernel.loop.run",
+    input: { projectPath: ".", objective: "Verify the current sprint.", risk: "low" }
+  },
+  {
     id: "full-qa",
     label: "Full QA",
     command: "sage full-qa .",

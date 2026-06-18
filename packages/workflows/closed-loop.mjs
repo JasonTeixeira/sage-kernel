@@ -11,10 +11,13 @@ const SAFE_COMMANDS = new Set([
   "npm run profiles:prove",
   "npm run mcp:validate",
   "npm run mcp:contracts",
+  "npm run mcp:smoke",
+  "npm run infra:validate",
   "npm run qa:gate",
   "npm run release:check",
   "npm run security:scan",
   "npm audit",
+  "npm pack --dry-run",
   "git diff --check"
 ]);
 
@@ -58,7 +61,7 @@ export function createClosedLoopWorkflow(input = {}, options = {}) {
 
 export function validateClosedLoopWorkflows(options = {}) {
   const root = path.resolve(options.root || process.cwd());
-  const sample = createClosedLoopWorkflow({ projectPath: ".", mode: "plan", risk: "high" }, { root });
+  const sample = options.sample || createClosedLoopWorkflow({ projectPath: ".", mode: "plan", risk: "high" }, { root });
   const failures = [];
   if (!sample.profile?.id) failures.push("closed loop missing profile");
   if (!Array.isArray(sample.phases) || sample.phases.length < 4) failures.push("closed loop must include at least four phases");
@@ -74,13 +77,14 @@ export function validateClosedLoopWorkflows(options = {}) {
 export function proveClosedLoopWorkflows(options = {}) {
   const root = path.resolve(options.root || process.cwd());
   const fixtureRoot = createWorkflowFixture();
-  const plan = createClosedLoopWorkflow({ projectPath: fixtureRoot, mode: "plan", objective: "Ship a fixture API.", risk: "high" }, {
+  const createWorkflow = options.createWorkflow || createClosedLoopWorkflow;
+  const plan = createWorkflow({ projectPath: fixtureRoot, mode: "plan", objective: "Ship a fixture API.", risk: "high" }, {
     root: path.dirname(fixtureRoot)
   });
-  const dryRun = createClosedLoopWorkflow({ projectPath: fixtureRoot, mode: "dry-run", risk: "low" }, {
+  const dryRun = createWorkflow({ projectPath: fixtureRoot, mode: "dry-run", risk: "low" }, {
     root: path.dirname(fixtureRoot)
   });
-  const run = createClosedLoopWorkflow({ projectPath: ".", mode: "run", risk: "low" }, {
+  const run = createWorkflow({ projectPath: ".", mode: "run", risk: "low" }, {
     root,
     runner: (command) => ({ command, status: 0, stdout: "ok", stderr: "" })
   });
@@ -96,6 +100,41 @@ export function proveClosedLoopWorkflows(options = {}) {
   };
 }
 
+export function createFrameworkLoopRefinements(profileId) {
+  const refinements = {
+    "mcp-server": {
+      implementCommands: ["npm run mcp:validate", "npm run mcp:contracts"],
+      verificationCommands: ["npm run mcp:validate", "npm run mcp:contracts", "npm run mcp:smoke"],
+      evidence: ["tool manifest", "contract snapshot", "MCP smoke", "permission boundary proof"]
+    },
+    "web-app": {
+      implementCommands: ["npm run qa:gate"],
+      verificationCommands: ["npm run qa:gate"],
+      evidence: ["route proof", "browser proof", "mobile viewport proof", "accessibility check"]
+    },
+    "backend-api": {
+      implementCommands: ["npm run qa:gate"],
+      verificationCommands: ["npm run qa:gate"],
+      evidence: ["API contract proof", "database migration proof", "auth boundary proof", "load-test note"]
+    },
+    "cli-tool": {
+      implementCommands: ["npm run qa:gate"],
+      verificationCommands: ["npm run qa:gate", "npm pack --dry-run"],
+      evidence: ["help output", "invalid-input proof", "package dry run"]
+    },
+    infrastructure: {
+      implementCommands: ["npm run infra:validate"],
+      verificationCommands: ["npm run infra:validate"],
+      evidence: ["plan output", "secret boundary proof", "rollback runbook"]
+    }
+  };
+  return refinements[profileId] || {
+    implementCommands: ["npm run qa:gate"],
+    verificationCommands: ["npm run qa:gate"],
+    evidence: ["focused test proof", "diff review"]
+  };
+}
+
 export function formatClosedLoopOutput(value, options = {}) {
   if (options.json) return `${JSON.stringify(value, null, 2)}\n`;
   if (value.checked) {
@@ -108,6 +147,7 @@ export function formatClosedLoopOutput(value, options = {}) {
 }
 
 function buildLoopPhases({ profile, done, risk }) {
+  const refinement = createFrameworkLoopRefinements(profile.profile.id);
   return [
     {
       id: "inspect",
@@ -120,19 +160,15 @@ function buildLoopPhases({ profile, done, risk }) {
       id: "implement",
       title: "Implement",
       goal: "Make the smallest coherent change that satisfies the objective and project profile.",
-      commands: profile.profile.id === "mcp-server"
-        ? ["npm run mcp:validate", "npm run mcp:contracts"]
-        : profile.profile.id === "web-app"
-          ? ["npm run qa:gate"]
-          : ["npm run qa:gate"],
-      evidence: ["scoped diff", "contract updates when interfaces change"]
+      commands: refinement.implementCommands,
+      evidence: ["scoped diff", "contract updates when interfaces change", ...refinement.evidence.slice(0, 2)]
     },
     {
       id: "verify",
       title: "Verify",
       goal: "Run automated checks that map to the detected SDLC profile.",
-      commands: selectVerificationCommands(done.recommendedCommands),
-      evidence: done.evidenceRequired
+      commands: selectVerificationCommands([...done.recommendedCommands, ...refinement.verificationCommands]),
+      evidence: [...new Set([...done.evidenceRequired, ...refinement.evidence])]
     },
     {
       id: "harden",
@@ -170,6 +206,10 @@ function executeLoopCommands(root, commands, runner) {
 
 function runShell(command, { root }) {
   const result = spawnSync(command, { cwd: root, shell: true, encoding: "utf8", timeout: 180000, maxBuffer: 1024 * 1024 * 8 });
+  return formatCommandResult(command, result);
+}
+
+function formatCommandResult(command, result = {}) {
   return {
     command,
     status: result.status ?? 1,
@@ -215,7 +255,12 @@ function slug(value) {
 }
 
 export const __closedLoopTestInternals = {
+  createFrameworkLoopRefinements,
   executeLoopCommands,
+  formatCommandResult,
+  normalizeMode,
+  normalizeRisk,
   runShell,
-  selectVerificationCommands
+  selectVerificationCommands,
+  slug
 };

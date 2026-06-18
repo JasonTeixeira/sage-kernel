@@ -72,6 +72,9 @@ Pending external proof:
 - `npm view sage-kernel version dist-tags --json` returned `E404 Not Found` on
   2026-06-18, which means the package is not currently published in the npm
   registry.
+- Rechecked on 2026-06-18 after Program 3:
+  - `npm whoami`: still blocked with `E401 Unauthorized`.
+  - `npm view sage-kernel version`: still returns `E404 Not Found`.
 - Package ownership/availability must be confirmed during authenticated publish
   setup.
 
