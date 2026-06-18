@@ -44,8 +44,8 @@ GitHub Actions must pass:
 Latest recorded remote proof:
 
 - Date: 2026-06-18
-- Commit: `29fd640`
-- CI: https://github.com/JasonTeixeira/sage-kernel/actions/runs/27762230259
+- Commit: `3c44614`
+- CI: https://github.com/JasonTeixeira/sage-kernel/actions/runs/27765106287
 - Result: passed Quality Gates, Fresh Install Verification, and Postgres
   Integration.
 
@@ -106,8 +106,11 @@ Current local status on 2026-06-18:
 - `npm whoami`: `nexural`.
 - `npm view sage-kernel version`: `E404 Not Found`; package is not published.
 - `npm publish --access public --dry-run`: passed.
+- `npm publish --provenance --access public`: failed with
+  `Automatic provenance generation not supported for provider: null`.
 - Local real publish is blocked by provenance because local execution has no
-  supported OIDC provider.
+  supported OIDC provider. Publish through GitHub Release after configuring npm
+  trusted publishing or a publish-capable `NPM_TOKEN`.
 - No local Git signing key is configured.
 
 ## MCP Client Proof
