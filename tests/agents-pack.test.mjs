@@ -14,6 +14,14 @@ import {
   listAgentProfiles,
   validateAgentPack
 } from "../packages/agents/agent-pack.mjs";
+import {
+  createAgentScorecard,
+  evaluateAgentRuntime,
+  listAgentRoles,
+  reviewWithCouncil,
+  runAgentTask,
+  validateAgentRuntime
+} from "../packages/agents/runtime.mjs";
 import { kernelResources } from "../apps/mcp-server/src/kernel-resources.mjs";
 import { createKernelRuntime } from "../packages/core/runtime.mjs";
 
@@ -244,6 +252,77 @@ test("agent pure internals cover home, headings, checks, hash, and timestamp bra
   assert.doesNotMatch(__agentPackTestInternals.timestamp(), /[:.]/);
 });
 
+test("agent runtime validates roles, runs bounded agents, and produces scorecards", () => {
+  const validation = validateAgentRuntime({ root });
+  assert.equal(validation.status, "passed");
+  assert.equal(validation.roles.length >= 6, true);
+
+  const roles = listAgentRoles({ root });
+  assert.equal(roles.roles.some((role) => role.id === "architect"), true);
+  assert.equal(roles.roles.some((role) => role.id === "security-engineer"), true);
+
+  const task = runAgentTask({
+    role: "reviewer",
+    objective: "Review current project quality.",
+    projectPath: "."
+  }, { root });
+  assert.equal(task.status, "passed");
+  assert.equal(task.agent.id, "reviewer");
+  assert.equal(task.permissions.allowedTools.includes("kernel.review.quality_score"), true);
+  assert.equal(task.evidence.some((item) => item.kind === "review-report"), true);
+
+  const scorecard = createAgentScorecard(task);
+  assert.equal(scorecard.agent, "reviewer");
+  assert.equal(scorecard.status, "passed");
+  assert.equal(scorecard.metrics.policyCompliance, 100);
+  assert.equal(scorecard.metrics.evidenceQuality >= 80, true);
+});
+
+test("agent council reviews merge findings, rank severity, and expose CLI/MCP proof", async () => {
+  const council = reviewWithCouncil({
+    objective: "Council review for release readiness.",
+    projectPath: ".",
+    roles: ["architect", "reviewer", "test-engineer", "security-engineer", "release-engineer"]
+  }, { root });
+  assert.equal(["pass", "pass-with-notes", "needs-work", "blocked"].includes(council.decision), true);
+  assert.equal(council.council, "engineering-review");
+  assert.equal(council.agents.length, 5);
+  assert.equal(council.scorecards.length, 5);
+  assert.equal(
+    council.findings.every((finding, index, all) => index === 0 || severityRank(finding.severity) <= severityRank(all[index - 1].severity)),
+    true
+  );
+
+  const agentCli = run(["node", "bin/sage.mjs", "agent", "run", "reviewer", ".", "--json"]);
+  assert.equal(agentCli.status, 0, agentCli.stderr || agentCli.stdout);
+  assert.equal(JSON.parse(agentCli.stdout).agent.id, "reviewer");
+
+  const councilCli = run(["node", "bin/sage.mjs", "council", "review", ".", "--json"]);
+  assert.equal(councilCli.status, 0, councilCli.stderr || councilCli.stdout);
+  assert.equal(JSON.parse(councilCli.stdout).council, "engineering-review");
+
+  const runtime = createKernelRuntime({ root });
+  await runtime.loadBuiltInTools();
+  const mcpAgent = await runtime.call("kernel.agent.run", { role: "reviewer", projectPath: ".", objective: "MCP review" });
+  assert.equal(mcpAgent.agent.id, "reviewer");
+  const mcpCouncil = await runtime.call("kernel.council.review", { projectPath: ".", roles: ["architect", "reviewer"] });
+  assert.equal(mcpCouncil.agents.length, 2);
+});
+
+test("agent runtime rejects unknown roles and validates deterministic evals", () => {
+  assert.throws(
+    () => runAgentTask({ role: "unknown", objective: "bad" }, { root }),
+    /Unknown agent role/
+  );
+  assert.throws(
+    () => reviewWithCouncil({ roles: [] }, { root }),
+    /requires at least one role/
+  );
+  const evalReport = evaluateAgentRuntime({ root });
+  assert.equal(evalReport.status, "passed");
+  assert.equal(evalReport.evals.every((item) => item.status === "passed"), true);
+});
+
 function copyDir(source, destination) {
   fs.mkdirSync(destination, { recursive: true });
   for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
@@ -255,4 +334,8 @@ function copyDir(source, destination) {
       fs.copyFileSync(from, to);
     }
   }
+}
+
+function severityRank(severity) {
+  return { critical: 4, high: 3, medium: 2, low: 1, info: 0 }[severity] ?? 0;
 }
