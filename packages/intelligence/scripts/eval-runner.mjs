@@ -201,7 +201,6 @@ function trimOutput(value = "") {
   return value.trim().slice(-4000);
 }
 
-/* node:coverage ignore next 11 */
 function parseArgs(argv) {
   const options = { ids: [] };
   for (let index = 0; index < argv.length; index += 1) {
@@ -213,6 +212,17 @@ function parseArgs(argv) {
   }
   return options;
 }
+
+export const __evalRunnerTestInternals = {
+  parseArgs,
+  runCommandGrader,
+  runCoverageGrader,
+  runFileExistsGrader,
+  runGrader,
+  runJsonSchemaGrader,
+  runMcpContractGrader,
+  trimOutput
+};
 
 /* node:coverage ignore next 9 */
 if (import.meta.url === `file://${process.argv[1]}`) {

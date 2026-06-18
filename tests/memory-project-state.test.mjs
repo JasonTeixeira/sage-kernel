@@ -9,6 +9,7 @@ import { createMemoryRecord, createMemoryStore } from "../packages/intelligence/
 import { createProjectState } from "../packages/intelligence/project-state.mjs";
 import { createSqliteAdapter } from "../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../packages/security/approvals.mjs";
+import { runMemorySmoke, runMemorySmokeCli } from "../packages/intelligence/scripts/memory-smoke.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -235,4 +236,37 @@ test("memory smoke script proves CLI-level storage and state path", () => {
   assert.equal(parsed.status, "passed");
   assert.equal(parsed.audit.total, 1);
   assert.equal(parsed.state.memoryTotal, 1);
+});
+
+test("memory smoke direct runner covers CLI status branches", () => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-memory-smoke-direct-"));
+  const result = runMemorySmoke({ root: workspace, schemaRoot: root });
+  assert.equal(result.status, "passed");
+  assert.equal(fs.existsSync(path.join(workspace, "package.json")), true);
+
+  const existingPackage = fs.mkdtempSync(path.join(os.tmpdir(), "sage-memory-smoke-existing-"));
+  fs.writeFileSync(path.join(existingPackage, "package.json"), JSON.stringify({ name: "existing" }));
+  assert.equal(runMemorySmoke({ root: existingPackage, schemaRoot: root }).status, "passed");
+
+  const lines = [];
+  const passed = runMemorySmokeCli({
+    root: fs.mkdtempSync(path.join(os.tmpdir(), "sage-memory-smoke-cli-")),
+    schemaRoot: root,
+    stdout: (line) => lines.push(line)
+  });
+  assert.equal(passed, 0);
+  assert.equal(JSON.parse(lines[0]).status, "passed");
+
+  const failed = runMemorySmokeCli({
+    root: fs.mkdtempSync(path.join(os.tmpdir(), "sage-memory-smoke-failed-")),
+    schemaRoot: root,
+    stdout: () => {},
+    createStore: () => ({
+      write: () => ({ id: "wrong_id" }),
+      search: () => [],
+      audit: () => ({ total: 0 })
+    }),
+    createState: () => ({ status: "needs_attention", memory: { total: 0 } })
+  });
+  assert.equal(failed, 1);
 });

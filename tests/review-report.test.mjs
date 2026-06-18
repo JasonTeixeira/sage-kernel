@@ -11,6 +11,7 @@ import {
   validateReviewReport,
   validateReviewSystem
 } from "../packages/review/review-report.mjs";
+import { runReviewValidateCli } from "../packages/review/scripts/review-validate.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -134,6 +135,24 @@ test("review system validator reports unreadable or malformed contract files", (
   assert.equal(result.checked.schemas, 0);
   assert.match(result.failures.join("\n"), /Invalid review-report\.schema\.json/);
   assert.match(result.failures.join("\n"), /Invalid review-report\.json/);
+});
+
+test("review validate direct CLI runner covers success and failure exits", () => {
+  const lines = [];
+  const passed = runReviewValidateCli({
+    root,
+    stdout: (line) => lines.push(line),
+    validate: () => ({ status: "passed", checked: { schemas: 1 }, failures: [] })
+  });
+  assert.equal(passed, 0);
+  assert.equal(JSON.parse(lines[0]).status, "passed");
+
+  const failed = runReviewValidateCli({
+    root,
+    stdout: () => {},
+    validate: () => ({ status: "failed", checked: { schemas: 0 }, failures: ["broken"] })
+  });
+  assert.equal(failed, 1);
 });
 
 function copyDir(source, destination) {

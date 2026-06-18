@@ -5,7 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { createAdr, createDailyPlan, createOperatingSnapshot, executeRunbookStep, listRunbooks, runbooksSmoke, validateRunbookData, validateRunbooks } from "../packages/intelligence/runbooks.mjs";
+import { createAdr, createDailyPlan, createOperatingSnapshot, executeRunbookStep, listRunbooks, runbooksSmoke, validateRunbookData, validateRunbooks, __runbooksTestInternals } from "../packages/intelligence/runbooks.mjs";
+import { runPlanDayCli, __planDayTestInternals } from "../packages/intelligence/scripts/plan-day.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -318,4 +319,56 @@ test("runbooks smoke and CLI scripts prove daily cockpit path", () => {
   });
   assert.notEqual(smokeScript.status, 0);
   assert.match(smokeScript.stdout, /failed/);
+});
+
+test("runbook internals and plan-day CLI cover helper branches without subprocesses", () => {
+  const failures = [];
+  __runbooksTestInternals.requireString("abc", /^z/, "field", failures);
+  __runbooksTestInternals.requireEnum("bad", ["good"], "enumField", failures);
+  assert.match(failures.join("\n"), /field has invalid format/);
+  assert.match(failures.join("\n"), /enumField must be one of: good/);
+
+  assert.deepEqual(__runbooksTestInternals.arrayItems("not-array"), []);
+  assert.equal(__runbooksTestInternals.boundedText(null), "");
+  assert.equal(__runbooksTestInternals.slug("!!!"), "decision");
+  assert.equal(__runbooksTestInternals.dateStamp(new Date("2026-06-17T12:00:00.000Z")), "2026_06_17");
+  assert.equal(__runbooksTestInternals.isAllowedRunbookCommand("npm run qa:gate"), true);
+  assert.equal(__runbooksTestInternals.isAllowedRunbookCommand(""), false);
+  assert.deepEqual(__runbooksTestInternals.normalizeRollback(null), {
+    required: false,
+    description: "No rollback is required for this read-only or verification step.",
+    command: null
+  });
+  assert.equal(__runbooksTestInternals.readJson(path.join(root, "missing-runbook-json.json"), { fallback: true }).fallback, true);
+  assert.equal(__runbooksTestInternals.safeValue(() => {
+    throw new Error("boom");
+  }, "fallback"), "fallback");
+  assert.throws(() => __runbooksTestInternals.resolveInsideRoot(root, "../outside"), /outside the project root/);
+
+  const shell = __runbooksTestInternals.runShellCommand(root, "ignored", 1000, ({ command, timeoutMs }) => ({
+    status: 7,
+    stdout: command,
+    stderr: String(timeoutMs)
+  }));
+  assert.deepEqual(shell, { status: 7, stdout: "ignored", stderr: "1000" });
+
+  const plan = __runbooksTestInternals.createRunbookStepPlan(
+    { id: "runbook_x", title: "Runbook X", risk: "low" },
+    { id: "step_x", title: "Step X", action: "inspect" },
+    { dryRun: true, timeoutMs: 5000 }
+  );
+  assert.equal(plan.command, null);
+  assert.equal(plan.rollback.required, false);
+
+  assert.deepEqual(__planDayTestInternals.parseArgs(["--objective", "Audit"]), { objective: "Audit" });
+  assert.throws(() => __planDayTestInternals.parseArgs(["--bad"]), /Unknown plan:day argument/);
+
+  const lines = [];
+  const status = runPlanDayCli(["--objective", "Direct CLI"], {
+    root,
+    stdout: (line) => lines.push(line),
+    createPlan: (input) => ({ id: "plan_test", objective: input.objective, root: input.root })
+  });
+  assert.equal(status, 0);
+  assert.equal(JSON.parse(lines[0]).objective, "Direct CLI");
 });

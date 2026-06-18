@@ -16,6 +16,7 @@ import {
   runDashboardWorkflow
 } from "../apps/dashboard/server.mjs";
 import { renderDashboardHtmlView } from "../apps/dashboard/dashboard-render.mjs";
+import { __dashboardWorkflowTestInternals } from "../apps/dashboard/dashboard-workflows.mjs";
 import { createSqliteAdapter } from "../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../packages/security/approvals.mjs";
 import { EventEmitter } from "node:events";
@@ -225,6 +226,63 @@ test("dashboard guarded workflow records approved failed runs and truncates larg
   const audits = db.query("SELECT type FROM audit_events WHERE subject = ? ORDER BY created_at;", ["stress-dashboard"]);
   assert.equal(audits.some((row) => row.type === "dashboard.workflow.approval_requested"), true);
   assert.equal(audits.some((row) => row.type === "dashboard.workflow.failed"), true);
+});
+
+test("dashboard workflow internals cover fallback execution and id branches", () => {
+  const sandbox = createDashboardFixture();
+  const db = createSqliteAdapter({ root: sandbox });
+  db.init();
+
+  assert.equal(__dashboardWorkflowTestInternals.isSafeWorkflowId("daily-summary"), true);
+  assert.equal(__dashboardWorkflowTestInternals.isSafeWorkflowId("x"), false);
+  assert.equal(__dashboardWorkflowTestInternals.isSafeWorkflowId("../bad"), false);
+  assert.equal(__dashboardWorkflowTestInternals.publicWorkflow({
+    id: "fixture",
+    input: { ok: true },
+    tool: "kernel.fixture",
+    label: "Fixture"
+  }).tool, "kernel.fixture");
+
+  const originalCrypto = globalThis.crypto;
+  try {
+    Object.defineProperty(globalThis, "crypto", { value: undefined, configurable: true });
+    assert.match(__dashboardWorkflowTestInternals.cryptoRandomId(), /^\d+_[a-f0-9]+/);
+  } finally {
+    Object.defineProperty(globalThis, "crypto", { value: originalCrypto, configurable: true });
+  }
+
+  const pending = __dashboardWorkflowTestInternals.executeWorkflowTool(sandbox, {
+    id: "pending-approvals",
+    input: { status: "pending" }
+  });
+  assert.equal(pending.status, 0);
+  assert.match(pending.stdout, /pending_approvals/);
+
+  db.execute(
+    "INSERT INTO approvals (id, action, status, reason, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ["approval_pending_summary", "deploy", "pending", "review", "{}", "2026-01-01T00:00:00.000Z"]
+  );
+  db.execute(
+    "INSERT INTO job_runs (id, job_id, status, duration_ms, result_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ["run_null_duration", "qa", "passed", null, "{}", "2026-01-01T00:00:00.000Z"]
+  );
+  const summary = __dashboardWorkflowTestInternals.createLocalDailySummary(sandbox);
+  assert.equal(summary.status, "ready");
+  assert.equal(summary.pendingApprovals, 1);
+  assert.equal(summary.recentRuns[0].durationMs, 0);
+
+  __dashboardWorkflowTestInternals.recordWorkflowRun(db, { id: "fixture" }, "passed", {
+    status: null,
+    stdout: "x".repeat(7000),
+    stderr: "e".repeat(3000)
+  });
+  __dashboardWorkflowTestInternals.writeDashboardAudit(db, "dashboard.workflow.fixture", "fixture");
+  const run = db.query("SELECT result_json FROM job_runs WHERE job_id = ? ORDER BY created_at DESC LIMIT 1", ["dashboard.fixture"])[0];
+  const parsed = JSON.parse(run.result_json);
+  assert.equal(parsed.status, null);
+  assert.equal(parsed.stdout.length, 6000);
+  assert.equal(parsed.stderr.length, 2000);
+  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM audit_events WHERE type='dashboard.workflow.fixture';")), 1);
 });
 
 test("dashboard daily workflow execution reports live degraded state", async () => {

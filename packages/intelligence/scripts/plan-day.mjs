@@ -1,7 +1,16 @@
+import { fileURLToPath } from "node:url";
+
 import { createDailyPlan } from "../runbooks.mjs";
 
-const input = parseArgs(process.argv.slice(2));
-console.log(JSON.stringify(createDailyPlan({ root: process.cwd(), ...input }), null, 2));
+export function runPlanDayCli(args = process.argv.slice(2), options = {}) {
+  const input = parseArgs(args);
+  const root = options.root || process.cwd();
+  const createPlan = options.createPlan || createDailyPlan;
+  const stdout = options.stdout || console.log;
+  const plan = createPlan({ root, ...input });
+  stdout(JSON.stringify(plan, null, 2));
+  return 0;
+}
 
 function parseArgs(args) {
   const input = {};
@@ -11,4 +20,10 @@ function parseArgs(args) {
     else throw new Error(`Unknown plan:day argument: ${arg}`);
   }
   return input;
+}
+
+export const __planDayTestInternals = { parseArgs };
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  runPlanDayCli();
 }

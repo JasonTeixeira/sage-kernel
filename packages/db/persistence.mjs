@@ -130,3 +130,10 @@ function redactJsonString(value) {
 function timestampForFile() {
   return new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
 }
+
+export const __persistenceTestInternals = {
+  readJsonFile,
+  redactJsonString,
+  redactRow,
+  timestampForFile
+};

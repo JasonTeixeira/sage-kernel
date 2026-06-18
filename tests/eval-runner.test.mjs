@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { listEvalDefinitions, readLatestEvalReport, runEvalSuite } from "../packages/intelligence/scripts/eval-runner.mjs";
+import { __evalRunnerTestInternals, listEvalDefinitions, readLatestEvalReport, runEvalSuite } from "../packages/intelligence/scripts/eval-runner.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -111,12 +111,95 @@ test("eval runner covers malformed contract and json-schema grader failures", ()
   assert.match(graders.json_escape.message, /escapes workspace/);
 });
 
+test("eval runner covers parser, fallback graders, and alternate contract branches", () => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-eval-branches-"));
+  const evalDir = path.join(workspace, "packages/intelligence/evals");
+  const reportDir = path.join(workspace, "custom-reports");
+  fs.mkdirSync(evalDir, { recursive: true });
+  fs.mkdirSync(path.join(workspace, "contracts"), { recursive: true });
+  fs.writeFileSync(path.join(workspace, "contracts/resources.snapshot.json"), JSON.stringify({ resources: [{ uri: "sage://fixture" }] }));
+  fs.writeFileSync(path.join(workspace, "contracts/prompts.snapshot.json"), JSON.stringify({ prompts: [{ name: "fixture" }] }));
+  fs.writeFileSync(path.join(workspace, "contracts/unknown.snapshot.json"), JSON.stringify({ unknown: [] }));
+  fs.writeFileSync(path.join(evalDir, "branches.json"), JSON.stringify({
+    id: "eval_branches",
+    name: "Branch eval",
+    scope: "mcp",
+    version: 1,
+    graders: [
+      { id: "resources", type: "mcp_contract", path: "contracts/resources.snapshot.json" },
+      { id: "prompts", type: "mcp_contract", path: "contracts/prompts.snapshot.json" },
+      { id: "unknown_contract", type: "mcp_contract", path: "contracts/unknown.snapshot.json" }
+    ],
+    successCriteria: ["Exercise branches."]
+  }));
+
+  const parsed = __evalRunnerTestInternals.parseArgs([
+    "--id", "eval_branches",
+    "--no-write",
+    "--report-dir", reportDir
+  ]);
+  assert.deepEqual(parsed, { ids: ["eval_branches"], writeReport: false, reportDir });
+  assert.throws(() => __evalRunnerTestInternals.parseArgs(["--wat"]), /Unknown argument/);
+  assert.equal(__evalRunnerTestInternals.trimOutput(` ${"x".repeat(4100)} `).length, 4000);
+  assert.equal(__evalRunnerTestInternals.runCoverageGrader({ id: "bad", type: "coverage", threshold: -1 }).status, "failed");
+  assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "future", type: "future" }).status, "failed");
+  assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "resources", type: "mcp_contract", path: "contracts/resources.snapshot.json" }).status, "passed");
+  assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "prompts", type: "mcp_contract", path: "contracts/prompts.snapshot.json" }).status, "passed");
+  assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "unknown_contract", type: "mcp_contract", path: "contracts/unknown.snapshot.json" }).status, "failed");
+
+  const report = runEvalSuite({ root: workspace, reportDir, ids: ["eval_branches"] });
+  assert.equal(report.status, "failed");
+  assert.equal(report.reportPath.startsWith("custom-reports/"), true);
+  const graders = Object.fromEntries(report.evals[0].graders.map((grader) => [grader.id, grader]));
+  assert.equal(graders.resources.status, "passed");
+  assert.equal(graders.prompts.status, "passed");
+  assert.equal(graders.unknown_contract.status, "failed");
+});
+
 test("eval runner reports an empty eval directory", () => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-eval-empty-"));
   fs.mkdirSync(path.join(workspace, "packages/intelligence/evals"), { recursive: true });
   const report = runEvalSuite({ root: workspace, writeReport: false });
   assert.equal(report.status, "failed");
   assert.match(report.failures.join("\n"), /No eval definitions found/);
+});
+
+test("eval runner internals cover direct command, file, and schema success branches", () => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-eval-internals-"));
+  fs.writeFileSync(path.join(workspace, "ok.json"), JSON.stringify({ ok: true }));
+
+  const commandPassed = __evalRunnerTestInternals.runCommandGrader(workspace, {
+    id: "cmd_pass",
+    type: "command",
+    command: "node -e \"console.log('ok')\""
+  });
+  assert.equal(commandPassed.status, "passed");
+  assert.equal(commandPassed.exitCode, 0);
+  assert.equal(commandPassed.stdout, "ok");
+
+  const commandFailed = __evalRunnerTestInternals.runCommandGrader(workspace, {
+    id: "cmd_fail",
+    type: "command",
+    command: "node -e \"process.stderr.write('bad'); process.exit(3)\""
+  });
+  assert.equal(commandFailed.status, "failed");
+  assert.equal(commandFailed.exitCode, 3);
+  assert.equal(commandFailed.stderr, "bad");
+
+  assert.equal(__evalRunnerTestInternals.runFileExistsGrader(workspace, {
+    id: "file_ok",
+    type: "file_exists",
+    path: "ok.json"
+  }).status, "passed");
+
+  const schemaPass = __evalRunnerTestInternals.runJsonSchemaGrader(workspace, {
+    id: "schema_pass",
+    type: "json_schema",
+    schema: "ok.json",
+    path: "ok.json"
+  });
+  assert.equal(schemaPass.status, "passed");
+  assert.equal(schemaPass.schema, "ok.json");
 });
 
 test("repository eval definitions run individually against real commands", () => {

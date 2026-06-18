@@ -228,3 +228,13 @@ function writeDashboardAudit(db, type, subject, metadata = {}) {
 function cryptoRandomId() {
   return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
+
+export const __dashboardWorkflowTestInternals = {
+  createLocalDailySummary,
+  cryptoRandomId,
+  executeWorkflowTool,
+  isSafeWorkflowId,
+  publicWorkflow,
+  recordWorkflowRun,
+  writeDashboardAudit
+};

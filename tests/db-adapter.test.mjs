@@ -8,10 +8,11 @@ import { bindSql, createDbAdapter, createPersistentSqliteAdapter, createPostgres
 import {
   backupSqliteDb,
   exportKernelData,
+  __persistenceTestInternals,
   importKernelData,
   restoreSqliteDbBackup
 } from "../packages/db/persistence.mjs";
-import { KERNEL_MIGRATIONS, migrateKernelDb, runKernelMigrations } from "../packages/db/migrations.mjs";
+import { __migrationsTestInternals, KERNEL_MIGRATIONS, migrateKernelDb, runKernelMigrations } from "../packages/db/migrations.mjs";
 
 function tempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sage-kernel-db-"));
@@ -381,6 +382,97 @@ test("migration runner selects provider statements and records custom timestamps
   assert.match(batch[2].sql, /\$1, \$2, \$3/);
 });
 
+test("migration internals cover provider defaults, placeholders, and column inspection branches", async () => {
+  assert.deepEqual(__migrationsTestInternals.selectStatements({}, "sqlite"), []);
+  assert.deepEqual(__migrationsTestInternals.selectStatements({ statements: ["SELECT 1"] }, "sqlite"), ["SELECT 1"]);
+  assert.equal(__migrationsTestInternals.selectStatements({
+    statements: [{ sqlite: "SELECT sqlite", postgres: "SELECT pg" }]
+  }, "postgres")[0], "SELECT pg");
+  assert.match(__migrationsTestInternals.migrationRecordStatement("sqlite", {
+    id: "id",
+    description: "desc"
+  }, "now").sql, /\?, \?, \?/);
+  assert.match(__migrationsTestInternals.migrationRecordStatement("postgres", {
+    id: "id",
+    description: "desc"
+  }, "now").sql, /\$1, \$2, \$3/);
+
+  const sqliteColumns = await __migrationsTestInternals.columnNames({
+    async query(sql) {
+      assert.match(sql, /PRAGMA table_info/);
+      return [{ name: "id" }, { name: "created_at" }];
+    }
+  }, "sqlite", "demo");
+  assert.equal(sqliteColumns.has("created_at"), true);
+
+  const executed = [];
+  await __migrationsTestInternals.ensureColumns({
+    async query() {
+      return [{ name: "existing" }];
+    },
+    async executeBatch(statements) {
+      executed.push(...statements);
+    }
+  }, { provider: "sqlite" }, "demo", [
+    { name: "existing", sqlite: "TEXT", postgres: "TEXT" },
+    { name: "missing", sqlite: "TEXT", postgres: "TEXT" }
+  ]);
+  assert.deepEqual(executed, ["ALTER TABLE demo ADD COLUMN missing TEXT;"]);
+
+  const tableStatements = [];
+  await __migrationsTestInternals.ensureMigrationTable({
+    async execute(sql) {
+      tableStatements.push(sql);
+    }
+  }, "postgres");
+  assert.match(tableStatements[0], /TIMESTAMPTZ/);
+});
+
+test("migration internals apply explicit up migrations and statement batches", async () => {
+  const calls = [];
+  const db = {
+    async execute(sql, params) {
+      calls.push({ kind: "execute", sql, params });
+    },
+    async executeBatch(statements) {
+      calls.push({ kind: "batch", statements });
+    }
+  };
+
+  await __migrationsTestInternals.applyMigration(db, "sqlite", {
+    id: "custom_up",
+    description: "Custom up migration",
+    async up(innerDb, context) {
+      assert.equal(innerDb, db);
+      assert.equal(context.provider, "sqlite");
+      await innerDb.execute("CREATE TABLE custom_up (id TEXT);");
+    }
+  }, {
+    root: "/tmp/sage",
+    schemaRoot: "/tmp/sage",
+    provider: "sqlite",
+    now: () => "2026-06-17T00:00:00.000Z"
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].sql, "CREATE TABLE custom_up (id TEXT);");
+  assert.match(calls[1].sql, /INSERT INTO schema_migrations/);
+  assert.deepEqual(calls[1].params, ["custom_up", "Custom up migration", "2026-06-17T00:00:00.000Z"]);
+
+  await __migrationsTestInternals.applyMigration(db, "sqlite", {
+    id: "custom_statements",
+    description: "Custom statements",
+    statements: ["CREATE TABLE custom_statements (id TEXT);"]
+  }, {
+    root: "/tmp/sage",
+    schemaRoot: "/tmp/sage",
+    provider: "sqlite",
+    now: () => "2026-06-17T00:00:01.000Z"
+  });
+  assert.equal(calls.at(-1).kind, "batch");
+  assert.equal(calls.at(-1).statements.length, 2);
+});
+
 test("sqlite persistence exports, imports, redacts, backs up, and restores data", () => {
   const root = tempRoot();
   const schemaRoot = path.resolve(import.meta.dirname, "..");
@@ -488,6 +580,13 @@ test("sqlite persistence validates import formats, file imports, custom backup p
     data: { format: "sage-kernel.export.v1", tables: null }
   });
   assert.equal(emptyImport.tables.approvals, 0);
+
+  assert.equal(__persistenceTestInternals.redactJsonString("not json"), "not json");
+  assert.equal(__persistenceTestInternals.redactJsonString("{bad"), "{bad");
+  assert.doesNotMatch(__persistenceTestInternals.redactJsonString(JSON.stringify({ password: "secret" })), /secret/);
+  assert.equal(__persistenceTestInternals.redactRow({ metadata_json: JSON.stringify({ token: "abc" }) }).metadata_json.includes("REDACTED"), true);
+  assert.match(__persistenceTestInternals.timestampForFile(), /^\d{4}-\d{2}-\d{2}T/);
+  assert.throws(() => __persistenceTestInternals.readJsonFile(), /Import requires/);
 });
 
 test("sqlite migrations are tracked and idempotent", async () => {

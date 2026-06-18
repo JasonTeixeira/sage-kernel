@@ -6,6 +6,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { createSemanticCode, semanticSmoke } from "../packages/intelligence/semantic-code.mjs";
+import { runSemanticSmokeCli } from "../packages/intelligence/scripts/semantic-smoke.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -104,4 +105,22 @@ test("semantic CLI smoke executes successfully", () => {
   const parsed = JSON.parse(result.stdout.slice(result.stdout.indexOf("{")));
   assert.equal(parsed.status, "passed");
   assert.equal(parsed.module.symbolCount > 0, true);
+});
+
+test("semantic smoke direct CLI runner covers pass and fail exits", () => {
+  const lines = [];
+  const passed = runSemanticSmokeCli({
+    root,
+    stdout: (line) => lines.push(line),
+    smoke: () => ({ status: "passed", module: { symbolCount: 1 } })
+  });
+  assert.equal(passed, 0);
+  assert.equal(JSON.parse(lines[0]).status, "passed");
+
+  const failed = runSemanticSmokeCli({
+    root,
+    stdout: () => {},
+    smoke: () => ({ status: "failed", module: { symbolCount: 0 } })
+  });
+  assert.equal(failed, 1);
 });

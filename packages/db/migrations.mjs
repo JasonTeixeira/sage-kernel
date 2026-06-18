@@ -219,3 +219,12 @@ function migrationRecordStatement(provider, migration, appliedAt) {
     params: [migration.id, migration.description, appliedAt]
   };
 }
+
+export const __migrationsTestInternals = {
+  applyMigration,
+  columnNames,
+  ensureColumns,
+  ensureMigrationTable,
+  migrationRecordStatement,
+  selectStatements
+};

@@ -415,3 +415,19 @@ function resolveInsideRoot(root, target) {
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`Path is outside the project root: ${target}`);
   return absolute;
 }
+
+export const __runbooksTestInternals = {
+  arrayItems,
+  boundedText,
+  createRunbookStepPlan,
+  dateStamp,
+  isAllowedRunbookCommand,
+  normalizeRollback,
+  readJson,
+  requireEnum,
+  requireString,
+  resolveInsideRoot,
+  runShellCommand,
+  safeValue,
+  slug
+};
