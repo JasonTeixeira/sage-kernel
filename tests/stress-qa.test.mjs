@@ -162,7 +162,17 @@ test("infra plan CLI validates inputs, writes output files, and covers python do
 });
 
 test("warehouse summary covers missing configuration, defaults, and feature detection", () => {
-  assert.throws(() => createWarehouseSummary({ sourceRoot: "" }), /source root is not configured/);
+  const previousWarehouseRoot = process.env.AI_WAREHOUSE_ROOT;
+  delete process.env.AI_WAREHOUSE_ROOT;
+  try {
+    assert.throws(() => createWarehouseSummary({ sourceRoot: "" }), /source root is not configured/);
+  } finally {
+    if (previousWarehouseRoot === undefined) {
+      delete process.env.AI_WAREHOUSE_ROOT;
+    } else {
+      process.env.AI_WAREHOUSE_ROOT = previousWarehouseRoot;
+    }
+  }
 
   const missingIndex = fs.mkdtempSync(path.join(os.tmpdir(), "sage-warehouse-missing-"));
   assert.throws(() => createWarehouseSummary({ sourceRoot: missingIndex }), /ai-warehouse index not found/);

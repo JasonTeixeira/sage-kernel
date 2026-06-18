@@ -77,7 +77,35 @@ Pending external proof:
 
 ## Phase 1.4 First Public Release Proof
 
-Status: blocked on external publishing configuration.
+Status: partially complete; npm publishing remains blocked on external
+authentication/signing configuration.
+
+Completed evidence:
+
+- Codex MCP client config includes `sage-kernel` in `~/.codex/config.toml`.
+- `codex mcp list` shows `sage-kernel` as enabled.
+- `node bin/sage.mjs mcp smoke`: passed with 55 tools.
+- `node bin/sage.mjs doctor --fast --json`: passed with 0 failed checks.
+- Real Codex MCP tool call through `mcp__sage_kernel.kernel_workflow_audit_repo`
+  completed successfully on 2026-06-18.
+- MCP audit proof:
+  - Workflow: `audit_repo`.
+  - Status: passed.
+  - Project path: `/Users/Sage/sage-kernel`.
+  - QA mode: `fast`.
+  - `npm:test`: passed.
+  - Test result inside MCP path: 192 tests, 191 passed, 1 skipped, 0 failed.
+  - Dashboard status: operational.
+  - Tools: 55.
+
+Environment hardening added during proof:
+
+- `tests/stress-qa.test.mjs` now isolates `AI_WAREHOUSE_ROOT` while testing the
+  missing warehouse configuration branch.
+- `tests/mcp-tool-matrix.test.mjs` now isolates `AI_WAREHOUSE_ROOT` while
+  testing missing and temporary warehouse configuration branches.
+- This prevents real MCP client environments from invalidating tests that need
+  to prove missing-configuration behavior.
 
 Required before completion:
 
@@ -86,7 +114,6 @@ Required before completion:
 - Create release tag.
 - Publish package with provenance.
 - Install from public npm in a clean temp project.
-- Record real MCP client connection proof.
 
 ## What Is Left After Program 1.1
 
@@ -95,4 +122,3 @@ Required before completion:
 3. Complete Phase 1.4 only after npm publish credentials and release-tag
    signing policy are available.
 4. Record public npm install proof after the first package publish.
-5. Record at least one manual external MCP client connection proof.

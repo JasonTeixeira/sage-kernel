@@ -176,9 +176,14 @@ test("MCP dispatcher validates required input and unknown catalog references", a
 
 test("MCP dispatcher handles optional source roots and warehouse configuration", async () => {
   const sandbox = tempRoot();
+  const previousWarehouseRoot = process.env.AI_WAREHOUSE_ROOT;
 
   await assert.rejects(() => callKernelTool(sandbox, "kernel.repo.inspect", { repo: "nexural-platform-kits" }), /source root is not configured/);
+  delete process.env.AI_WAREHOUSE_ROOT;
   await assert.rejects(() => callKernelTool(sandbox, "kernel.warehouse.search", { query: "agent" }), /AI Warehouse source root is not configured/);
+  if (previousWarehouseRoot !== undefined) {
+    process.env.AI_WAREHOUSE_ROOT = previousWarehouseRoot;
+  }
 
   const sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-kernel-source-"));
   const repoDir = path.join(sourceRoot, "nexural-platform-kits");
@@ -212,7 +217,11 @@ test("MCP dispatcher handles optional source roots and warehouse configuration",
     assert.equal(summary.count, 1);
     assert.equal(summary.verdicts.use, 1);
   } finally {
-    delete process.env.AI_WAREHOUSE_ROOT;
+    if (previousWarehouseRoot === undefined) {
+      delete process.env.AI_WAREHOUSE_ROOT;
+    } else {
+      process.env.AI_WAREHOUSE_ROOT = previousWarehouseRoot;
+    }
   }
 
   const missingWarehouseRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-kernel-warehouse-missing-"));
@@ -223,7 +232,11 @@ test("MCP dispatcher handles optional source roots and warehouse configuration",
       /AI Warehouse index not found/
     );
   } finally {
-    delete process.env.AI_WAREHOUSE_ROOT;
+    if (previousWarehouseRoot === undefined) {
+      delete process.env.AI_WAREHOUSE_ROOT;
+    } else {
+      process.env.AI_WAREHOUSE_ROOT = previousWarehouseRoot;
+    }
   }
 });
 
