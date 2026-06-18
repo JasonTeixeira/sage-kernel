@@ -386,6 +386,8 @@ function workflowNextActions(qa) {
 
 
 export {
+  catalogSourceRoot,
+  configuredAllowedRoots,
   deployPrepare,
   getQaProfile,
   infraPlan,
@@ -393,8 +395,12 @@ export {
   listRuns,
   qaPlan,
   qaRun,
+  realPath,
+  requiredEnvPath,
+  runCommand,
   runNode,
   searchCatalog,
+  summarizeFailures,
   warehouseSearch,
   workflowAuditRepo,
   workflowCreateApp,
@@ -403,5 +409,6 @@ export {
   workflowPendingApprovals,
   workflowReleaseReadiness,
   workflowRunFullQa,
-  workflowStressDashboard
+  workflowStressDashboard,
+  workflowNextActions
 };

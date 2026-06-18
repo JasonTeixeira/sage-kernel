@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 
 import { createQaReport, packageChecks, parseMode, run, runQaCli, staticChecks } from "../packages/qa/scripts/qa-runner.mjs";
-import { createDogfoodReport, inspectRepo, sourceRootForCatalog } from "../scripts/dogfood-production-audit.mjs";
+import { createDogfoodReport, inspectRepo, runDogfoodCli, sourceRootForCatalog } from "../scripts/dogfood-production-audit.mjs";
 import { createDashboardStressReport, parseDashboardStressArgs } from "../scripts/stress-dashboard.mjs";
 import { createQueueStressReport, parseQueueStressArgs } from "../scripts/stress-queue.mjs";
 import { createSoakReport, parseSoakArgs, runMcpSmoke, runSoakCli } from "../scripts/soak-runner.mjs";
@@ -461,6 +461,28 @@ test("dogfood audit handles configured, unconfigured, malformed, and failed QA r
   });
   assert.equal(unconfigured.configured, false);
   assert.equal(unconfigured.results[0].qaStatus, "missing");
+
+  const defaultReport = createDogfoodReport({
+    root,
+    catalog: { sourceRoot: sourceRoot, repos: [{ name: "fixture-app" }] },
+    runQa() {
+      return { status: 0, stdout: JSON.stringify({ checks: [] }) };
+    }
+  });
+  assert.deepEqual(defaultReport.targets, ["commerce-command-os", "jobcopilot", "trayd"]);
+  assert.equal(defaultReport.results.length, 3);
+
+  const lines = [];
+  const status = runDogfoodCli(["fixture-app"], {
+    root,
+    catalog: { sourceRoot, repos: [{ name: "fixture-app" }] },
+    runQa() {
+      return { status: 0, stdout: JSON.stringify({ checks: [] }) };
+    },
+    stdout: (line) => lines.push(line)
+  });
+  assert.equal(status, 0);
+  assert.deepEqual(JSON.parse(lines[0]).targets, ["fixture-app"]);
 });
 
 async function startStressFixtureServer() {

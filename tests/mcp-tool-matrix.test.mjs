@@ -9,12 +9,18 @@ import { createApprovalLedger } from "../packages/security/approvals.mjs";
 import { callToolCli } from "../apps/mcp-server/scripts/call-tool.mjs";
 import { __kernelToolsTestInternals, callKernelTool, toMcpTextContent } from "../apps/mcp-server/src/kernel-tools.mjs";
 import {
+  catalogSourceRoot,
+  configuredAllowedRoots,
   inspectRepo,
   listRuns,
   qaPlan,
   qaRun,
+  realPath,
+  requiredEnvPath,
+  runCommand,
   runNode,
   searchCatalog,
+  summarizeFailures,
   warehouseSearch,
   workflowAuditRepo,
   workflowCreateApp,
@@ -23,7 +29,8 @@ import {
   workflowPendingApprovals,
   workflowReleaseReadiness,
   workflowRunFullQa,
-  workflowStressDashboard
+  workflowStressDashboard,
+  workflowNextActions
 } from "../apps/mcp-server/src/kernel-tool-helpers.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -572,4 +579,38 @@ test("MCP call CLI wrapper validates input and invokes a runtime", async () => {
   const defaultInput = await callToolCli(["kernel.noop"], { runtime });
   assert.equal(defaultInput.status, 0);
   assert.deepEqual(calls, ["load", { name: "kernel.noop", input: {} }]);
+});
+
+test("MCP helper internals cover path, env, command, and failure-summary branches", () => {
+  assert.equal(catalogSourceRoot({ sourceRoot: "/fallback" }), "/fallback");
+  process.env.SAGE_KERNEL_ALLOWED_ROOTS = [root, "/tmp/sage-extra"].join(path.delimiter);
+  try {
+    assert.deepEqual(configuredAllowedRoots(), [root, "/tmp/sage-extra"]);
+  } finally {
+    delete process.env.SAGE_KERNEL_ALLOWED_ROOTS;
+  }
+
+  assert.equal(realPath(path.join(root, "does-not-exist")), path.join(root, "does-not-exist"));
+  assert.throws(() => requiredEnvPath("SAGE_MISSING_HELPER_ROOT", "Missing Helper"), /Missing Helper source root is not configured/);
+  process.env.SAGE_HELPER_ROOT = root;
+  try {
+    assert.equal(requiredEnvPath("SAGE_HELPER_ROOT", "Helper"), root);
+  } finally {
+    delete process.env.SAGE_HELPER_ROOT;
+  }
+
+  const command = runCommand(root, "node", ["-e", "console.log('helper-ok')"], 1000);
+  assert.equal(command.status, 0);
+  assert.equal(command.stdout, "helper-ok");
+  assert.deepEqual(summarizeFailures({}), []);
+  const failures = summarizeFailures({
+    checks: [
+      { name: "lint", status: "failed", result: { command: "npm run lint", stderr: "bad", stdout: "out" } },
+      { name: "test", status: "passed" }
+    ]
+  });
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].command, "npm run lint");
+  assert.match(workflowNextActions({ checks: [{ name: "lint", status: "failed", result: {} }] })[0], /Fix failed check lint/);
+  assert.equal(workflowNextActions({ checks: [] }).length, 3);
 });

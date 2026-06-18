@@ -438,6 +438,19 @@ test("migration internals cover provider defaults, placeholders, and column insp
   ]);
   assert.deepEqual(executed, ["ALTER TABLE demo ADD COLUMN missing TEXT;"]);
 
+  let noOpBatchCalled = false;
+  await __migrationsTestInternals.ensureColumns({
+    async query() {
+      return [{ name: "existing" }];
+    },
+    async executeBatch() {
+      noOpBatchCalled = true;
+    }
+  }, { provider: "sqlite" }, "demo", [
+    { name: "existing", sqlite: "TEXT", postgres: "TEXT" }
+  ]);
+  assert.equal(noOpBatchCalled, false);
+
   const tableStatements = [];
   await __migrationsTestInternals.ensureMigrationTable({
     async execute(sql) {
@@ -599,6 +612,17 @@ test("sqlite persistence validates import formats, file imports, custom backup p
     data: { format: "sage-kernel.export.v1", tables: null }
   });
   assert.equal(emptyImport.tables.approvals, 0);
+
+  const emptyRowImportRoot = tempRoot();
+  const emptyRowImport = importKernelData({
+    root: emptyRowImportRoot,
+    schemaRoot,
+    data: { format: "sage-kernel.export.v1", tables: { approvals: [{}] } }
+  });
+  assert.equal(emptyRowImport.tables.approvals, 1);
+  const emptyRowDb = createSqliteAdapter({ root: emptyRowImportRoot, schemaRoot });
+  emptyRowDb.init();
+  assert.equal(Number(emptyRowDb.scalar("SELECT COUNT(*) FROM approvals;")), 0);
 
   assert.equal(__persistenceTestInternals.redactJsonString("not json"), "not json");
   assert.equal(__persistenceTestInternals.redactJsonString("{bad"), "{bad");

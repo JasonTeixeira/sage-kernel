@@ -77,7 +77,14 @@ export function createDogfoodReport(options = {}) {
   };
 }
 
+export function runDogfoodCli(args = process.argv.slice(2), options = {}) {
+  const stdout = options.stdout || console.log;
+  const report = createDogfoodReport({ ...options, targets: args });
+  stdout(JSON.stringify(report, null, 2));
+  return 0;
+}
+
+/* node:coverage ignore next 3 */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const requested = process.argv.slice(2);
-  console.log(JSON.stringify(createDogfoodReport({ targets: requested }), null, 2));
+  process.exit(runDogfoodCli());
 }
