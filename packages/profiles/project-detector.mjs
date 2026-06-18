@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createProfileProofFixtures } from "./profile-fixtures.mjs";
 
 const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "build", "coverage", "generated", ".next"]);
 
@@ -186,34 +187,7 @@ export function validateSdlcProfiles(profiles = SDLC_PROFILES) {
 
 export function proveProfiles(options = {}) {
   const root = options.root || process.cwd();
-  const fixtures = [
-    {
-      name: "next-web",
-      files: {
-        "package.json": JSON.stringify({ name: "next-web", dependencies: { next: "latest", react: "latest" }, scripts: { test: "node --test", build: "next build" } }),
-        "next.config.js": "module.exports = {}\n",
-        "tests/app.test.js": "test('ok', () => {})\n"
-      },
-      expected: "web-app"
-    },
-    {
-      name: "fastapi-service",
-      files: {
-        "pyproject.toml": "[project]\ndependencies = ['fastapi']\n",
-        "app/main.py": "from fastapi import FastAPI\napp = FastAPI()\n",
-        "tests/test_app.py": "def test_ok(): assert True\n"
-      },
-      expected: "backend-api"
-    },
-    {
-      name: "mcp-tool",
-      files: {
-        "package.json": JSON.stringify({ name: "mcp-tool", dependencies: { "@modelcontextprotocol/sdk": "latest" }, scripts: { "mcp:smoke": "node smoke.mjs" } }),
-        "apps/mcp-server/tools.json": JSON.stringify({ tools: [] })
-      },
-      expected: "mcp-server"
-    }
-  ];
+  const fixtures = createProfileProofFixtures();
   const temp = fs.mkdtempSync(path.join(realTmp(), "sage-profiles-proof-"));
   const results = [];
   for (const fixture of fixtures) {

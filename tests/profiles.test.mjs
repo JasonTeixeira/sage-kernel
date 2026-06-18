@@ -93,7 +93,9 @@ test("definition of done combines detected profiles, risk, commands, and stop co
 
 test("profile validation and proof scripts expose deterministic gates", () => {
   assert.equal(validateSdlcProfiles().status, "passed");
-  assert.equal(proveProfiles({ root }).status, "passed");
+  const fixtureProof = proveProfiles({ root });
+  assert.equal(fixtureProof.status, "passed");
+  assert.equal(fixtureProof.results.length, 10);
   const pathProof = proveProfilePaths({ paths: ["."] }, { root });
   assert.equal(pathProof.status, "passed");
   assert.equal(pathProof.mode, "explicit-paths");

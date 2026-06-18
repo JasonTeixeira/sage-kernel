@@ -38,6 +38,9 @@ export function validateReleaseProvenance(options = {}) {
     requirePattern(workflow, /npm run verify:fresh-install/, `${releaseWorkflow} must run fresh-install verification`, failures);
     requirePattern(workflow, /npm run release:check/, `${releaseWorkflow} must run release checks`, failures);
     requirePattern(workflow, /npm publish --provenance --access public/, `${releaseWorkflow} must publish with provenance and public access`, failures);
+    if (/NODE_AUTH_TOKEN/.test(workflow)) {
+      failures.push(`${releaseWorkflow} must not depend on NODE_AUTH_TOKEN for trusted publishing`);
+    }
   }
 
   return {
