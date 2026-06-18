@@ -43,6 +43,11 @@ import {
   reviewDiff
 } from "../../../packages/review/review-engine.mjs";
 import {
+  createSecurityProof,
+  createSupplyChainReport,
+  generateThreatModel
+} from "../../../packages/security/supply-chain.mjs";
+import {
   detectProjectProfile,
   generateDefinitionOfDone
 } from "../../../packages/profiles/project-detector.mjs";
@@ -364,6 +369,22 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.review.release_proof":
       return createReleaseProof({ root, projectPath: input.projectPath || "." });
+
+    case "kernel.security.threat_model":
+      return generateThreatModel({
+        root,
+        projectPath: input.projectPath || ".",
+        systemName: input.systemName,
+        assets: input.assets,
+        externalSystems: input.externalSystems,
+        identities: input.identities
+      });
+
+    case "kernel.security.supply_chain":
+      return createSupplyChainReport({ root, projectPath: input.projectPath || "." });
+
+    case "kernel.security.proof":
+      return createSecurityProof({ root, projectPath: input.projectPath || "." });
 
     case "kernel.drift.map":
       return createDriftMap({ root });

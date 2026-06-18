@@ -15,6 +15,7 @@ import { assertToolAllowed, signRecord } from "../packages/security/guard.mjs";
 import {
   createSecurityProof,
   createSupplyChainReport,
+  formatSecurityOutput,
   generateThreatModel
 } from "../packages/security/supply-chain.mjs";
 import { callKernelTool } from "../apps/mcp-server/src/kernel-tools.mjs";
@@ -216,5 +217,93 @@ test("security program generates threat models, supply-chain reports, and proof 
     assert.equal(mcpSupply.status, "passed");
   } finally {
     delete process.env.SAGE_REVIEW_ALLOWED_ROOTS;
+  }
+});
+
+test("security supply-chain module reports weak projects and defensive branches", () => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "sage-security-weak-"));
+  fs.mkdirSync(path.join(fixture, "src", "api"), { recursive: true });
+  fs.mkdirSync(path.join(fixture, "packages", "mcp"), { recursive: true });
+  fs.mkdirSync(path.join(fixture, "db"), { recursive: true });
+  fs.writeFileSync(path.join(fixture, ".env.example"), "TOKEN=\n");
+  fs.writeFileSync(path.join(fixture, "src", "api", "users.js"), "export function handler() {}\n");
+  fs.writeFileSync(path.join(fixture, "packages", "mcp", "tool.js"), "export const tool = {};\n");
+  fs.writeFileSync(path.join(fixture, "db", "schema.sql"), "select 1;\n");
+  fs.writeFileSync(path.join(fixture, "package.json"), JSON.stringify({
+    name: "weak-security-app",
+    license: "GPL-3.0",
+    dependencies: {
+      "left-pad": "1.3.0",
+      "stripe": "^17.0.0"
+    },
+    devDependencies: {
+      "@types/node": "^22.0.0"
+    },
+    optionalDependencies: {
+      "event-stream": "3.3.6"
+    }
+  }));
+
+  process.env.SAGE_SECURITY_ALLOWED_ROOTS = fixture;
+  try {
+    const threat = generateThreatModel({
+      root: schemaRoot,
+      projectPath: fixture,
+      identities: [{ name: "service-account" }],
+      assets: [{ name: "payments" }],
+      externalSystems: [{ name: "stripe" }]
+    });
+    assert.equal(threat.status, "passed");
+    assert.equal(threat.surfaces.web, true);
+    assert.equal(threat.surfaces.mcp, true);
+    assert.equal(threat.surfaces.database, true);
+    assert.equal(threat.threats.some((item) => item.id === "threat_mcp_tool_abuse"), true);
+    assert.match(formatSecurityOutput(threat), /^Threat model passed:/);
+
+    const supply = createSupplyChainReport({ root: schemaRoot, projectPath: fixture });
+    assert.equal(supply.status, "needs_work");
+    assert.equal(supply.license.status, "needs_work");
+    assert.equal(supply.dependencyRisk.highRisk, 2);
+    assert.equal(supply.sbom.components.some((component) => component.name === "@types/node" && component.risk === "low"), true);
+    assert.equal(supply.scorecard.score < 100, true);
+    assert.match(formatSecurityOutput(supply), /^Supply chain needs_work:/);
+
+    const proof = createSecurityProof({ root: schemaRoot, projectPath: fixture });
+    assert.equal(proof.status, "needs_work");
+    assert.equal(proof.findings.some((finding) => /Restricted/.test(finding.message)), true);
+    assert.match(formatSecurityOutput(proof), /^Security proof needs_work:/);
+    assert.match(formatSecurityOutput({ ok: true }), /"ok": true/);
+
+    assert.throws(
+      () => createSupplyChainReport({ root: schemaRoot, projectPath: "/tmp" }),
+      /outside allowed security roots/
+    );
+  } finally {
+    delete process.env.SAGE_SECURITY_ALLOWED_ROOTS;
+  }
+});
+
+test("security module handles missing and malformed project metadata", () => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "sage-security-malformed-"));
+  fs.mkdirSync(path.join(fixture, "nested"), { recursive: true });
+  fs.writeFileSync(path.join(fixture, "package.json"), "{no-json");
+  fs.writeFileSync(path.join(fixture, "nested", "note.txt"), "hello\n");
+
+  process.env.SAGE_SECURITY_ALLOWED_ROOTS = fixture;
+  try {
+    const threat = generateThreatModel({ root: schemaRoot, projectPath: fixture });
+    assert.equal(threat.project.name, path.basename(fixture));
+    assert.equal(threat.threats.some((item) => item.category === "supply-chain" && item.severity === "low"), true);
+
+    const supply = createSupplyChainReport({ root: schemaRoot, projectPath: fixture });
+    assert.equal(supply.status, "needs_work");
+    assert.equal(supply.license.license, "UNLICENSED");
+    assert.equal(supply.sbom.components.length, 0);
+    assert.equal(supply.scorecard.checks.some((check) => check.status === "warning"), true);
+
+    const missing = generateThreatModel({ root: fixture, projectPath: "missing" });
+    assert.equal(missing.project.name, "missing");
+  } finally {
+    delete process.env.SAGE_SECURITY_ALLOWED_ROOTS;
   }
 });

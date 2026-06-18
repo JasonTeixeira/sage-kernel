@@ -43,6 +43,12 @@ import {
   reviewDiff
 } from "../packages/review/review-engine.mjs";
 import {
+  createSecurityProof,
+  createSupplyChainReport,
+  formatSecurityOutput,
+  generateThreatModel
+} from "../packages/security/supply-chain.mjs";
+import {
   detectProjectProfile,
   formatProfileOutput,
   generateDefinitionOfDone,
@@ -135,6 +141,7 @@ Usage:
   sage workflow [validate|prove|run] [workflow-json-file] [--json]
   sage done generate [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--profile=id] [--json]
   sage review [inspect|architecture|clean-code|tests|security|diff|routes|score|senior|prove] [projectPath] [--json]
+  sage security [threat-model|supply-chain|prove] [projectPath] [--json]
   sage drift [map|scope|audit|prove] [--json]
   sage mcp [start|config|smoke]
   sage daily
@@ -562,6 +569,31 @@ switch (command) {
         break;
       }
       console.log(formatReviewOutput(value, { json }));
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "security": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "prove", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = subcommand === "threat-model"
+        ? generateThreatModel({ root, projectPath })
+        : subcommand === "supply-chain"
+          ? createSupplyChainReport({ root, projectPath })
+          : subcommand === "prove"
+            ? createSecurityProof({ root, projectPath })
+            : null;
+      if (!value) {
+        console.error(`Unknown security subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatSecurityOutput(value, { json }));
     } catch (error) {
       console.error(error.message);
       process.exitCode = 1;

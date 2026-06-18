@@ -72,6 +72,9 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.review.quality_score` | safe | `review:read` | No | none |
 | `kernel.review.senior_review` | safe | `review:read` | No | none |
 | `kernel.review.release_proof` | safe | `review:read` | No | none |
+| `kernel.security.threat_model` | safe | `security:read` | No | none |
+| `kernel.security.supply_chain` | safe | `security:read` | No | none |
+| `kernel.security.proof` | safe | `security:read` | No | none |
 | `kernel.drift.map` | safe | `drift:read` | No | none |
 | `kernel.drift.scope` | safe | `drift:read` | No | none |
 | `kernel.drift.self_audit` | safe | `drift:read` | No | none |
@@ -914,6 +917,42 @@ Example input:
 }
 ```
 
+### `kernel.security.threat_model`
+
+Threat model with assets, identities, external systems, trust boundaries, threats, mitigations, and required reviews.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.security.supply_chain`
+
+Supply-chain report with SBOM components, license status, dependency risk findings, scorecard, and status.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.security.proof`
+
+Security proof report with threat-model, supply-chain, license, dependency-risk, and scorecard gates.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
 ### `kernel.drift.map`
 
 Drift map with architecture directories, MCP parity counts, dashboard routes, docs, tests, permissions, and findings.
@@ -1325,6 +1364,21 @@ Example input:
 
 - Project path is outside allowed review roots.
 - Release proof cannot be constructed.
+
+### `kernel.security.threat_model`
+
+- Project path is outside allowed security roots.
+- Project metadata cannot be scanned.
+
+### `kernel.security.supply_chain`
+
+- Project path is outside allowed security roots.
+- Dependency manifest cannot be scanned.
+
+### `kernel.security.proof`
+
+- Project path is outside allowed security roots.
+- Security proof cannot be constructed.
 
 ### `kernel.drift.map`
 

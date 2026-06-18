@@ -1889,6 +1889,79 @@
       ]
     },
     {
+      "name": "kernel.security.threat_model",
+      "description": "Generate a structured threat model from project surfaces, assets, identities, trust boundaries, and external systems.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" },
+          "systemName": { "type": "string" },
+          "assets": { "type": "array", "items": { "type": "string" } },
+          "externalSystems": { "type": "array", "items": { "type": "string" } },
+          "identities": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "risk": "safe",
+      "permission": "security:read",
+      "outputShape": "Threat model with assets, identities, external systems, trust boundaries, threats, mitigations, and required reviews.",
+      "examples": [
+        {
+          "description": "Generate a threat model for the current repo.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed security roots.",
+        "Project metadata cannot be scanned."
+      ]
+    },
+    {
+      "name": "kernel.security.supply_chain",
+      "description": "Generate an SBOM-style dependency inventory, license gate, dependency-risk gate, and OpenSSF-style scorecard.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "security:read",
+      "outputShape": "Supply-chain report with SBOM components, license status, dependency risk findings, scorecard, and status.",
+      "examples": [
+        {
+          "description": "Run supply-chain gate for the current repo.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed security roots.",
+        "Dependency manifest cannot be scanned."
+      ]
+    },
+    {
+      "name": "kernel.security.proof",
+      "description": "Run the complete security proof combining threat model and supply-chain gates.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "security:read",
+      "outputShape": "Security proof report with threat-model, supply-chain, license, dependency-risk, and scorecard gates.",
+      "examples": [
+        {
+          "description": "Run complete security proof for the current repo.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed security roots.",
+        "Security proof cannot be constructed."
+      ]
+    },
+    {
       "name": "kernel.drift.map",
       "description": "Create a drift map for scope, architecture, routes, MCP tools, docs, tests, and permissions.",
       "inputSchema": {
