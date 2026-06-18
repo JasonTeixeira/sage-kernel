@@ -1,0 +1,1683 @@
+SAGE KERNEL GLOBAL SDLC OPERATING SYSTEM MASTER PLAN
+====================================================
+
+Purpose
+-------
+
+This document is the master execution plan for turning Sage Kernel into a
+global, MCP-native, tool-agnostic, project-agnostic engineering operating
+system.
+
+The end state is not just a useful local tool. The end state is a portable
+senior-engineering control plane that can be installed on any machine,
+connected to compatible AI agents and MCP clients, pointed at any software
+project, and used to inspect, plan, build, test, review, secure, release, and
+improve production-grade systems through evidence-backed closed loops.
+
+The operating principle is:
+
+  Prove, do not claim.
+
+Every meaningful action must produce evidence:
+
+  - A detected project profile.
+  - A written plan.
+  - A machine-checkable definition of done.
+  - Tests or validation output.
+  - A review result.
+  - A security result.
+  - A release-readiness result.
+  - A memory update.
+  - An audit record.
+  - A next-action list.
+
+North Star
+----------
+
+Sage Kernel should become a global engineering and architecture operating
+system for serious builders.
+
+It should let a developer, team, or AI coding agent do the following on any
+project:
+
+  1. Understand the project.
+  2. Detect the stack and quality requirements.
+  3. Create a senior-level implementation plan.
+  4. Build in small, reversible patches.
+  5. Run the correct test suite for the project type.
+  6. Review the diff like a senior engineer.
+  7. Audit security and supply chain risk.
+  8. Verify routes, APIs, jobs, persistence, and user workflows.
+  9. Stress test relevant surfaces.
+  10. Package and release safely.
+  11. Record lessons, decisions, and recurring issues.
+  12. Improve its own standards over time without losing control.
+
+Quality Definition
+------------------
+
+The target phrase "100/100" does not mean perfect software. It means no known
+critical gaps across the categories that matter for a real engineering system:
+
+  - Installability
+  - Portability
+  - MCP compatibility
+  - CLI usability
+  - Dashboard usability
+  - Architecture quality
+  - Code quality
+  - Test quality
+  - Branch coverage
+  - E2E coverage
+  - Security
+  - Supply-chain safety
+  - Observability
+  - Performance
+  - Stress tolerance
+  - Persistence correctness
+  - Release readiness
+  - Documentation
+  - Contributor experience
+  - Agent orchestration
+  - Memory and learning
+  - Self-audit and drift control
+  - Long-term maintainability
+
+Final Acceptance Standard
+-------------------------
+
+Do not call the system world-class unless all of these are true:
+
+  1. Clean checkout install works.
+  2. Global install works.
+  3. MCP server starts and responds.
+  4. At least one real external MCP client is manually connected and recorded.
+  5. CLI doctor passes.
+  6. Dashboard starts locally.
+  7. All route and API checks pass.
+  8. All MCP tool contracts pass.
+  9. All runbooks validate.
+  10. All project profiles validate against fixtures.
+  11. All unit, integration, E2E, security, stress, and release gates pass.
+  12. Real Postgres integration passes.
+  13. Fresh-install verification passes in CI.
+  14. Public package install is proven from npm.
+  15. Signed release and provenance are proven.
+  16. Long-duration soak testing is recorded.
+  17. Security model is documented and tested.
+  18. Agent orchestration has bounded retries, rollback, approvals, and audit.
+  19. Memory has explicit write policy and drift control.
+  20. Public docs, examples, screenshots, and demo assets exist.
+
+Permanent Operating Loops
+-------------------------
+
+Every program in this plan must reinforce these loops:
+
+  1. Intent Loop
+     Clarify goal, scope, constraints, non-goals, and success criteria.
+
+  2. Inspection Loop
+     Detect stack, repo shape, routes, dependencies, risks, tests, docs, CI,
+     security posture, and release posture.
+
+  3. Planning Loop
+     Produce a small, testable plan with rollback and proof requirements.
+
+  4. Build Loop
+     Implement changes in small patches with bounded scope.
+
+  5. Verification Loop
+     Run tests, coverage, type checks, linting, E2E, stress, security, and
+     release checks.
+
+  6. Review Loop
+     Review architecture, code, tests, security, UX, performance, and release
+     readiness using evidence.
+
+  7. Hardening Loop
+     Refactor, simplify, remove dead code, improve error handling, improve
+     observability, and improve tests.
+
+  8. Release Loop
+     Fresh install, package, provenance, changelog, docs, CI, deployment proof,
+     and rollback proof.
+
+  9. Learning Loop
+     Record decisions, repeated failures, standards, preferences, and lessons
+     into memory and project instructions.
+
+Program Map
+-----------
+
+There are 14 programs. Each program has 4 phases. Execute them in order unless
+a phase is clearly independent and can be parallelized.
+
+PROGRAM 1: BASELINE PROOF AND RELEASE STABILITY
+===============================================
+
+Goal:
+  Lock the current project into a clean, repeatable, externally proven
+  baseline before adding more intelligence.
+
+Phase 1.1: Baseline Audit Snapshot
+----------------------------------
+
+Tasks:
+  - Run the full local verification suite.
+  - Record current coverage, CI status, stress results, and known gaps.
+  - Confirm the worktree is clean before and after the audit.
+  - Produce a release-proof snapshot document.
+
+Deliverables:
+  - Updated release proof notes.
+  - Baseline scorecard.
+  - Known-gaps list.
+
+Verification:
+  npm run test:coverage
+  npm run coverage:critical -- /tmp/sage-coverage-output.txt
+  npm run release:check
+  npm run verify:fresh-install -- --worktree-copy
+  npm run security:scan
+  npm audit
+  git diff --check
+
+Exit criteria:
+  All local gates pass and the baseline gap list is explicit.
+
+Phase 1.2: CI Proof Lock
+------------------------
+
+Tasks:
+  - Ensure CI runs quality gates, fresh install, and real Postgres integration.
+  - Ensure CI captures the critical coverage ratchet.
+  - Push changes and watch the remote run to completion.
+
+Deliverables:
+  - Passing GitHub Actions run URL.
+  - CI status recorded in release proof.
+
+Verification:
+  gh run watch <run-id> --exit-status
+
+Exit criteria:
+  Remote CI passes on the current commit.
+
+Phase 1.3: Public Release Readiness
+-----------------------------------
+
+Tasks:
+  - Verify package metadata.
+  - Verify public docs.
+  - Verify release provenance workflow.
+  - Verify npm package name and publishing method.
+  - Document any blocked external steps.
+
+Deliverables:
+  - Release checklist.
+  - Package install proof.
+  - Publish-blocker list if npm auth or signing is missing.
+
+Verification:
+  npm run public:validate
+  npm run release:provenance
+  npm pack --dry-run
+  npm whoami
+
+Exit criteria:
+  Release path is either proven or blocked by clearly named external
+  credentials/configuration.
+
+Phase 1.4: First Public Release Proof
+-------------------------------------
+
+Tasks:
+  - Configure npm trusted publishing or NPM_TOKEN.
+  - Configure signing if signed tags are required.
+  - Create release tag.
+  - Publish package with provenance.
+  - Install from public npm in a clean temp project.
+
+Deliverables:
+  - Public package URL.
+  - Signed tag or documented tag policy.
+  - Clean npm install proof.
+
+Verification:
+  npm install -g <package-name>
+  sage doctor --fast --json
+  sage mcp smoke
+
+Exit criteria:
+  A stranger can install the package from npm and run the basic doctor and MCP
+  smoke flow.
+
+PROGRAM 2: UNIVERSAL PROJECT DETECTION AND SDLC PROFILES
+========================================================
+
+Goal:
+  Make Sage Kernel project-agnostic. It must inspect any repository and select
+  the correct engineering workflow automatically.
+
+Phase 2.1: Project Type Detector
+--------------------------------
+
+Tasks:
+  - Detect frameworks and languages:
+      Node
+      React
+      Next.js
+      Vite
+      Express
+      Python
+      FastAPI
+      Django
+      Go
+      Rust
+      Swift
+      mobile projects
+      MCP servers
+      CLI tools
+      libraries
+      monorepos
+      infrastructure repos
+  - Detect package manager and test runner.
+  - Detect CI provider.
+  - Detect database and persistence layer.
+  - Detect deployment targets.
+
+Deliverables:
+  - `packages/profiles/project-detector.mjs`
+  - Fixture repositories for each major profile.
+  - CLI command: `sage profile detect`
+  - MCP tool: `project_profile_detect`
+
+Verification:
+  - Unit tests for every detector.
+  - Fixture tests for every profile.
+  - CLI JSON output test.
+  - MCP contract test.
+
+Exit criteria:
+  Sage can point at a project and return a stable, evidence-backed profile.
+
+Phase 2.2: SDLC Profile Catalog
+-------------------------------
+
+Tasks:
+  - Define profile contracts for:
+      web-app
+      mobile-app
+      backend-api
+      mcp-server
+      cli-tool
+      library
+      data-pipeline
+      ai-agent-app
+      infrastructure
+      monorepo
+  - Each profile must define:
+      required checks
+      optional checks
+      build commands
+      test commands
+      security commands
+      docs expectations
+      release expectations
+      E2E expectations
+      stress expectations
+
+Deliverables:
+  - Profile schema.
+  - Profile catalog.
+  - Profile docs.
+
+Verification:
+  npm run profiles:validate
+  npm test
+
+Exit criteria:
+  Every profile is schema-valid and has at least one fixture test.
+
+Phase 2.3: Definition Of Done Engine
+------------------------------------
+
+Tasks:
+  - Generate task-specific definitions of done.
+  - Combine global standards, project profile, risk level, and user goal.
+  - Produce machine-checkable acceptance criteria.
+  - Include rollback and proof requirements.
+
+Deliverables:
+  - `packages/profiles/definition-of-done.mjs`
+  - CLI command: `sage done generate`
+  - MCP tool: `definition_of_done_generate`
+
+Verification:
+  - Tests for low, medium, and high-risk tasks.
+  - Tests for web, backend, MCP, CLI, and library profiles.
+  - Snapshot tests for generated checklists.
+
+Exit criteria:
+  Every task can be converted into a concrete proof checklist before coding.
+
+Phase 2.4: Cross-Project Proof
+------------------------------
+
+Tasks:
+  - Run detection and definition-of-done generation against fixture projects.
+  - Run against at least three real local projects.
+  - Record failures and profile gaps.
+
+Deliverables:
+  - Cross-project proof report.
+  - Profile gap list.
+
+Verification:
+  npm run profiles:prove
+
+Exit criteria:
+  The profile system works on diverse projects and gaps are documented.
+
+PROGRAM 3: CLOSED-LOOP WORKFLOW ENGINE
+======================================
+
+Goal:
+  Build the engine that runs inspect, plan, build, test, review, fix, and prove
+  workflows with bounded retries and auditable state.
+
+Phase 3.1: Workflow Contract
+----------------------------
+
+Tasks:
+  - Define a workflow schema.
+  - Define states:
+      proposed
+      planned
+      approved
+      running
+      verifying
+      reviewing
+      fixing
+      blocked
+      failed
+      passed
+      released
+  - Define step types:
+      inspect
+      plan
+      command
+      test
+      review
+      security
+      stress
+      docs
+      memory
+      approval
+      rollback
+  - Define retry limits and stop conditions.
+
+Deliverables:
+  - Workflow schema.
+  - Workflow validator.
+  - Workflow state machine.
+
+Verification:
+  npm run workflows:validate
+  npm test
+
+Exit criteria:
+  Invalid workflows are rejected and valid workflows execute deterministically.
+
+Phase 3.2: Core Closed Loop
+---------------------------
+
+Tasks:
+  - Implement the canonical loop:
+      inspect -> plan -> approve -> build -> test -> review -> fix -> prove
+  - Record every step in an audit log.
+  - Require approval for risky or destructive steps.
+  - Support rollback commands.
+
+Deliverables:
+  - `packages/workflows/engine.mjs`
+  - CLI command: `sage workflow run`
+  - MCP tool: `workflow_run`
+  - Dashboard workflow view.
+
+Verification:
+  - Unit tests for step execution.
+  - Integration tests for a passing workflow.
+  - Integration tests for a failing workflow.
+  - Approval-boundary tests.
+  - Rollback tests.
+
+Exit criteria:
+  A workflow can run end to end and prove success or failure without ambiguity.
+
+Phase 3.3: Failure Explanation And Repair Planning
+--------------------------------------------------
+
+Tasks:
+  - Parse failed commands and test output.
+  - Summarize likely cause.
+  - Propose bounded repair plan.
+  - Prevent infinite loops.
+  - Escalate when repeated failures occur.
+
+Deliverables:
+  - Failure explanation module.
+  - Repair-plan schema.
+  - MCP tool: `failure_explain`
+  - MCP tool: `repair_plan_generate`
+
+Verification:
+  - Fixture failures.
+  - Snapshot explanations.
+  - Retry-limit tests.
+  - Escalation tests.
+
+Exit criteria:
+  Common failures produce useful, bounded next actions.
+
+Phase 3.4: E2E Workflow Proof
+-----------------------------
+
+Tasks:
+  - Build fixture repos with intentional bugs.
+  - Run closed-loop workflows against fixtures.
+  - Verify tests fail before and pass after.
+  - Record audit trail.
+
+Deliverables:
+  - `tests/fixtures/workflows/*`
+  - E2E workflow tests.
+  - Proof report.
+
+Verification:
+  npm run workflows:e2e
+
+Exit criteria:
+  Sage can complete a controlled inspect-fix-prove loop on fixture projects.
+
+PROGRAM 4: AGENT ORCHESTRATION COUNCIL
+======================================
+
+Goal:
+  Add role-based agents with clear permissions, schemas, scorecards, and
+  evidence requirements.
+
+Phase 4.1: Agent Role Manifests
+-------------------------------
+
+Tasks:
+  - Define standard agents:
+      architect
+      builder
+      reviewer
+      test-engineer
+      security-engineer
+      performance-engineer
+      release-engineer
+      documentation-engineer
+      product-engineer
+      ux-engineer
+  - Each agent must define:
+      mission
+      allowed tools
+      forbidden actions
+      risk level
+      input schema
+      output schema
+      quality checklist
+      memory policy
+      approval policy
+
+Deliverables:
+  - Agent manifest schema.
+  - Agent catalog.
+  - Agent docs.
+
+Verification:
+  npm run agents:validate
+  npm test
+
+Exit criteria:
+  Every agent role is explicit, bounded, and schema-valid.
+
+Phase 4.2: Agent Execution Runtime
+----------------------------------
+
+Tasks:
+  - Execute agent tasks through the workflow engine.
+  - Enforce tool permissions.
+  - Record outputs and audit evidence.
+  - Support parallel read-only agents.
+  - Require approval for mutating agents.
+
+Deliverables:
+  - `packages/agents/runtime.mjs`
+  - CLI command: `sage agent run`
+  - MCP tool: `agent_run`
+
+Verification:
+  - Permission tests.
+  - Parallel execution tests.
+  - Approval tests.
+  - Audit-log tests.
+
+Exit criteria:
+  Agents can perform scoped tasks without escaping their boundaries.
+
+Phase 4.3: Agent Council Reviews
+--------------------------------
+
+Tasks:
+  - Run multiple agents on the same change.
+  - Merge findings.
+  - Deduplicate issues.
+  - Rank severity.
+  - Produce final decision:
+      pass
+      pass-with-notes
+      needs-work
+      blocked
+
+Deliverables:
+  - Council review engine.
+  - CLI command: `sage council review`
+  - MCP tool: `council_review`
+
+Verification:
+  - Fixture diff reviews.
+  - Conflicting-agent tests.
+  - Severity ranking tests.
+
+Exit criteria:
+  A change can be reviewed by multiple role agents and produce one coherent
+  decision.
+
+Phase 4.4: Agent Evals
+----------------------
+
+Tasks:
+  - Build eval datasets for each agent role.
+  - Score agents for:
+      correctness
+      finding quality
+      false positives
+      false negatives
+      actionability
+      evidence quality
+      policy compliance
+  - Track eval results over time.
+
+Deliverables:
+  - Agent eval harness.
+  - Eval fixtures.
+  - Agent score dashboard.
+
+Verification:
+  npm run agents:eval
+
+Exit criteria:
+  Agent quality is measured and regressions are visible.
+
+PROGRAM 5: SENIOR REVIEW ENGINE 2.0
+===================================
+
+Goal:
+  Make Sage Kernel a serious review and audit system for architecture, code,
+  tests, security, performance, UX, and release readiness.
+
+Phase 5.1: Review Taxonomy
+--------------------------
+
+Tasks:
+  - Define categories:
+      architecture
+      correctness
+      maintainability
+      test quality
+      security
+      performance
+      reliability
+      observability
+      accessibility
+      API design
+      database design
+      dependency risk
+      release readiness
+      documentation
+      agent readiness
+  - Define severity and confidence.
+  - Define evidence requirements.
+
+Deliverables:
+  - Review taxonomy schema.
+  - Review scoring rubric.
+
+Verification:
+  npm run review:validate
+
+Exit criteria:
+  Review findings are consistent and machine-checkable.
+
+Phase 5.2: Diff Review Engine
+-----------------------------
+
+Tasks:
+  - Inspect git diffs.
+  - Detect risky file types.
+  - Map changes to affected routes, tests, docs, and permissions.
+  - Require tests for high-risk changes.
+
+Deliverables:
+  - `packages/review/diff-review.mjs`
+  - CLI command: `sage review diff`
+  - MCP tool: `review_diff`
+
+Verification:
+  - Fixture diffs.
+  - Missing-test detection.
+  - Security-sensitive diff detection.
+
+Exit criteria:
+  Sage can review a staged or unstaged diff and produce actionable findings.
+
+Phase 5.3: Architecture Audit Engine
+------------------------------------
+
+Tasks:
+  - Detect module boundaries.
+  - Detect circular dependencies.
+  - Detect oversized modules.
+  - Detect hidden coupling.
+  - Detect duplicate responsibilities.
+  - Compare implementation to architecture docs.
+
+Deliverables:
+  - Architecture audit module.
+  - Architecture scorecard.
+  - Docs drift checks.
+
+Verification:
+  npm run architecture:audit
+  npm test
+
+Exit criteria:
+  Architecture risks are surfaced with file-level evidence.
+
+Phase 5.4: Review E2E Proof
+---------------------------
+
+Tasks:
+  - Run review engine against fixture repos with known problems.
+  - Run review engine against Sage Kernel itself.
+  - Record baseline scores.
+
+Deliverables:
+  - Review proof report.
+  - Baseline review score.
+
+Verification:
+  npm run review:prove
+
+Exit criteria:
+  Review results are repeatable, evidence-backed, and useful.
+
+PROGRAM 6: SECURITY, SUPPLY CHAIN, AND COMPLIANCE HARDENING
+===========================================================
+
+Goal:
+  Make Sage Kernel enforce serious security practices without becoming
+  heavyweight or brittle.
+
+Phase 6.1: Security SDLC Mapping
+--------------------------------
+
+Tasks:
+  - Map Sage checks to OWASP SAMM-style categories.
+  - Map secure development checks to NIST SSDF-style practices.
+  - Define project-level security maturity scores.
+  - Identify gaps per project profile.
+
+Deliverables:
+  - Security maturity model.
+  - Security scorecard.
+  - Security docs.
+
+Verification:
+  npm run security:validate
+
+Exit criteria:
+  Security posture is measurable by project and by category.
+
+Phase 6.2: Threat Modeling Workflow
+-----------------------------------
+
+Tasks:
+  - Add threat modeling templates.
+  - Detect assets, trust boundaries, identities, secrets, and external systems.
+  - Generate threat model draft.
+  - Require review for high-risk systems.
+
+Deliverables:
+  - Threat model generator.
+  - CLI command: `sage security threat-model`
+  - MCP tool: `security_threat_model`
+
+Verification:
+  - Fixture threat models.
+  - Schema validation.
+  - High-risk path tests.
+
+Exit criteria:
+  A project can generate and validate a useful threat model.
+
+Phase 6.3: Supply Chain Gate
+----------------------------
+
+Tasks:
+  - Add SBOM generation.
+  - Add dependency risk checks.
+  - Add license checks.
+  - Integrate OpenSSF Scorecard where available.
+  - Record supply-chain evidence.
+
+Deliverables:
+  - Supply-chain checker.
+  - SBOM artifact.
+  - License report.
+
+Verification:
+  npm run supply-chain:scan
+
+Exit criteria:
+  Supply-chain risk is visible before release.
+
+Phase 6.4: Security E2E Proof
+-----------------------------
+
+Tasks:
+  - Test secret scan.
+  - Test unsafe command blocking.
+  - Test approval boundaries.
+  - Test threat model generation.
+  - Test dependency risk reporting.
+
+Deliverables:
+  - Security E2E suite.
+  - Security proof report.
+
+Verification:
+  npm run security:e2e
+
+Exit criteria:
+  Security checks work through CLI, MCP, CI, and release workflows.
+
+PROGRAM 7: TESTING, E2E, PERFORMANCE, AND SOAK SYSTEM
+=====================================================
+
+Goal:
+  Make testing comprehensive, profile-aware, and hard to fake.
+
+Phase 7.1: Test Strategy Generator
+----------------------------------
+
+Tasks:
+  - Generate project-specific test strategy.
+  - Identify missing test layers.
+  - Recommend unit, integration, E2E, contract, performance, and security tests.
+  - Link tests to definition of done.
+
+Deliverables:
+  - Test strategy module.
+  - CLI command: `sage test strategy`
+  - MCP tool: `test_strategy_generate`
+
+Verification:
+  - Fixture profiles.
+  - Snapshot strategies.
+
+Exit criteria:
+  Every project receives a practical test strategy.
+
+Phase 7.2: Browser And Mobile E2E Harness
+-----------------------------------------
+
+Tasks:
+  - Add Playwright profile templates.
+  - Verify routes.
+  - Verify forms.
+  - Verify mobile viewports.
+  - Verify accessibility basics.
+  - Verify screenshots and visual states.
+
+Deliverables:
+  - E2E template generator.
+  - Dashboard E2E expansion.
+  - App E2E example.
+
+Verification:
+  npm run e2e
+
+Exit criteria:
+  Web projects can get real browser tests quickly.
+
+Phase 7.3: Stress And Performance Profiles
+------------------------------------------
+
+Tasks:
+  - Define stress profiles by project type.
+  - Add queue, HTTP, MCP, DB, and dashboard stress profiles.
+  - Track latency, throughput, failures, and memory.
+  - Add performance budgets.
+
+Deliverables:
+  - Stress profile catalog.
+  - Performance report format.
+  - CLI command: `sage stress run`
+
+Verification:
+  npm run stress:queue -- --count=100000
+  npm run stress:dashboard -- --count=1000 --concurrency=50
+  npm run soak:run -- --profile=local --cycles=3
+
+Exit criteria:
+  Stress tests produce useful pass/fail evidence.
+
+Phase 7.4: Long Soak And Regression Lab
+---------------------------------------
+
+Tasks:
+  - Add multi-hour soak profiles.
+  - Track memory growth.
+  - Track repeated failure rates.
+  - Save reports to release evidence.
+
+Deliverables:
+  - Soak report.
+  - Memory growth report.
+  - Regression baseline.
+
+Verification:
+  npm run soak:run -- --profile=release --duration=4h
+
+Exit criteria:
+  Release candidates have real long-duration stability evidence.
+
+PROGRAM 8: MEMORY, KNOWLEDGE GRAPH, AND LEARNING SYSTEM
+=======================================================
+
+Goal:
+  Turn Sage Kernel into a system that remembers engineering decisions,
+  repeated failures, project standards, and lessons without allowing memory
+  drift or garbage accumulation.
+
+Phase 8.1: Memory Policy
+------------------------
+
+Tasks:
+  - Define what can be written to memory.
+  - Define global memory vs project memory.
+  - Define approval rules for permanent memory.
+  - Define expiration and confidence.
+  - Define redaction rules.
+
+Deliverables:
+  - Memory policy doc.
+  - Memory schema updates.
+  - Memory validation tests.
+
+Verification:
+  npm run memory:validate
+  npm test
+
+Exit criteria:
+  Memory writes are safe, intentional, and auditable.
+
+Phase 8.2: Engineering Knowledge Graph
+--------------------------------------
+
+Tasks:
+  - Model:
+      projects
+      modules
+      routes
+      tests
+      decisions
+      incidents
+      dependencies
+      agents
+      workflows
+      findings
+      releases
+  - Add query APIs.
+  - Add MCP resources for memory and graph state.
+
+Deliverables:
+  - Knowledge graph schema.
+  - Query module.
+  - MCP resources.
+
+Verification:
+  - Graph insertion tests.
+  - Graph query tests.
+  - Resource tests.
+
+Exit criteria:
+  Sage can retrieve relevant project knowledge during planning and review.
+
+Phase 8.3: Learning Loop
+------------------------
+
+Tasks:
+  - Capture failed checks.
+  - Capture fixes.
+  - Capture recurring issues.
+  - Propose memory updates.
+  - Require approval for global standards changes.
+
+Deliverables:
+  - Learning loop module.
+  - CLI command: `sage learn propose`
+  - MCP tool: `learning_update_propose`
+
+Verification:
+  - Failure-to-memory tests.
+  - Approval tests.
+  - Drift prevention tests.
+
+Exit criteria:
+  Sage can learn from failures without silently changing standards.
+
+Phase 8.4: Memory E2E Proof
+---------------------------
+
+Tasks:
+  - Run a workflow that fails.
+  - Fix it.
+  - Propose a memory update.
+  - Approve it.
+  - Verify future workflow uses the memory.
+
+Deliverables:
+  - Memory E2E test.
+  - Learning proof report.
+
+Verification:
+  npm run memory:e2e
+
+Exit criteria:
+  Memory improves future behavior and remains auditable.
+
+PROGRAM 9: GLOBAL INSTALL, PORTABILITY, AND TOOL-AGNOSTIC OPERATION
+===================================================================
+
+Goal:
+  Make Sage Kernel something the owner can install globally and use across
+  machines, agents, clients, and projects.
+
+Phase 9.1: Global Install Doctor
+--------------------------------
+
+Tasks:
+  - Verify Node version.
+  - Verify package install.
+  - Verify SQLite.
+  - Verify optional Postgres.
+  - Verify MCP config.
+  - Verify dashboard.
+  - Verify permissions.
+  - Verify global AGENTS.md.
+
+Deliverables:
+  - `sage doctor` expansion.
+  - Global install docs.
+
+Verification:
+  sage doctor --json
+
+Exit criteria:
+  A global install can self-diagnose all critical surfaces.
+
+Phase 9.2: Agent Instruction Export
+-----------------------------------
+
+Tasks:
+  - Generate AGENTS.md.
+  - Generate compatible instruction files for common tools where appropriate.
+  - Include profile-specific rules.
+  - Include security boundaries.
+  - Include verification expectations.
+
+Deliverables:
+  - `sage agents install`
+  - `sage agents doctor`
+  - Export templates.
+
+Verification:
+  - Install tests.
+  - Doctor tests.
+  - Template snapshot tests.
+
+Exit criteria:
+  New agent sessions can inherit the same engineering rules.
+
+Phase 9.3: MCP Client Portability
+---------------------------------
+
+Tasks:
+  - Generate configs for Codex, Claude Desktop, Cursor, and generic MCP JSON.
+  - Validate generated configs.
+  - Document manual connection proof.
+
+Deliverables:
+  - MCP client setup docs.
+  - Config generator tests.
+
+Verification:
+  sage mcp config all --json
+  sage mcp smoke
+
+Exit criteria:
+  Compatible MCP clients can connect with minimal manual work.
+
+Phase 9.4: Cross-Machine Proof
+------------------------------
+
+Tasks:
+  - Test install from npm on a clean machine or clean container.
+  - Run doctor.
+  - Run MCP smoke.
+  - Run profile detection against a sample repo.
+
+Deliverables:
+  - Cross-machine install proof.
+  - Known environment limitations.
+
+Verification:
+  npm install -g <package-name>
+  sage doctor --fast --json
+  sage mcp smoke
+
+Exit criteria:
+  Sage works outside the maintainer machine.
+
+PROGRAM 10: DASHBOARD AND HUMAN OPERATING COCKPIT
+=================================================
+
+Goal:
+  Make the dashboard useful for daily operation, not just demonstration.
+
+Phase 10.1: Dashboard Information Architecture
+----------------------------------------------
+
+Tasks:
+  - Define views:
+      health
+      project profile
+      active workflows
+      agents
+      review findings
+      approvals
+      jobs
+      memory
+      release readiness
+      stress reports
+      docs and runbooks
+  - Remove unclear or duplicate UI.
+  - Ensure the dashboard is dense, professional, and operational.
+
+Deliverables:
+  - Dashboard IA doc.
+  - Updated dashboard layout.
+
+Verification:
+  npm run dashboard:build
+  npm test
+
+Exit criteria:
+  The dashboard clearly supports daily use.
+
+Phase 10.2: Executable Dashboard Workflows
+------------------------------------------
+
+Tasks:
+  - Run approved commands from the UI.
+  - Show pending approvals.
+  - Show live job status.
+  - Show workflow progress.
+  - Prevent unsafe actions without approval.
+
+Deliverables:
+  - Dashboard workflow execution.
+  - Approval UI.
+  - Audit trail view.
+
+Verification:
+  - API tests.
+  - Approval tests.
+  - Playwright tests.
+
+Exit criteria:
+  Dashboard commands are useful and safe.
+
+Phase 10.3: Real-Time Updates
+-----------------------------
+
+Tasks:
+  - Add polling or event stream.
+  - Refresh jobs, approvals, workflow state, and health.
+  - Handle offline and error states.
+
+Deliverables:
+  - Real-time dashboard updates.
+  - Error states.
+
+Verification:
+  - Unit tests.
+  - Browser E2E tests.
+
+Exit criteria:
+  Dashboard state stays current without manual reloads.
+
+Phase 10.4: Dashboard E2E Proof
+-------------------------------
+
+Tasks:
+  - Click through every major view.
+  - Verify responsive layouts.
+  - Verify commands and approvals.
+  - Verify no broken routes.
+  - Verify screenshots.
+
+Deliverables:
+  - Playwright dashboard suite.
+  - Screenshot proof.
+
+Verification:
+  npm run dashboard:e2e
+
+Exit criteria:
+  Dashboard is E2E-proven.
+
+PROGRAM 11: TEMPLATE AND APP FACTORY
+====================================
+
+Goal:
+  Let Sage Kernel generate production-grade starting points for common project
+  types and then verify those generated projects.
+
+Phase 11.1: Template Quality Standard
+-------------------------------------
+
+Tasks:
+  - Define template requirements:
+      tests
+      docs
+      CI
+      security
+      env handling
+      logging
+      health checks
+      E2E where relevant
+      release guide
+  - Apply to all templates.
+
+Deliverables:
+  - Template quality spec.
+  - Template validator.
+
+Verification:
+  npm run template:validate-blueprints
+
+Exit criteria:
+  Every template meets the same production baseline.
+
+Phase 11.2: Web And App Templates
+---------------------------------
+
+Tasks:
+  - Add templates for:
+      Next.js app
+      React/Vite app
+      API service
+      MCP server
+      CLI package
+      worker service
+      mobile app starter if feasible
+  - Include testing and release scripts.
+
+Deliverables:
+  - Template catalog.
+  - Generated examples.
+
+Verification:
+  - Scaffold tests.
+  - Generated project install tests.
+  - Generated project test runs.
+
+Exit criteria:
+  Templates produce runnable, testable projects.
+
+Phase 11.3: Production Profile Injection
+----------------------------------------
+
+Tasks:
+  - Inject Sage standards into generated projects.
+  - Add project AGENTS.md.
+  - Add CI gates.
+  - Add security scans.
+  - Add E2E tests where relevant.
+
+Deliverables:
+  - Template profile injection.
+  - Generated project proof.
+
+Verification:
+  npm run templates:e2e
+
+Exit criteria:
+  Generated projects are born with professional SDLC standards.
+
+Phase 11.4: Template Benchmarking
+---------------------------------
+
+Tasks:
+  - Time scaffold generation.
+  - Measure generated project install time.
+  - Measure test pass rate.
+  - Track template regressions.
+
+Deliverables:
+  - Template benchmark report.
+
+Verification:
+  npm run templates:benchmark
+
+Exit criteria:
+  Template quality and speed are measurable.
+
+PROGRAM 12: BENCHMARKS, EVALS, AND WORLD-CLASS SCOREBOARD
+=========================================================
+
+Goal:
+  Make quality measurable, comparable, and regression-resistant.
+
+Phase 12.1: Quality Score Model
+-------------------------------
+
+Tasks:
+  - Define score categories:
+      installability
+      portability
+      MCP
+      CLI
+      dashboard
+      architecture
+      code quality
+      testing
+      security
+      performance
+      reliability
+      documentation
+      release
+      agent orchestration
+      memory
+      maintainability
+  - Define weights.
+  - Define evidence per category.
+
+Deliverables:
+  - Score model.
+  - Score schema.
+  - Score docs.
+
+Verification:
+  npm run score:validate
+
+Exit criteria:
+  Scores are based on evidence, not opinion.
+
+Phase 12.2: Agent And Workflow Benchmarks
+-----------------------------------------
+
+Tasks:
+  - Create benchmark tasks inspired by real software work:
+      fix failing test
+      add endpoint
+      harden auth flow
+      refactor module
+      add E2E test
+      detect security issue
+      prepare release
+  - Score success, time, test pass rate, and review quality.
+
+Deliverables:
+  - Benchmark fixture suite.
+  - Benchmark runner.
+  - Score reports.
+
+Verification:
+  npm run benchmark:workflows
+
+Exit criteria:
+  Workflow quality can be compared over time.
+
+Phase 12.3: Regression Dashboard
+--------------------------------
+
+Tasks:
+  - Track scores over time.
+  - Track test counts.
+  - Track coverage.
+  - Track performance.
+  - Track agent evals.
+  - Track release proof.
+
+Deliverables:
+  - Scoreboard data model.
+  - Dashboard score view.
+
+Verification:
+  npm run score:report
+
+Exit criteria:
+  Regressions are visible quickly.
+
+Phase 12.4: External Comparison
+-------------------------------
+
+Tasks:
+  - Compare capabilities against known engineering tools.
+  - Compare security maturity.
+  - Compare install experience.
+  - Compare agent workflow reliability.
+  - Avoid unsupported claims.
+
+Deliverables:
+  - Competitive/benchmark audit.
+  - Gap report.
+
+Verification:
+  Manual audit plus reproducible benchmark artifacts.
+
+Exit criteria:
+  Top-tier claims are backed by measured evidence.
+
+PROGRAM 13: SELF-AUDIT, SELF-HEALING, AND DRIFT CONTROL
+=======================================================
+
+Goal:
+  Make Sage Kernel continuously police its own quality without creating
+  uncontrolled autonomous behavior.
+
+Phase 13.1: Self-Audit Contracts
+--------------------------------
+
+Tasks:
+  - Define what Sage must audit about itself:
+      docs vs implementation
+      tools vs contracts
+      routes vs tests
+      permissions vs risk levels
+      memory vs current standards
+      profiles vs fixtures
+      release docs vs workflows
+  - Produce self-audit report.
+
+Deliverables:
+  - Self-audit schema.
+  - CLI command: `sage self-audit`
+  - MCP tool: `self_audit`
+
+Verification:
+  npm run self:audit
+
+Exit criteria:
+  Sage can report its own inconsistencies.
+
+Phase 13.2: Drift Detector Expansion
+------------------------------------
+
+Tasks:
+  - Detect scope creep.
+  - Detect undocumented tools.
+  - Detect untested routes.
+  - Detect stale docs.
+  - Detect unapproved memory changes.
+
+Deliverables:
+  - Drift rule catalog.
+  - Allowlist/denylist.
+  - CI gate.
+
+Verification:
+  npm run drift:validate
+  npm run drift:prove
+
+Exit criteria:
+  Important drift fails CI or release gates.
+
+Phase 13.3: Bounded Self-Healing
+--------------------------------
+
+Tasks:
+  - Generate repair plans for failed gates.
+  - Require approval before modifying files.
+  - Apply small patches only.
+  - Re-run exact failed gates.
+  - Stop after retry budget.
+
+Deliverables:
+  - Self-healing workflow.
+  - Approval policy.
+  - Rollback support.
+
+Verification:
+  - Fixture failures.
+  - Approval tests.
+  - Retry-limit tests.
+  - Rollback tests.
+
+Exit criteria:
+  Sage can repair controlled failures safely.
+
+Phase 13.4: Self-Audit E2E Proof
+--------------------------------
+
+Tasks:
+  - Introduce controlled drift in a fixture.
+  - Detect it.
+  - Generate repair plan.
+  - Apply approved repair.
+  - Verify drift is gone.
+
+Deliverables:
+  - Self-audit E2E suite.
+  - Self-healing proof report.
+
+Verification:
+  npm run self:e2e
+
+Exit criteria:
+  Self-audit and bounded self-healing work end to end.
+
+PROGRAM 14: FINAL WORLD-CLASS AUDIT AND ITERATION LOOP
+======================================================
+
+Goal:
+  After all programs are complete, audit the entire system again and keep
+  iterating until the scorecard has no known critical gaps.
+
+Phase 14.1: Full-System Audit
+-----------------------------
+
+Tasks:
+  - Audit every package.
+  - Audit every app.
+  - Audit every script.
+  - Audit every MCP tool/resource/prompt.
+  - Audit every route.
+  - Audit every profile.
+  - Audit every doc.
+  - Audit every test gate.
+
+Deliverables:
+  - Full-system audit report.
+  - Scorecard.
+  - Critical gaps list.
+
+Verification:
+  npm run audit:full
+
+Exit criteria:
+  Every known gap is categorized, prioritized, and assigned to a follow-up.
+
+Phase 14.2: External Proof Run
+------------------------------
+
+Tasks:
+  - Clean machine install.
+  - Public npm install.
+  - MCP client connection.
+  - Dashboard run.
+  - Real project audit.
+  - Generated project build.
+  - Release proof.
+
+Deliverables:
+  - External proof report.
+  - Screenshots.
+  - Demo recording.
+
+Verification:
+  Manual and automated proof artifacts.
+
+Exit criteria:
+  A non-maintainer can use the system successfully.
+
+Phase 14.3: Gap Closure Campaign
+--------------------------------
+
+Tasks:
+  - Convert every critical gap into a ticket.
+  - Fix gaps in priority order.
+  - Re-run relevant gates after every fix.
+  - Update docs and memory.
+
+Deliverables:
+  - Closed gaps.
+  - Updated scorecard.
+  - Release candidate.
+
+Verification:
+  Full gate suite.
+
+Exit criteria:
+  No known critical gaps remain.
+
+Phase 14.4: Continuous Evolution Program
+----------------------------------------
+
+Tasks:
+  - Schedule recurring audits.
+  - Track dependency updates.
+  - Track model/tool changes.
+  - Track new project profiles.
+  - Track user feedback.
+  - Track benchmark regressions.
+
+Deliverables:
+  - Maintenance calendar.
+  - Upgrade policy.
+  - Versioned roadmap.
+
+Verification:
+  Quarterly full audit.
+  Per-release proof run.
+
+Exit criteria:
+  Sage Kernel remains a living system without losing quality control.
+
+Global Verification Commands
+----------------------------
+
+Core gates:
+
+  npm test
+  npm run test:coverage
+  npm run coverage:critical -- /tmp/sage-coverage-output.txt
+  npm run release:check
+  npm run verify:fresh-install -- --worktree-copy
+  npm run security:scan
+  npm audit
+  npm run public:validate
+  npm run mcp:validate
+  npm run mcp:contracts
+  npm run mcp:smoke
+  npm run qa:gate
+  npm run qa:run
+  git diff --check
+
+Stress and soak gates:
+
+  npm run stress:queue -- --count=10000
+  npm run stress:queue -- --count=100000
+  npm run stress:dashboard -- --url=http://127.0.0.1:8787 --count=1000 --concurrency=50
+  npm run soak:run -- --profile=local --cycles=3
+
+Release gates:
+
+  npm run release:provenance
+  npm pack --dry-run
+  npm whoami
+  npm install -g <published-package>
+  sage doctor --fast --json
+  sage mcp smoke
+
+Non-Negotiable Engineering Rules
+--------------------------------
+
+  1. No unsupported world-class claims.
+  2. No new workflow without tests.
+  3. No mutating agent without approvals.
+  4. No memory write without policy.
+  5. No release without fresh install proof.
+  6. No major feature without docs.
+  7. No generated project without validation.
+  8. No dashboard workflow without E2E proof.
+  9. No security-sensitive action without audit record.
+  10. No self-healing without retry limits and rollback.
+
+Execution Method
+----------------
+
+For each phase:
+
+  1. State the phase being executed.
+  2. Inspect the current code.
+  3. Implement the smallest complete slice.
+  4. Add tests.
+  5. Run focused tests.
+  6. Run relevant gates.
+  7. Update docs.
+  8. Commit changes.
+  9. Push if remote proof is needed.
+  10. State what is done and what is left.
+
+Final Iteration Rule
+--------------------
+
+After Program 14, do not stop. Run the full audit again.
+
+If the score is below the target, create a new gap-closure program and repeat:
+
+  audit -> prioritize -> implement -> test -> prove -> document -> release
+
+The system is complete only when the remaining gaps are non-critical,
+documented, accepted, and backed by evidence.
+
