@@ -104,6 +104,10 @@ test("worker CLI wrapper reports usage and successful run summaries", async () =
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.jobId, "safe-npm");
   assert.equal(parsed.status, "passed");
+
+  const blocked = await runJobCli(["child-block"], { root, persist: false });
+  assert.equal(blocked.status, 0);
+  assert.equal(JSON.parse(blocked.stdout).status, "blocked");
 });
 
 test("repo health reports missing repositories only when source root is configured", () => {
@@ -167,6 +171,11 @@ test("worker enqueue CLI wrapper validates input and enqueues valid payloads", (
   assert.equal(db.initCalled, true);
   assert.deepEqual(enqueued[0], { jobId: "safe-npm", payload: { ok: true }, delayMs: 25 });
   assert.equal(JSON.parse(result.stdout).status, "queued");
+
+  const defaultDelay = enqueueJobCli(["safe-npm", "{\"ok\":true}", "not-number"], { root, db, queue });
+  assert.equal(defaultDelay.status, 0);
+  assert.equal(enqueued.at(-1).delayMs, 0);
+  assert.throws(() => enqueueJobCli(["missing-job"], { root, db, queue }), /Unknown job/);
 });
 
 test("worker next CLI wrapper handles empty queue, completion, and failure", () => {

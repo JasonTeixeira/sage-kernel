@@ -567,4 +567,9 @@ test("MCP call CLI wrapper validates input and invokes a runtime", async () => {
   assert.equal(result.status, 0);
   assert.deepEqual(calls, ["load", { name: "kernel.catalog.search", input: { query: "qa" } }]);
   assert.equal(JSON.parse(result.stdout).ok, true);
+
+  calls.length = 0;
+  const defaultInput = await callToolCli(["kernel.noop"], { runtime });
+  assert.equal(defaultInput.status, 0);
+  assert.deepEqual(calls, ["load", { name: "kernel.noop", input: {} }]);
 });

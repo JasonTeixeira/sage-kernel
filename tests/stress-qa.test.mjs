@@ -9,7 +9,7 @@ import { createQaReport, packageChecks, parseMode, run, runQaCli, staticChecks }
 import { createDogfoodReport, inspectRepo, sourceRootForCatalog } from "../scripts/dogfood-production-audit.mjs";
 import { createDashboardStressReport, parseDashboardStressArgs } from "../scripts/stress-dashboard.mjs";
 import { createQueueStressReport, parseQueueStressArgs } from "../scripts/stress-queue.mjs";
-import { createSoakReport, parseSoakArgs, runMcpSmoke } from "../scripts/soak-runner.mjs";
+import { createSoakReport, parseSoakArgs, runMcpSmoke, runSoakCli } from "../scripts/soak-runner.mjs";
 import { createWarehouseSummary } from "../packages/ai-warehouse/scripts/warehouse-summary.mjs";
 import { validateIntelligence } from "../packages/intelligence/scripts/validate-intelligence.mjs";
 import { validateMarkdownLinks, validatePublicSurface } from "../scripts/validate-public-surface.mjs";
@@ -72,6 +72,25 @@ test("soak runner reports repeated checks and memory deltas", async () => {
   const directFailedMcp = runMcpSmoke(failingRoot);
   assert.equal(directFailedMcp.status, "failed");
   assert.notEqual(directFailedMcp.exitCode, 0);
+
+  const lines = [];
+  const cliPassed = await runSoakCli(["--profile=quick", "--cycles=1", "--skip-dashboard"], {
+    root,
+    queueCount: 1,
+    mcpSmoke: { status: "passed", exitCode: 0 },
+    stdout: (line) => lines.push(line),
+    stderr: () => {}
+  });
+  assert.equal(cliPassed, 0);
+  assert.equal(JSON.parse(lines[0]).status, "passed");
+
+  const errors = [];
+  const cliInvalid = await runSoakCli(["--profile=missing"], {
+    stdout: () => {},
+    stderr: (line) => errors.push(line)
+  });
+  assert.equal(cliInvalid, 1);
+  assert.match(errors[0], /Unknown soak profile/);
 });
 
 test("infra plan CLI validates inputs, writes output files, and covers python docker selection", () => {

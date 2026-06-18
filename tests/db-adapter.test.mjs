@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { bindSql, createDbAdapter, createPersistentSqliteAdapter, createPostgresAdapter, createSqliteAdapter, detectDbProvider } from "../packages/db/adapter.mjs";
+import { bindSql, createCliSqliteAdapter, createDbAdapter, createPersistentSqliteAdapter, createPostgresAdapter, createSqliteAdapter, detectDbProvider, __dbAdapterTestInternals } from "../packages/db/adapter.mjs";
 import {
   backupSqliteDb,
   exportKernelData,
@@ -32,6 +32,8 @@ test("SQL binding covers primitive values, escaping, nullish values, and missing
     "VALUES ('O''Hara', 1, 0, NULL, NULL, NULL)"
   );
   assert.throws(() => bindSql("VALUES (?, ?)", ["only-one"]), /Missing SQL bind parameter/);
+  assert.equal(__dbAdapterTestInternals.sqlValue(Number.POSITIVE_INFINITY), "NULL");
+  assert.equal(__dbAdapterTestInternals.sqlValue("Bob's"), "'Bob''s'");
 });
 
 test("sqlite adapter initializes schema and supports parameterized writes", () => {
@@ -102,6 +104,23 @@ test("sqlite adapter can select persistent mode and rolls back failed persistent
   );
   assert.equal(db.scalar("SELECT COUNT(*) AS count FROM persistent_extra;"), 2);
   db.close();
+});
+
+test("sqlite adapter covers optional persistent fallback and cli execution errors", () => {
+  assert.equal(typeof __dbAdapterTestInternals.loadNodeSqlite(true)?.DatabaseSync, "function");
+  const selected = createSqliteAdapter({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
+    env: {}
+  });
+  assert.equal(["cli", "persistent"].includes(selected.driver), true);
+  selected.close?.();
+
+  const cli = createCliSqliteAdapter({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, "..")
+  });
+  assert.throws(() => cli.query("SELECT definitely_missing FROM missing_table;"), /no such table|failed/i);
 });
 
 test("sqlite adapter executes batched statements in one transaction", () => {

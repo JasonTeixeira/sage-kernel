@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { runMcpSmoke } from "../apps/mcp-server/scripts/smoke.mjs";
+import { createMcpContractArtifacts, runGenerateContractsCli, __generateContractsTestInternals } from "../apps/mcp-server/scripts/generate-contracts.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -90,6 +92,60 @@ test("MCP contracts and docs are generated from the manifest", () => {
   assert.match(promptDocs, /# Sage Kernel MCP Prompts/);
   assert.match(promptDocs, /sage\.audit-repo/);
   assert.match(promptDocs, /workflow entry points/i);
+});
+
+test("MCP contract generator direct API covers defaults and CLI output", () => {
+  const manifest = {
+    server: { name: "fixture" },
+    tools: [{
+      name: "kernel.fixture",
+      description: "Fixture tool.",
+      risk: "safe",
+      permission: "fixture:read",
+      inputSchema: { type: "object", properties: {} },
+      outputShape: "Fixture output.",
+      examples: [{ input: {} }],
+      failureModes: ["Fixture failure."]
+    }, {
+      name: "kernel.approval",
+      description: "Approval tool.",
+      risk: "mutating",
+      permission: "fixture:write",
+      approvalRequired: true,
+      sideEffects: "writes fixture",
+      inputSchema: { type: "object", required: ["id"], properties: { id: { type: "string" } } },
+      outputShape: "Approval output.",
+      examples: [{ input: { id: "x" } }],
+      failureModes: ["Approval failure."]
+    }]
+  };
+  const artifacts = createMcpContractArtifacts({
+    manifest,
+    prompts: [{ name: "fixture.prompt", title: "Prompt", description: "Prompt description.", argsSchema: null }],
+    resources: [{ name: "fixture", uri: "sage://fixture", title: "Fixture", description: "Fixture resource.", mimeType: "application/json" }]
+  });
+  assert.equal(artifacts.snapshot.tools[0].sideEffects, "none");
+  assert.deepEqual(artifacts.snapshot.tools[0].required, []);
+  assert.equal(artifacts.snapshot.tools[1].approvalRequired, true);
+  assert.equal(artifacts.promptSnapshot.prompts[0].arguments.length, 0);
+  assert.match(artifacts.docs, /kernel\.approval/);
+  assert.match(__generateContractsTestInternals.hash({ ok: true }), /^[a-f0-9]{64}$/);
+
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-contracts-direct-"));
+  fs.mkdirSync(path.join(workspace, "apps/mcp-server"), { recursive: true });
+  fs.mkdirSync(path.join(workspace, "docs"), { recursive: true });
+  const lines = [];
+  const status = runGenerateContractsCli({
+    root: workspace,
+    manifest,
+    prompts: [],
+    resources: [],
+    stdout: (line) => lines.push(line)
+  });
+  assert.equal(status, 0);
+  assert.equal(lines[0], "MCP contracts generated.");
+  assert.equal(fs.existsSync(path.join(workspace, "apps/mcp-server/contracts/tools.snapshot.json")), true);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(workspace, "apps/mcp-server/contracts/tools.snapshot.json"), "utf8")).tools.length, 2);
 });
 
 test("MCP server is documented as the canonical product entry point", () => {

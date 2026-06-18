@@ -274,3 +274,8 @@ function sqlValue(value) {
   if (typeof value === "boolean") return value ? "1" : "0";
   return `'${String(value).replaceAll("'", "''")}'`;
 }
+
+export const __dbAdapterTestInternals = {
+  loadNodeSqlite,
+  sqlValue
+};

@@ -327,6 +327,7 @@ export function createDashboardServer(options = {}) {
   });
 }
 
+/* node:coverage ignore next 4 */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const server = createDashboardServer();
   server.listen(port, () => console.log(`Sage dashboard live at http://localhost:${port}`));

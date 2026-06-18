@@ -190,6 +190,12 @@ test("kernel errors serialize and normalize non-kernel failures", () => {
   const fallbackOnly = normalizeKernelError(null, { message: "fallback message" });
   assert.equal(fallbackOnly.code, "KERNEL_INTERNAL_ERROR");
   assert.equal(fallbackOnly.message, "fallback message");
+
+  const defaulted = normalizeKernelError(null);
+  assert.equal(defaulted.message, "Kernel operation failed");
+  assert.match(defaulted.remediation, /Review the failing command output/);
+  const plainKernelShape = { name: "KernelError", code: "KERNEL_SHAPE" };
+  assert.equal(isKernelError(plainKernelShape), true);
 });
 
 test("json schema conversion and audit helpers cover primitive, optional, and fallback branches", () => {
@@ -213,6 +219,26 @@ test("json schema conversion and audit helpers cover primitive, optional, and fa
     { apiKey: "[REDACTED]", nested: { password: "[REDACTED]", safe: "ok" } }
   ]);
   assert.equal(createAuditSink(), null);
+
+  const auditRows = [];
+  const sink = createAuditSink({
+    db: {
+      execute(sql, params) {
+        auditRows.push({ sql, params });
+      }
+    }
+  });
+  const originalCrypto = globalThis.crypto;
+  try {
+    Object.defineProperty(globalThis, "crypto", { value: undefined, configurable: true });
+    sink({ type: "tool.started", tool: "kernel.test", at: "2026-01-01T00:00:00.000Z", input: { token: "secret", safe: "ok" } });
+  } finally {
+    Object.defineProperty(globalThis, "crypto", { value: originalCrypto, configurable: true });
+  }
+  assert.match(auditRows[0].params[0], /^audit_\d+_/);
+  assert.equal(auditRows[0].params[2], "kernel.test");
+  assert.doesNotMatch(auditRows[0].params[3], /secret/);
+  assert.match(auditRows[0].params[3], /REDACTED/);
 });
 
 test("registry and policy report explicit edge-case errors", () => {

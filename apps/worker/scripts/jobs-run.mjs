@@ -159,6 +159,7 @@ export async function runJobCli(args = process.argv.slice(2), options = {}) {
   };
 }
 
+/* node:coverage ignore next 6 */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const result = await runJobCli();
   if (result.stderr) console.error(result.stderr);

@@ -21,6 +21,7 @@ export async function callToolCli(args = process.argv.slice(2), options = {}) {
   return { status: 0, stdout: JSON.stringify(result, null, 2) };
 }
 
+/* node:coverage ignore next 6 */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const result = await callToolCli();
   if (result.stderr) console.error(result.stderr);

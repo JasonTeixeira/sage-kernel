@@ -94,6 +94,19 @@ export function runMcpSmoke(root) {
   };
 }
 
+export async function runSoakCli(args = process.argv.slice(2), options = {}) {
+  const stdout = options.stdout || console.log;
+  const stderr = options.stderr || console.error;
+  try {
+    const report = await createSoakReport({ ...parseSoakArgs(args), ...options });
+    stdout(JSON.stringify(report, null, 2));
+    return report.status === "passed" ? 0 : 1;
+  } catch (error) {
+    stderr(error.message);
+    return 1;
+  }
+}
+
 function memorySample(label) {
   const usage = process.memoryUsage();
   return {
@@ -123,13 +136,7 @@ function valueFor(argv, name) {
   return argv.find((arg) => arg.startsWith(`${name}=`))?.split("=")[1] || null;
 }
 
+/* node:coverage ignore next 3 */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  try {
-    const report = await createSoakReport(parseSoakArgs());
-    console.log(JSON.stringify(report, null, 2));
-    process.exit(report.status === "passed" ? 0 : 1);
-  } catch (error) {
-    console.error(error.message);
-    process.exit(1);
-  }
+  process.exit(await runSoakCli());
 }

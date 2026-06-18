@@ -26,6 +26,7 @@ export function enqueueJobCli(args = process.argv.slice(2), options = {}) {
   return { status: 0, stdout: JSON.stringify(queued, null, 2) };
 }
 
+/* node:coverage ignore next 6 */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const result = enqueueJobCli();
   if (result.stderr) console.error(result.stderr);
