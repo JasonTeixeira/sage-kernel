@@ -45,18 +45,19 @@ Known local proof gap:
 
 ## Phase 1.2 CI Proof Lock
 
-Status: pending for this program pass.
+Status: passed.
 
-Required evidence:
+Evidence:
 
-- Commit current Program 1 evidence and master plan.
-- Push to `main`.
-- Watch GitHub Actions to completion.
-- Record the passing run URL.
+- Commit: `ce3bfc7a7c2360d22cffba6fa7246d3b75105e85`.
+- GitHub Actions run: https://github.com/JasonTeixeira/sage-kernel/actions/runs/27733143308
+- Quality Gates / Node 22: passed.
+- Fresh Install Verification: passed.
+- Postgres Integration: passed.
 
 ## Phase 1.3 Public Release Readiness
 
-Status: partially proven.
+Status: partially proven, blocked on npm authentication for publish proof.
 
 Already proven:
 
@@ -67,8 +68,12 @@ Already proven:
 
 Pending external proof:
 
-- `npm whoami` must succeed before npm publishing can be proven.
-- Package name ownership/availability must be confirmed during publish setup.
+- `npm whoami` failed with `E401 Unauthorized` on 2026-06-18.
+- `npm view sage-kernel version dist-tags --json` returned `E404 Not Found` on
+  2026-06-18, which means the package is not currently published in the npm
+  registry.
+- Package ownership/availability must be confirmed during authenticated publish
+  setup.
 
 ## Phase 1.4 First Public Release Proof
 
@@ -85,9 +90,9 @@ Required before completion:
 
 ## What Is Left After Program 1.1
 
-1. Commit the master plan and baseline proof.
-2. Push and watch CI for Phase 1.2.
-3. Re-check npm authentication and signing for Phase 1.3.
-4. Complete Phase 1.4 only after npm publish credentials and release-tag
+1. Configure npm authentication or trusted publishing.
+2. Configure release signing policy.
+3. Complete Phase 1.4 only after npm publish credentials and release-tag
    signing policy are available.
-
+4. Record public npm install proof after the first package publish.
+5. Record at least one manual external MCP client connection proof.
