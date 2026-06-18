@@ -142,6 +142,8 @@ test("eval runner covers parser, fallback graders, and alternate contract branch
   assert.throws(() => __evalRunnerTestInternals.parseArgs(["--wat"]), /Unknown argument/);
   assert.equal(__evalRunnerTestInternals.trimOutput(` ${"x".repeat(4100)} `).length, 4000);
   assert.equal(__evalRunnerTestInternals.runCoverageGrader({ id: "bad", type: "coverage", threshold: -1 }).status, "failed");
+  assert.equal(__evalRunnerTestInternals.runCoverageGrader({ id: "too_high", type: "coverage", threshold: 101 }).status, "failed");
+  assert.equal(__evalRunnerTestInternals.runCoverageGrader({ id: "not_number", type: "coverage", threshold: "90" }).status, "failed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "future", type: "future" }).status, "failed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "resources", type: "mcp_contract", path: "contracts/resources.snapshot.json" }).status, "passed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "prompts", type: "mcp_contract", path: "contracts/prompts.snapshot.json" }).status, "passed");
@@ -154,6 +156,33 @@ test("eval runner covers parser, fallback graders, and alternate contract branch
   assert.equal(graders.resources.status, "passed");
   assert.equal(graders.prompts.status, "passed");
   assert.equal(graders.unknown_contract.status, "failed");
+});
+
+test("eval runner covers missing directories, malformed definitions, and no-write selected success", () => {
+  const missingWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-eval-no-dir-"));
+  assert.deepEqual(listEvalDefinitions({ root: missingWorkspace }), []);
+
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-eval-more-branches-"));
+  const evalDir = path.join(workspace, "custom-evals");
+  fs.mkdirSync(evalDir, { recursive: true });
+  fs.writeFileSync(path.join(evalDir, "ignore.txt"), "{}");
+  fs.writeFileSync(path.join(evalDir, "bad.json"), "{");
+  assert.throws(() => listEvalDefinitions({ root: workspace, evalDir }), /JSON/);
+
+  fs.rmSync(path.join(evalDir, "bad.json"));
+  fs.writeFileSync(path.join(workspace, "ok.txt"), "ok");
+  fs.writeFileSync(path.join(evalDir, "ok.json"), JSON.stringify({
+    id: "eval_ok",
+    name: "OK",
+    scope: "mcp",
+    version: 1,
+    graders: [{ id: "file", type: "file_exists", path: "ok.txt" }],
+    successCriteria: ["ok"]
+  }));
+  const report = runEvalSuite({ root: workspace, evalDir, ids: ["eval_ok"], writeReport: false });
+  assert.equal(report.status, "passed");
+  assert.equal(report.reportPath, undefined);
+  assert.equal(report.summary.failed, 0);
 });
 
 test("eval runner reports an empty eval directory", () => {

@@ -136,6 +136,13 @@ function valueFor(argv, name) {
   return argv.find((arg) => arg.startsWith(`${name}=`))?.split("=")[1] || null;
 }
 
+export const __soakRunnerTestInternals = {
+  memoryDelta,
+  memorySample,
+  numberValue,
+  valueFor
+};
+
 /* node:coverage ignore next 3 */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   process.exit(await runSoakCli());

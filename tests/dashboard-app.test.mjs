@@ -165,6 +165,10 @@ test("dashboard HTTP server exposes health, readiness, metrics, snapshot, and HT
     const html = await fetchText(`${baseUrl}/`);
     assert.equal(html.statusCode, 200);
     assert.match(html.body, /Kernel Command Center/);
+
+    const fallbackHtml = await fetchText(`${baseUrl}/unknown-route`);
+    assert.equal(fallbackHtml.statusCode, 200);
+    assert.match(fallbackHtml.body, /Kernel Command Center/);
   } finally {
     await close(server);
   }
@@ -202,6 +206,23 @@ test("dashboard guarded workflows require matching signed approvals before execu
   assert.equal(executed.status, "failed");
   assert.equal(executed.workflow.id, "full-qa");
   assert.equal(executed.result.status, 1);
+});
+
+test("dashboard guarded workflow can execute an approved successful command", async () => {
+  const sandbox = createDashboardFixture();
+  fs.mkdirSync(path.join(sandbox, "apps/mcp-server/scripts"), { recursive: true });
+  fs.writeFileSync(path.join(sandbox, "apps/mcp-server/scripts/call-tool.mjs"), "console.log(JSON.stringify({ ok: true }))\n");
+
+  const requested = await runDashboardWorkflow({ id: "full-qa" }, { root: sandbox });
+  const db = createSqliteAdapter({ root: sandbox });
+  db.init();
+  createApprovalLedger({ db }).approve({ id: requested.approval.id, decidedBy: "test" });
+
+  const executed = await runDashboardWorkflow({ id: "full-qa", approvalId: requested.approval.id }, { root: sandbox });
+  assert.equal(executed.status, "executed");
+  assert.equal(executed.result.status, 0);
+  assert.match(executed.result.stdout, /"ok":true/);
+  assert.equal(Number(db.scalar("SELECT COUNT(*) FROM audit_events WHERE type='dashboard.workflow.executed';")), 1);
 });
 
 test("dashboard guarded workflow records approved failed runs and truncates large command output", async () => {
@@ -415,6 +436,24 @@ test("dashboard snapshot covers run-file fallback, artifacts, approvals, and con
   assert.match(html, /deploy/);
 });
 
+test("dashboard snapshot covers string tools and template hardening branches", () => {
+  const sandbox = createDashboardFixture();
+  fs.writeFileSync(path.join(sandbox, "apps/mcp-server/tools.json"), JSON.stringify({ tools: ["kernel.string_tool"] }));
+  fs.writeFileSync(path.join(sandbox, "catalog/templates.json"), JSON.stringify({
+    templates: [
+      { id: "thin", qaProfile: "minimal", coverage: ["qa"] },
+      { id: "ready", qaProfile: "full", coverage: ["qa", "deploy", "docs", "security", "e2e", "stress"], defaultStack: ["node"] }
+    ]
+  }));
+
+  const snapshot = dashboardSnapshot({ root: sandbox });
+  assert.deepEqual(snapshot.tools, ["kernel.string_tool"]);
+  assert.equal(snapshot.templates.readiness[0].status, "needs-hardening");
+  assert.deepEqual(snapshot.templates.readiness[0].stack, []);
+  assert.equal(snapshot.templates.readiness[1].status, "ready");
+  assert.deepEqual(__dashboardTestInternals.templateReadiness([{ id: "empty" }])[0].coverage, []);
+});
+
 test("dashboard cockpit renders empty operational states without layout placeholders missing", () => {
   const sandbox = createDashboardFixture();
   const snapshot = dashboardSnapshot({ root: sandbox });
@@ -562,6 +601,13 @@ test("dashboard internals cover snapshot helper fallback and row-mapping branche
     tools: [],
     jobTimeline: [{ status: "failed" }]
   }).status, "degraded");
+  assert.match(__dashboardTestInternals.systemHealth({
+    phases: [],
+    repoHealthRows: [],
+    templates: [{}],
+    tools: ["kernel.test"],
+    jobTimeline: []
+  }).summary, /0\/0 phases complete/);
 });
 
 test("dashboard CLI entry starts a live server", async () => {

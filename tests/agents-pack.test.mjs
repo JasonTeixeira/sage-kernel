@@ -7,9 +7,11 @@ import { spawnSync } from "node:child_process";
 
 import {
   createAgentsDoctorReport,
+  __agentPackTestInternals,
   formatAgentsText,
   getAgentPack,
   installGlobalAgentPack,
+  listAgentProfiles,
   validateAgentPack
 } from "../packages/agents/agent-pack.mjs";
 import { kernelResources } from "../apps/mcp-server/src/kernel-resources.mjs";
@@ -63,6 +65,10 @@ test("agent installer writes global files with backups, manifest, and doctor pro
   assert.equal(doctor.checks.globalFile.status, "passed");
   assert.equal(doctor.checks.manifest.status, "passed");
   assert.equal(doctor.checks.profiles.status, "passed");
+
+  const reinstall = installGlobalAgentPack({ root, home, force: false });
+  assert.equal(reinstall.status, "installed");
+  assert.deepEqual(reinstall.backups, []);
 });
 
 test("agent CLI supports validate, list, install, and doctor without touching real home", () => {
@@ -193,6 +199,7 @@ test("agent text formatting covers profile, doctor, json, fallback, and env home
   assert.match(formatAgentsText({ status: "passed", checks: { sourcePack: { status: "passed" } } }), /sourcePack: passed/);
   assert.match(formatAgentsText({ ok: true }, { json: true }), /"ok": true/);
   assert.match(formatAgentsText({ ok: true }), /"ok": true/);
+  assert.match(formatAgentsText({ profiles: [{ id: "empty", title: "Untitled" }] }), /empty\tUntitled/);
 
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "sage-agents-env-home-"));
   process.env.SAGE_AGENT_HOME = home;
@@ -205,6 +212,36 @@ test("agent text formatting covers profile, doctor, json, fallback, and env home
   } finally {
     delete process.env.SAGE_AGENT_HOME;
   }
+});
+
+test("agent doctor and listing cover missing install and no-heading profile branches", () => {
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "sage-agents-no-heading-"));
+  copyDir(path.join(root, "agents"), path.join(sandbox, "agents"));
+  const manifestPath = path.join(sandbox, "agents/manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  fs.writeFileSync(path.join(sandbox, manifest.profiles[0]), "Required Checks\n\nReview Questions\n");
+
+  const listed = listAgentProfiles({ root: sandbox });
+  assert.equal(listed.profiles[0].title, "Untitled");
+
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "sage-agents-missing-install-"));
+  const doctor = createAgentsDoctorReport({ root, home });
+  assert.equal(doctor.status, "failed");
+  assert.equal(doctor.checks.globalFile.status, "failed");
+  assert.equal(doctor.checks.manifest.status, "failed");
+  assert.equal(doctor.checks.profiles.status, "failed");
+  assert.match(formatAgentsText(doctor), /Agent pack failed/);
+});
+
+test("agent pure internals cover home, headings, checks, hash, and timestamp branches", () => {
+  const explicitHome = fs.mkdtempSync(path.join(os.tmpdir(), "sage-agents-explicit-home-"));
+  assert.equal(__agentPackTestInternals.resolveAgentHome(explicitHome), explicitHome);
+  assert.equal(__agentPackTestInternals.firstHeading("# Title\nBody"), "Title");
+  assert.equal(__agentPackTestInternals.firstHeading("No heading"), "Untitled");
+  assert.deepEqual(__agentPackTestInternals.check(true, ["unused"]), { status: "passed", failures: [] });
+  assert.deepEqual(__agentPackTestInternals.check(false, ["missing"]), { status: "failed", failures: ["missing"] });
+  assert.equal(__agentPackTestInternals.hash("abc").length, 64);
+  assert.doesNotMatch(__agentPackTestInternals.timestamp(), /[:.]/);
 });
 
 function copyDir(source, destination) {

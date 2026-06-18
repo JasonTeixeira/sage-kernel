@@ -219,3 +219,11 @@ function hash(value) {
 function timestamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");
 }
+
+export const __agentPackTestInternals = {
+  check,
+  firstHeading,
+  hash,
+  resolveAgentHome,
+  timestamp
+};

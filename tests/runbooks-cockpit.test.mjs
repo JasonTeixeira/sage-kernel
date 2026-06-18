@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 
 import { createAdr, createDailyPlan, createOperatingSnapshot, executeRunbookStep, listRunbooks, runbooksSmoke, validateRunbookData, validateRunbooks, __runbooksTestInternals } from "../packages/intelligence/runbooks.mjs";
 import { runPlanDayCli, __planDayTestInternals } from "../packages/intelligence/scripts/plan-day.mjs";
+import { createSqliteAdapter } from "../packages/db/adapter.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -114,6 +115,35 @@ test("daily plan and operating snapshot include gates, risks, evals, and runbook
   assert.equal(snapshot.runbooks.length > 0, true);
   assert.equal(typeof snapshot.evals.status, "string");
   assert.equal(snapshot.experiments.id.startsWith("exp_"), true);
+});
+
+test("daily plan covers complete-phase fallback and memory-backed low-risk branch", () => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-runbooks-complete-"));
+  for (const dir of ["catalog", "packages/db"]) {
+    fs.mkdirSync(path.join(workspace, dir), { recursive: true });
+  }
+  fs.copyFileSync(path.join(root, "packages/db/schema.sql"), path.join(workspace, "packages/db/schema.sql"));
+  fs.writeFileSync(path.join(workspace, "catalog/phases.json"), JSON.stringify({
+    phases: [{ id: "done", name: "Done", goal: "Complete", status: "complete" }]
+  }));
+  fs.mkdirSync(path.join(workspace, ".sage-kernel/evals"), { recursive: true });
+  fs.writeFileSync(path.join(workspace, ".sage-kernel/evals/latest.json"), JSON.stringify({
+    id: "eval_passed",
+    status: "passed",
+    summary: { total: 1, passed: 1, failed: 0 }
+  }));
+  const db = createSqliteForRunbookFixture(workspace);
+  db.execute(
+    `INSERT INTO memory_records (id, project_id, kind, source, actor, confidence, observed_at, supersedes_json, content_json, provenance_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ["memory_1", "sage", "decision", "test", "agent", 1, "2026-01-01T00:00:00.000Z", "[]", "{\"summary\":\"ok\"}", "{}", "2026-01-01T00:00:00.000Z"]
+  );
+
+  const plan = createDailyPlan({ root: workspace, schemaRoot: root });
+  assert.equal(plan.phase.id, "done");
+  assert.equal(plan.status, "ready");
+  assert.equal(plan.risks.find((risk) => risk.id === "risk_pending_memory").level, "low");
+  assert.equal(plan.evidence.memoryRecords, 1);
 });
 
 test("ADR generation returns markdown and writes only inside the root", () => {
@@ -276,6 +306,37 @@ test("runbook execution plans, executes allowlisted commands, audits results, an
   assert.match(failingCli.stdout, /"status": "failed"/);
 });
 
+test("runbook execution covers default shell fallback status and stderr error branches", () => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-runbook-shell-"));
+  for (const dir of ["packages/intelligence/runbooks", "packages/db"]) {
+    fs.mkdirSync(path.join(workspace, dir), { recursive: true });
+  }
+  fs.copyFileSync(path.join(root, "packages/db/schema.sql"), path.join(workspace, "packages/db/schema.sql"));
+  fs.writeFileSync(path.join(workspace, "packages/intelligence/runbooks/git-status.json"), JSON.stringify({
+    id: "runbook_git_status",
+    title: "Git status",
+    risk: "low",
+    requiresApproval: true,
+    steps: [{ id: "status", title: "Status", action: "execute_command", command: "git status --short" }],
+    verification: ["git status --short"]
+  }));
+
+  const shell = __runbooksTestInternals.runShellCommand(workspace, "node -e \"process.stdout.write('ok')\"", 5000);
+  assert.equal(shell.status, 0);
+  assert.equal(shell.stdout, "ok");
+  const shellFailed = __runbooksTestInternals.runShellCommand(workspace, "missing-sage-command-for-test", 5000);
+  assert.equal(shellFailed.status, 127);
+  assert.match(shellFailed.stderr, /missing-sage-command-for-test|not found/i);
+
+  const executed = executeRunbookStep({
+    runbook: "runbook_git_status",
+    step: "status",
+    dryRun: false
+  }, { root: workspace, schemaRoot: root });
+  assert.equal(executed.status, "failed");
+  assert.equal(executed.exitCode, 128);
+});
+
 test("runbooks smoke and CLI scripts prove daily cockpit path", () => {
   const smoke = runbooksSmoke({ root });
   assert.equal(smoke.status, "passed");
@@ -354,11 +415,14 @@ test("runbook internals and plan-day CLI cover helper branches without subproces
 
   const plan = __runbooksTestInternals.createRunbookStepPlan(
     { id: "runbook_x", title: "Runbook X", risk: "low" },
-    { id: "step_x", title: "Step X", action: "inspect" },
+    { id: "step_x", title: "Step X", action: "inspect", rollback: { description: "Undo", command: "git status --short" } },
     { dryRun: true, timeoutMs: 5000 }
   );
   assert.equal(plan.command, null);
-  assert.equal(plan.rollback.required, false);
+  assert.equal(plan.rollback.required, true);
+  assert.equal(plan.rollback.command, "git status --short");
+  assert.equal(__runbooksTestInternals.isAllowedRunbookCommand("git diff --check"), true);
+  assert.equal(__runbooksTestInternals.isAllowedRunbookCommand("rm -rf ."), false);
 
   assert.deepEqual(__planDayTestInternals.parseArgs(["--objective", "Audit"]), { objective: "Audit" });
   assert.throws(() => __planDayTestInternals.parseArgs(["--bad"]), /Unknown plan:day argument/);
@@ -372,3 +436,9 @@ test("runbook internals and plan-day CLI cover helper branches without subproces
   assert.equal(status, 0);
   assert.equal(JSON.parse(lines[0]).objective, "Direct CLI");
 });
+
+function createSqliteForRunbookFixture(workspace) {
+  const db = createSqliteAdapter({ root: workspace, schemaRoot: root });
+  db.init();
+  return db;
+}

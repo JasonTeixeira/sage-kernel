@@ -9,7 +9,7 @@ import { createQaReport, packageChecks, parseMode, run, runQaCli, staticChecks }
 import { createDogfoodReport, inspectRepo, runDogfoodCli, sourceRootForCatalog } from "../scripts/dogfood-production-audit.mjs";
 import { createDashboardStressReport, parseDashboardStressArgs } from "../scripts/stress-dashboard.mjs";
 import { createQueueStressReport, parseQueueStressArgs } from "../scripts/stress-queue.mjs";
-import { createSoakReport, parseSoakArgs, runMcpSmoke, runSoakCli } from "../scripts/soak-runner.mjs";
+import { createSoakReport, parseSoakArgs, runMcpSmoke, runSoakCli, __soakRunnerTestInternals } from "../scripts/soak-runner.mjs";
 import { createWarehouseSummary } from "../packages/ai-warehouse/scripts/warehouse-summary.mjs";
 import { validateIntelligence } from "../packages/intelligence/scripts/validate-intelligence.mjs";
 import { validateMarkdownLinks, validatePublicSurface } from "../scripts/validate-public-surface.mjs";
@@ -19,6 +19,8 @@ const root = path.resolve(import.meta.dirname, "..");
 
 test("soak runner reports repeated checks and memory deltas", async () => {
   assert.deepEqual(parseSoakArgs(["--profile=quick", "--cycles=1", "--skip-mcp"]).includeMcp, false);
+  assert.equal(parseSoakArgs(["--profile=extended", "--queue-count=12", "--dashboard-count=9", "--concurrency=3"]).cycles, 10);
+  assert.equal(parseSoakArgs(["--cycles=0"]).cycles, 0);
   const localProfile = parseSoakArgs(["--profile=local", "--skip-dashboard", "--mcp", "--url=http://127.0.0.1:9999", "--endpoint=/ready"]);
   assert.equal(localProfile.includeDashboard, false);
   assert.equal(localProfile.includeMcp, true);
@@ -91,6 +93,36 @@ test("soak runner reports repeated checks and memory deltas", async () => {
   });
   assert.equal(cliInvalid, 1);
   assert.match(errors[0], /Unknown soak profile/);
+
+  const mcpFailed = await createSoakReport({
+    root,
+    cycles: 1,
+    queueCount: 1,
+    includeDashboard: false,
+    includeMcp: true,
+    mcpSmoke: { status: "failed", exitCode: 2 }
+  });
+  assert.equal(mcpFailed.status, "failed");
+  assert.equal(mcpFailed.cycles[0].checks.find((check) => check.name === "mcp").status, "failed");
+
+  const noCycles = await createSoakReport({
+    root,
+    cycles: 0,
+    includeDashboard: false,
+    includeMcp: false
+  });
+  assert.equal(noCycles.status, "passed");
+  assert.deepEqual(noCycles.cycles, []);
+  assert.equal(typeof noCycles.memoryDelta.heapUsedBytes, "number");
+
+  assert.deepEqual(__soakRunnerTestInternals.memoryDelta([]), {
+    rssBytes: 0,
+    heapUsedBytes: 0,
+    externalBytes: 0
+  });
+  assert.equal(__soakRunnerTestInternals.numberValue(["--count=7"], "--count", 1), 7);
+  assert.equal(__soakRunnerTestInternals.numberValue([], "--count", 1), 1);
+  assert.equal(__soakRunnerTestInternals.valueFor(["--name=value=extra"], "--name"), "value");
 });
 
 test("infra plan CLI validates inputs, writes output files, and covers python docker selection", () => {

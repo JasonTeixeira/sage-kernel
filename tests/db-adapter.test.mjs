@@ -20,6 +20,7 @@ function tempRoot() {
 
 test("detectDbProvider defaults to sqlite and recognizes postgres urls", () => {
   assert.equal(detectDbProvider({}), "sqlite");
+  assert.equal(detectDbProvider({ SAGE_DB_PROVIDER: "mysql", DATABASE_URL: "mysql://localhost/db" }), "sqlite");
   assert.equal(detectDbProvider({ SAGE_DB_PROVIDER: "postgres" }), "postgres");
   assert.equal(detectDbProvider({ SAGE_DB_PROVIDER: "sqlite", DATABASE_URL: "postgresql://localhost/db" }), "sqlite");
   assert.equal(detectDbProvider({ DATABASE_URL: "postgres://user:pass@localhost:5432/db" }), "postgres");
@@ -31,6 +32,7 @@ test("SQL binding covers primitive values, escaping, nullish values, and missing
     bindSql("VALUES (?, ?, ?, ?, ?, ?)", ["O'Hara", true, false, null, undefined, Number.NaN]),
     "VALUES ('O''Hara', 1, 0, NULL, NULL, NULL)"
   );
+  assert.equal(bindSql("SELECT 1", ["unused"]), "SELECT 1");
   assert.throws(() => bindSql("VALUES (?, ?)", ["only-one"]), /Missing SQL bind parameter/);
   assert.equal(__dbAdapterTestInternals.sqlValue(Number.POSITIVE_INFINITY), "NULL");
   assert.equal(__dbAdapterTestInternals.sqlValue("Bob's"), "'Bob''s'");
@@ -108,6 +110,18 @@ test("sqlite adapter can select persistent mode and rolls back failed persistent
 
 test("sqlite adapter covers optional persistent fallback and cli execution errors", () => {
   assert.equal(typeof __dbAdapterTestInternals.loadNodeSqlite(true)?.DatabaseSync, "function");
+  assert.equal(createSqliteAdapter({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
+    driver: "cli",
+    env: { SAGE_SQLITE_DRIVER: "persistent" }
+  }).driver, "persistent");
+  assert.equal(createSqliteAdapter({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
+    driver: "cli",
+    env: { SAGE_SQLITE_DRIVER: "cli" }
+  }).driver, "cli");
   const selected = createSqliteAdapter({
     root: tempRoot(),
     schemaRoot: path.resolve(import.meta.dirname, ".."),
@@ -170,6 +184,7 @@ test("postgres adapter supports schema init, parameterized queries, scalar value
 
   const adapter = createPostgresAdapter({
     root: path.resolve(import.meta.dirname, ".."),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
     env: { DATABASE_URL: "postgresql://localhost/sage" },
     ClientClass: FakeClient
   });
@@ -222,6 +237,36 @@ test("postgres adapter rolls back failed batches and rejects missing connection 
   assert.equal(calls.some((call) => call[1] === "ROLLBACK"), true);
   await adapter.close();
   assert.equal(calls.at(-1)[0], "end");
+});
+
+test("postgres adapter reuses one client and supports explicit connection strings", async () => {
+  let constructed = 0;
+  let connected = 0;
+  class ReusedClient {
+    constructor(config) {
+      constructed += 1;
+      assert.equal(config.connectionString, "postgresql://explicit/sage");
+    }
+    async connect() {
+      connected += 1;
+    }
+    async query(sql) {
+      if (sql === "SELECT value") return { rows: [{ value: "ok" }] };
+      return {};
+    }
+    async end() {}
+  }
+
+  const adapter = createPostgresAdapter({
+    connectionString: "postgresql://explicit/sage",
+    ClientClass: ReusedClient
+  });
+  assert.deepEqual(await adapter.query("SELECT value"), [{ value: "ok" }]);
+  assert.deepEqual(await adapter.query("SELECT empty"), []);
+  assert.equal(await adapter.scalar("SELECT empty"), "");
+  assert.equal(constructed, 1);
+  assert.equal(connected, 1);
+  await adapter.close();
 });
 
 test("postgres migrations cover skipped columns and statement selection", async () => {
@@ -505,6 +550,40 @@ test("migration internals apply explicit up migrations and statement batches", a
   assert.equal(calls.at(-1).statements.length, 2);
 });
 
+test("migration entry points cover default adapter construction and default timestamps", async () => {
+  const calls = [];
+  const fakeDb = {
+    provider: "sqlite",
+    async execute(sql, params = []) {
+      calls.push(["execute", sql, params]);
+    },
+    async executeBatch(statements = []) {
+      calls.push(["batch", statements]);
+    },
+    async query(sql) {
+      calls.push(["query", sql]);
+      if (sql.includes("schema_migrations")) return [];
+      return [];
+    }
+  };
+
+  const result = await migrateKernelDb({
+    root: tempRoot(),
+    schemaRoot: path.resolve(import.meta.dirname, ".."),
+    db: fakeDb,
+    migrations: [
+      {
+        id: "default_provider",
+        description: "default provider",
+        statements: ["SELECT 1"]
+      }
+    ]
+  });
+  assert.equal(result.provider, "sqlite");
+  assert.equal(result.applied, 1);
+  assert.match(calls.find((call) => call[0] === "batch")[1].at(-1).params[2], /^\d{4}-/);
+});
+
 test("sqlite persistence exports, imports, redacts, backs up, and restores data", () => {
   const root = tempRoot();
   const schemaRoot = path.resolve(import.meta.dirname, "..");
@@ -630,6 +709,32 @@ test("sqlite persistence validates import formats, file imports, custom backup p
   assert.equal(__persistenceTestInternals.redactRow({ metadata_json: JSON.stringify({ token: "abc" }) }).metadata_json.includes("REDACTED"), true);
   assert.match(__persistenceTestInternals.timestampForFile(), /^\d{4}-\d{2}-\d{2}T/);
   assert.throws(() => __persistenceTestInternals.readJsonFile(), /Import requires/);
+});
+
+test("persistence helpers cover default roots, missing tables, and restore metadata", () => {
+  const cwd = tempRoot();
+  const schemaRoot = path.resolve(import.meta.dirname, "..");
+  const previous = process.cwd();
+  process.chdir(cwd);
+  try {
+    const exported = exportKernelData({ schemaRoot });
+    assert.equal(exported.format, "sage-kernel.export.v1");
+    assert.equal(exported.redacted, false);
+    assert.equal(Array.isArray(exported.tables.projects), true);
+
+    const imported = importKernelData({
+      schemaRoot,
+      data: { format: "sage-kernel.export.v1", tables: { approvals: [] } }
+    });
+    assert.equal(imported.tables.projects, 0);
+
+    const backup = backupSqliteDb({ schemaRoot });
+    const restored = restoreSqliteDbBackup({ backupPath: backup.path });
+    assert.equal(fs.realpathSync(restored.path), fs.realpathSync(path.join(cwd, ".sage-kernel", "kernel.db")));
+    assert.equal(restored.bytes > 0, true);
+  } finally {
+    process.chdir(previous);
+  }
 });
 
 test("sqlite migrations are tracked and idempotent", async () => {

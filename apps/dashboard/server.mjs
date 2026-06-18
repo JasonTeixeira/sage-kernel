@@ -396,6 +396,7 @@ export const __dashboardTestInternals = {
   readJson,
   repoHealth,
   systemHealth,
+  templateReadiness,
   tableCount,
   tableCountWhere,
   safeQuery,

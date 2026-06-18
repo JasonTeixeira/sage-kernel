@@ -255,6 +255,7 @@ function loadNodeSqlite(optional = false) {
   try {
     return require("node:sqlite");
   } catch (error) {
+    /* node:coverage ignore next 2 */
     if (optional) return null;
     throw new Error(`Persistent SQLite driver requires Node's node:sqlite module: ${error.message}`);
   }
