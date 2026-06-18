@@ -175,6 +175,8 @@
     "template:list": "node packages/templates/scripts/template-list.mjs",
     "template:scaffold": "node packages/templates/scripts/template-scaffold-v2.mjs",
     "template:validate-blueprints": "node packages/templates/scripts/validate-blueprints.mjs",
+    "templates:e2e": "node scripts/templates-e2e.mjs",
+    "templates:benchmark": "node scripts/templates-benchmark.mjs",
     "phase:status": "node scripts/phase-status.mjs",
     "postgres:integration": "node --test tests/postgres-integration.test.mjs"
   },

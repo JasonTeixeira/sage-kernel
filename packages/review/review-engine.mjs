@@ -65,6 +65,7 @@ export function auditCleanCode(options = {}) {
   const files = listFiles(inspection.project.root);
   const largeFiles = files
     .filter((file) => /\.(mjs|js|ts|tsx|jsx)$/.test(file))
+    .filter((file) => !isTestFile(file))
     .map((file) => ({ file, lines: lineCount(path.join(inspection.project.root, file)) }))
     .filter((item) => item.lines > 500)
     .slice(0, 5);
@@ -446,7 +447,7 @@ function detectPackageManager(projectRoot) {
 }
 
 function category(id, score, findings) {
-  return { id, score: Math.max(0, Math.min(100, Math.round(score))), findings };
+  return { id, score: clampScore(score), findings };
 }
 
 function finding(severity, message, evidence, recommendation = undefined) {
@@ -454,17 +455,14 @@ function finding(severity, message, evidence, recommendation = undefined) {
 }
 
 function penalty(findings) {
-  const weights = { info: 1, low: 4, medium: 8, high: 15, critical: 30 };
-  return findings.reduce((sum, item) => sum + weights[item.severity], 0);
+  return findings.reduce((sum, item) => sum + severityPenalty(item.severity), 0);
 }
 
 function severityPenalty(severity) {
   return { info: 1, low: 4, medium: 8, high: 15, critical: 30 }[severity] || 0;
 }
 
-function exists(projectRoot, relativePath) {
-  return fs.existsSync(path.join(projectRoot, relativePath));
-}
+const exists = (projectRoot, relativePath) => fs.existsSync(path.join(projectRoot, relativePath));
 
 function readJson(file, fallback) {
   try {
@@ -482,6 +480,8 @@ function lineCount(file) {
   }
 }
 
+const isTestFile = (file) => /(^|\/)(tests?|__tests__)\//.test(file) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(file);
+
 function realPath(absolutePath) {
   try {
     return fs.realpathSync.native(absolutePath);
@@ -494,3 +494,5 @@ function gitOutput(cwd, args) {
   const result = spawnSync("git", args, { cwd, encoding: "utf8" });
   return result.status === 0 ? result.stdout.trim() : "";
 }
+
+const clampScore = (score) => Math.max(0, Math.min(100, Math.round(score)));

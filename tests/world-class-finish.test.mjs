@@ -11,6 +11,8 @@ import { createMemoryE2EProof } from "../packages/intelligence/knowledge-graph.m
 import { createQualityScoreboard, validateScoreModel } from "../packages/score/scoreboard.mjs";
 import { applyApprovedRepair, createRepairPlan, createSelfHealingProof } from "../packages/self-healing/self-healing.mjs";
 import { createReleaseStressEvidence } from "../packages/testing/release-evidence.mjs";
+import { runTemplatesE2E } from "../scripts/templates-e2e.mjs";
+import { runTemplatesBenchmark } from "../scripts/templates-benchmark.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -90,4 +92,17 @@ test("dashboard exposes testing, memory, scoreboard, self-healing, stress, and f
   for (const label of ["Testing Lab", "Knowledge Graph", "Evidence Score Model", "Bounded Self-Healing", "Stress And Soak Profiles", "External Proof"]) {
     assert.match(html, new RegExp(label));
   }
+});
+
+test("generated templates install, run QA, include AGENTS.md, and benchmark cleanly", () => {
+  const e2e = runTemplatesE2E();
+  assert.equal(e2e.status, "passed");
+  assert.equal(e2e.summary.passed, 3);
+  assert.equal(e2e.templates.every((item) => item.missing.length === 0), true);
+  assert.equal(e2e.templates.every((item) => item.steps.install.status === 0 && item.steps.qa.status === 0), true);
+
+  const benchmark = runTemplatesBenchmark();
+  assert.equal(benchmark.status, "passed");
+  assert.equal(benchmark.templates.length, 3);
+  assert.equal(benchmark.templates.every((item) => item.durationMs > 0), true);
 });
