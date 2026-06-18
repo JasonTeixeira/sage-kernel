@@ -130,6 +130,54 @@
       ]
     },
     {
+      "name": "kernel.profile.detect",
+      "description": "Detect the project type, stack, SDLC profile, tests, CI, database, deployment, and evidence for a project path.",
+      "risk": "safe",
+      "permission": "profile:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Project profile detection report with primary profile, secondary profiles, languages, frameworks, tests, CI, deployment, databases, evidence, and warnings.",
+      "examples": [
+        {
+          "description": "Detect the active repository profile.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed profile roots.",
+        "Project files are unreadable."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
+      "name": "kernel.done.generate",
+      "description": "Generate a machine-checkable definition of done from project profile, objective, and risk level.",
+      "risk": "safe",
+      "permission": "profile:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Definition-of-done object with acceptance criteria, required checks, commands, evidence, rollback requirement, and stop conditions.",
+      "examples": [
+        {
+          "description": "Generate high-risk done criteria for the active project.",
+          "input": {
+            "projectPath": ".",
+            "objective": "Add production release workflow.",
+            "risk": "high"
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed profile roots.",
+        "Profile id is unknown."
+      ],
+      "inputHash": "f93caa1123be5a605eba4f862fd123016b945d919087c2b1b912fd0c226bd3d4",
+      "required": []
+    },
+    {
       "name": "kernel.warehouse.summary",
       "description": "Summarize the connected AI Warehouse inventory.",
       "risk": "safe",

@@ -31,6 +31,12 @@ import {
   formatReviewOutput,
   inspectRepository
 } from "../packages/review/review-engine.mjs";
+import {
+  detectProjectProfile,
+  formatProfileOutput,
+  generateDefinitionOfDone,
+  validateSdlcProfiles
+} from "../packages/profiles/project-detector.mjs";
 
 const currentFile = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(currentFile), "..");
@@ -97,6 +103,8 @@ Usage:
   sage dogfood-prod [repo...]
   sage doctor [--json] [--fast] [--client=codex|claude|cursor|all]
   sage agents [list|validate|install|doctor] [--json] [--force] [--home=/path]
+  sage profile [detect|validate] [projectPath] [--json]
+  sage done generate [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--profile=id] [--json]
   sage review [inspect|architecture|clean-code|tests|security|score|prove] [projectPath] [--json]
   sage drift [map|scope|audit|prove] [--json]
   sage mcp [start|config|smoke]
@@ -327,6 +335,53 @@ switch (command) {
       }
       console.error(`Unknown agents subcommand: ${subcommand}`);
       process.exitCode = 1;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "profile": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "detect", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = subcommand === "detect"
+        ? detectProjectProfile({ root, projectPath })
+        : subcommand === "validate"
+          ? validateSdlcProfiles()
+          : null;
+      if (!value) {
+        console.error(`Unknown profile subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatProfileOutput(value, { json }));
+      process.exitCode = value.status === "failed" ? 1 : 0;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "done": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "generate", projectPath = "."] = positional;
+    if (subcommand !== "generate") {
+      console.error(`Unknown done subcommand: ${subcommand}`);
+      process.exitCode = 1;
+      break;
+    }
+    try {
+      const value = generateDefinitionOfDone({
+        projectPath,
+        objective: valueArg(args, "--objective") || undefined,
+        risk: valueArg(args, "--risk") || undefined,
+        profile: valueArg(args, "--profile") || undefined
+      }, { root });
+      console.log(formatProfileOutput(value, { json: args.includes("--json") }));
     } catch (error) {
       console.error(error.message);
       process.exitCode = 1;

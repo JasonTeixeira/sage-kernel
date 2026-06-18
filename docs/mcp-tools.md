@@ -9,6 +9,8 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.template.list` | safe | `template:read` | No | none |
 | `kernel.project.plan` | safe | `project:read` | No | none |
 | `kernel.project.scaffold` | mutating | `project:write` | No | writes local files only |
+| `kernel.profile.detect` | safe | `profile:read` | No | none |
+| `kernel.done.generate` | safe | `profile:read` | No | none |
 | `kernel.warehouse.summary` | safe | `warehouse:read` | No | none |
 | `kernel.warehouse.search` | safe | `warehouse:read` | No | none |
 | `kernel.qa.profile` | safe | `qa:read` | No | none |
@@ -120,6 +122,32 @@ Example input:
   "template": "worker-service",
   "name": "demo-worker",
   "out": ".sage-kernel/generated"
+}
+```
+
+### `kernel.profile.detect`
+
+Project profile detection report with primary profile, secondary profiles, languages, frameworks, tests, CI, deployment, databases, evidence, and warnings.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.done.generate`
+
+Definition-of-done object with acceptance criteria, required checks, commands, evidence, rollback requirement, and stop conditions.
+
+Example input:
+
+```json
+{
+  "projectPath": ".",
+  "objective": "Add production release workflow.",
+  "risk": "high"
 }
 ```
 
@@ -754,6 +782,16 @@ Example input:
 - input.template or input.name is missing.
 - Template id is unknown.
 - Output path is invalid or not writable.
+
+### `kernel.profile.detect`
+
+- Project path is outside allowed profile roots.
+- Project files are unreadable.
+
+### `kernel.done.generate`
+
+- Project path is outside allowed profile roots.
+- Profile id is unknown.
 
 ### `kernel.warehouse.summary`
 

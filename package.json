@@ -77,6 +77,8 @@
     "adapters:list": "node packages/intelligence/scripts/adapters-list.mjs",
     "adapters:smoke": "node packages/intelligence/scripts/adapters-smoke.mjs",
     "agents:validate": "node packages/agents/scripts/agents-validate.mjs",
+    "profiles:validate": "node packages/profiles/scripts/profiles-validate.mjs",
+    "profiles:prove": "node packages/profiles/scripts/profiles-prove.mjs",
     "review:validate": "node packages/review/scripts/review-validate.mjs",
     "review:inspect": "node bin/sage.mjs review inspect --json",
     "review:score": "node bin/sage.mjs review score --json",

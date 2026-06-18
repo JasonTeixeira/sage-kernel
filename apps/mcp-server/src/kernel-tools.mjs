@@ -32,6 +32,10 @@ import {
   createReviewScore,
   inspectRepository
 } from "../../../packages/review/review-engine.mjs";
+import {
+  detectProjectProfile,
+  generateDefinitionOfDone
+} from "../../../packages/profiles/project-detector.mjs";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const knownKernelToolNames = new Set(
@@ -95,6 +99,17 @@ export async function callKernelTool(root, toolName, input = {}) {
         output: runNode(root, "packages/templates/scripts/template-scaffold-v2.mjs", args)
       };
     }
+
+    case "kernel.profile.detect":
+      return detectProjectProfile({ root, projectPath: input.projectPath ?? "." });
+
+    case "kernel.done.generate":
+      return generateDefinitionOfDone({
+        projectPath: input.projectPath ?? ".",
+        profile: input.profile,
+        objective: input.objective,
+        risk: input.risk
+      }, { root });
 
     case "kernel.warehouse.summary":
       return JSON.parse(runNode(root, "packages/ai-warehouse/scripts/warehouse-summary.mjs"));

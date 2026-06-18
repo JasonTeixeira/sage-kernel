@@ -7,6 +7,8 @@ const SAFE_ACTIONS = new Set([
   "catalog.search",
   "template.list",
   "project.plan",
+  "profile.detect",
+  "done.generate",
   "warehouse.summary",
   "warehouse.search",
   "qa.profile",

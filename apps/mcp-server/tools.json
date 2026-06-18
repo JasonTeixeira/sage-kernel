@@ -161,6 +161,71 @@
       ]
     },
     {
+      "name": "kernel.profile.detect",
+      "description": "Detect the project type, stack, SDLC profile, tests, CI, database, deployment, and evidence for a project path.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string"
+          }
+        }
+      },
+      "risk": "safe",
+      "permission": "profile:read",
+      "outputShape": "Project profile detection report with primary profile, secondary profiles, languages, frameworks, tests, CI, deployment, databases, evidence, and warnings.",
+      "examples": [
+        {
+          "description": "Detect the active repository profile.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed profile roots.",
+        "Project files are unreadable."
+      ]
+    },
+    {
+      "name": "kernel.done.generate",
+      "description": "Generate a machine-checkable definition of done from project profile, objective, and risk level.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          }
+        }
+      },
+      "risk": "safe",
+      "permission": "profile:read",
+      "outputShape": "Definition-of-done object with acceptance criteria, required checks, commands, evidence, rollback requirement, and stop conditions.",
+      "examples": [
+        {
+          "description": "Generate high-risk done criteria for the active project.",
+          "input": {
+            "projectPath": ".",
+            "objective": "Add production release workflow.",
+            "risk": "high"
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed profile roots.",
+        "Profile id is unknown."
+      ]
+    },
+    {
       "name": "kernel.warehouse.summary",
       "description": "Summarize the connected AI Warehouse inventory.",
       "inputSchema": {
