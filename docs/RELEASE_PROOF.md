@@ -54,12 +54,13 @@ Latest recorded remote proof:
 Latest recorded local proof on 2026-06-18:
 
 - `npm run test:coverage`: passed, 227 tests, 226 passed, 1 skipped local
-  Postgres test, 99.14% line coverage, 90.92% branch coverage, 98.12%
+  Postgres test, 99.09% line coverage, 90.92% branch coverage, 97.57%
   function coverage.
 - `npm run release:check`: passed with score, memory E2E, self-healing,
   release evidence, generated-template E2E, and template benchmark gates.
-- `npm run score:report`: passed, 98/100, no score blockers after global
-  agent install proof.
+- `npm run score:report`: passed, 99/100, no score blockers.
+- `sage review score --json`: passed, 100/100, no remaining clean-code,
+  architecture, testing, security, or release findings.
 - `npm run templates:e2e`: passed for `worker-service`, `node-api-service`,
   and `agent-workflow-app`; each generated project installed and ran `npm run
   qa`.
@@ -76,6 +77,8 @@ Latest recorded local proof on 2026-06-18:
 - `sage agents install --force --json`: passed and installed global
   `AGENTS.md`, manifest, and profiles under `/Users/Sage/.sage-kernel/agents`.
 - `sage agents doctor --json`: passed after global install.
+- `codex mcp list`: passed and shows `sage-kernel` enabled as a Codex MCP
+  server using `cd /Users/Sage/sage-kernel && node apps/mcp-server/src/server.mjs`.
 
 ## Npm Publishing Proof
 
@@ -109,8 +112,9 @@ Current local status on 2026-06-18:
 
 ## MCP Client Proof
 
-Automated smoke tests prove the MCP server and config generation. Manual proof
-still requires connecting at least one real desktop client:
+Automated smoke tests prove the MCP server and config generation. Codex client
+registration is proven by `codex mcp list`, which shows `sage-kernel` enabled.
+Claude Desktop and Cursor still require manual UI launch proof:
 
 ```bash
 sage mcp config codex --json
