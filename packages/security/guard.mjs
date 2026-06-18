@@ -9,6 +9,9 @@ const SAFE_ACTIONS = new Set([
   "project.plan",
   "profile.detect",
   "done.generate",
+  "loop.plan",
+  "loop.validate",
+  "loop.prove",
   "warehouse.summary",
   "warehouse.search",
   "qa.profile",
@@ -61,6 +64,7 @@ const MUTATING_ACTIONS = new Set([
   "workflow.audit_repo",
   "workflow.run_full_qa",
   "workflow.create_app",
+  "loop.run",
   "agents.install_global"
 ]);
 

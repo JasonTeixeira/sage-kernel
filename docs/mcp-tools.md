@@ -11,6 +11,10 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.project.scaffold` | mutating | `project:write` | No | writes local files only |
 | `kernel.profile.detect` | safe | `profile:read` | No | none |
 | `kernel.done.generate` | safe | `profile:read` | No | none |
+| `kernel.loop.plan` | safe | `workflow:read` | No | none |
+| `kernel.loop.run` | mutating | `workflow:write` | No | runs local allowlisted verification commands |
+| `kernel.loop.validate` | safe | `workflow:read` | No | none |
+| `kernel.loop.prove` | safe | `workflow:read` | No | none |
 | `kernel.warehouse.summary` | safe | `warehouse:read` | No | none |
 | `kernel.warehouse.search` | safe | `warehouse:read` | No | none |
 | `kernel.qa.profile` | safe | `qa:read` | No | none |
@@ -149,6 +153,54 @@ Example input:
   "objective": "Add production release workflow.",
   "risk": "high"
 }
+```
+
+### `kernel.loop.plan`
+
+Closed-loop workflow object with phases, commands, evidence, stop conditions, rollback expectation, and next actions.
+
+Example input:
+
+```json
+{
+  "projectPath": ".",
+  "objective": "Ship a production feature.",
+  "risk": "high"
+}
+```
+
+### `kernel.loop.run`
+
+Closed-loop workflow execution with command results and next actions.
+
+Example input:
+
+```json
+{
+  "projectPath": ".",
+  "objective": "Verify the current sprint.",
+  "risk": "low"
+}
+```
+
+### `kernel.loop.validate`
+
+Validation report for closed-loop workflow structure and required gates.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.loop.prove`
+
+Proof report for planned, dry-run, and runner-backed closed-loop workflows.
+
+Example input:
+
+```json
+{}
 ```
 
 ### `kernel.warehouse.summary`
@@ -792,6 +844,24 @@ Example input:
 
 - Project path is outside allowed profile roots.
 - Profile id is unknown.
+
+### `kernel.loop.plan`
+
+- Project path is outside allowed profile roots.
+- Project profile cannot be detected.
+
+### `kernel.loop.run`
+
+- One or more verification commands fail.
+- Project path is outside allowed profile roots.
+
+### `kernel.loop.validate`
+
+- Closed-loop workflow contract is incomplete.
+
+### `kernel.loop.prove`
+
+- Closed-loop fixture proof fails.
 
 ### `kernel.warehouse.summary`
 

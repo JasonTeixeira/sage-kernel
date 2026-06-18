@@ -142,10 +142,18 @@ Full-gate verification:
 - `npm audit`: passed with 0 vulnerabilities.
 - `git diff --check`: passed.
 
+Expansion verification:
+
+- `npm run profiles:prove-paths -- .`: passed.
+- `sage-kernel` detected as `mcp-server` with secondary `ai-agent-app`,
+  `cli-tool`, and `infrastructure` project types.
+- The path proof harness now accepts explicit project paths through CLI args or
+  `SAGE_PROFILE_PROOF_PATHS`. External paths still need to be inside the kernel
+  root or included in `SAGE_PROFILE_ALLOWED_ROOTS`.
+
 ## What Is Left
 
-1. Push and prove CI on GitHub.
-2. Expand cross-project proof against real local repos outside Sage Kernel.
-3. Add richer framework-specific definitions of done as new project types are
+1. Expand cross-project proof against real local repos outside Sage Kernel.
+2. Add richer framework-specific definitions of done as new project types are
    encountered.
-4. Use Program 3 to turn these profiles into closed-loop workflows.
+3. Keep using Program 3 closed-loop workflows as the profile execution layer.

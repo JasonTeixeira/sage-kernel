@@ -35,8 +35,15 @@ import {
   detectProjectProfile,
   formatProfileOutput,
   generateDefinitionOfDone,
+  proveProfilePaths,
   validateSdlcProfiles
 } from "../packages/profiles/project-detector.mjs";
+import {
+  createClosedLoopWorkflow,
+  formatClosedLoopOutput,
+  proveClosedLoopWorkflows,
+  validateClosedLoopWorkflows
+} from "../packages/workflows/closed-loop.mjs";
 
 const currentFile = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(currentFile), "..");
@@ -104,6 +111,7 @@ Usage:
   sage doctor [--json] [--fast] [--client=codex|claude|cursor|all]
   sage agents [list|validate|install|doctor] [--json] [--force] [--home=/path]
   sage profile [detect|validate] [projectPath] [--json]
+  sage loop [plan|dry-run|run|validate|prove] [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--json]
   sage done generate [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--profile=id] [--json]
   sage review [inspect|architecture|clean-code|tests|security|score|prove] [projectPath] [--json]
   sage drift [map|scope|audit|prove] [--json]
@@ -351,6 +359,8 @@ switch (command) {
         ? detectProjectProfile({ root, projectPath })
         : subcommand === "validate"
           ? validateSdlcProfiles()
+          : subcommand === "prove-paths"
+            ? proveProfilePaths({ paths: positional.slice(1) }, { root })
           : null;
       if (!value) {
         console.error(`Unknown profile subcommand: ${subcommand}`);
@@ -358,6 +368,30 @@ switch (command) {
         break;
       }
       console.log(formatProfileOutput(value, { json }));
+      process.exitCode = value.status === "failed" ? 1 : 0;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "loop": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "plan", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = subcommand === "validate"
+        ? validateClosedLoopWorkflows({ root })
+        : subcommand === "prove"
+          ? proveClosedLoopWorkflows({ root })
+          : createClosedLoopWorkflow({
+              projectPath,
+              mode: subcommand,
+              objective: valueArg(args, "--objective") || undefined,
+              risk: valueArg(args, "--risk") || undefined
+            }, { root });
+      console.log(formatClosedLoopOutput(value, { json }));
       process.exitCode = value.status === "failed" ? 1 : 0;
     } catch (error) {
       console.error(error.message);

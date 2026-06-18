@@ -36,6 +36,11 @@ import {
   detectProjectProfile,
   generateDefinitionOfDone
 } from "../../../packages/profiles/project-detector.mjs";
+import {
+  createClosedLoopWorkflow,
+  proveClosedLoopWorkflows,
+  validateClosedLoopWorkflows
+} from "../../../packages/workflows/closed-loop.mjs";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const knownKernelToolNames = new Set(
@@ -110,6 +115,28 @@ export async function callKernelTool(root, toolName, input = {}) {
         objective: input.objective,
         risk: input.risk
       }, { root });
+
+    case "kernel.loop.plan":
+      return createClosedLoopWorkflow({
+        projectPath: input.projectPath ?? ".",
+        mode: input.mode === "dry-run" ? "dry-run" : "plan",
+        objective: input.objective,
+        risk: input.risk
+      }, { root });
+
+    case "kernel.loop.run":
+      return createClosedLoopWorkflow({
+        projectPath: input.projectPath ?? ".",
+        mode: "run",
+        objective: input.objective,
+        risk: input.risk
+      }, { root });
+
+    case "kernel.loop.validate":
+      return validateClosedLoopWorkflows({ root });
+
+    case "kernel.loop.prove":
+      return proveClosedLoopWorkflows({ root });
 
     case "kernel.warehouse.summary":
       return JSON.parse(runNode(root, "packages/ai-warehouse/scripts/warehouse-summary.mjs"));

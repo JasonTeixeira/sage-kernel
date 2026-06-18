@@ -226,6 +226,120 @@
       ]
     },
     {
+      "name": "kernel.loop.plan",
+      "description": "Create a closed-loop SDLC workflow plan from the detected project profile, objective, and risk level.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          }
+        }
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Closed-loop workflow object with phases, commands, evidence, stop conditions, rollback expectation, and next actions.",
+      "examples": [
+        {
+          "description": "Plan a high-risk closed loop for the active project.",
+          "input": {
+            "projectPath": ".",
+            "objective": "Ship a production feature.",
+            "risk": "high"
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed profile roots.",
+        "Project profile cannot be detected."
+      ]
+    },
+    {
+      "name": "kernel.loop.run",
+      "description": "Execute the allowlisted closed-loop SDLC verification commands for a project path.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          }
+        }
+      },
+      "risk": "mutating",
+      "permission": "workflow:write",
+      "sideEffects": "runs local allowlisted verification commands",
+      "outputShape": "Closed-loop workflow execution with command results and next actions.",
+      "examples": [
+        {
+          "description": "Run a low-risk closed loop for the active project.",
+          "input": {
+            "projectPath": ".",
+            "objective": "Verify the current sprint.",
+            "risk": "low"
+          }
+        }
+      ],
+      "failureModes": [
+        "One or more verification commands fail.",
+        "Project path is outside allowed profile roots."
+      ]
+    },
+    {
+      "name": "kernel.loop.validate",
+      "description": "Validate the built-in closed-loop workflow engine contract.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Validation report for closed-loop workflow structure and required gates.",
+      "examples": [
+        {
+          "description": "Validate closed-loop workflows.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Closed-loop workflow contract is incomplete."
+      ]
+    },
+    {
+      "name": "kernel.loop.prove",
+      "description": "Run deterministic proof fixtures for the closed-loop workflow engine.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Proof report for planned, dry-run, and runner-backed closed-loop workflows.",
+      "examples": [
+        {
+          "description": "Prove closed-loop workflows.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Closed-loop fixture proof fails."
+      ]
+    },
+    {
       "name": "kernel.warehouse.summary",
       "description": "Summarize the connected AI Warehouse inventory.",
       "inputSchema": {

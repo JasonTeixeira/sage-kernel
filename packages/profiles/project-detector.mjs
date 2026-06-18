@@ -239,6 +239,48 @@ export function proveProfiles(options = {}) {
   };
 }
 
+export function proveProfilePaths(input = {}, options = {}) {
+  const root = options.root || process.cwd();
+  const rawPaths = [
+    ...(Array.isArray(input.paths) ? input.paths : []),
+    ...(process.env.SAGE_PROFILE_PROOF_PATHS || "")
+      .split(path.delimiter)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  ];
+  const uniquePaths = [...new Set(rawPaths)];
+  const results = uniquePaths.map((projectPath) => {
+    try {
+      const detected = detectProjectProfile({ root, projectPath });
+      return {
+        projectPath,
+        status: "passed",
+        profile: detected.profile.id,
+        confidence: detected.confidence,
+        projectTypes: detected.projectTypes,
+        warnings: detected.warnings
+      };
+    } catch (error) {
+      return {
+        projectPath,
+        status: "failed",
+        error: error.message
+      };
+    }
+  });
+  const fixtureProof = proveProfiles({ root });
+  return {
+    status: results.every((result) => result.status === "passed") && fixtureProof.status === "passed" ? "passed" : "failed",
+    mode: uniquePaths.length > 0 ? "explicit-paths" : "fixtures-only",
+    root,
+    fixtureProof,
+    results,
+    note: uniquePaths.length > 0
+      ? "Explicit real project paths were inspected."
+      : "No SAGE_PROFILE_PROOF_PATHS or paths input provided; deterministic fixture proof was used."
+  };
+}
+
 export function formatProfileOutput(value, options = {}) {
   if (options.json) return `${JSON.stringify(value, null, 2)}\n`;
   if (value.profile?.id) {
@@ -450,4 +492,3 @@ function realTmp() {
 function normalizeRisk(risk) {
   return ["low", "medium", "high", "critical"].includes(risk) ? risk : "medium";
 }
-

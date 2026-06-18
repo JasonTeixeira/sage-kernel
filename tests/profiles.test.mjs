@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   detectProjectProfile,
   generateDefinitionOfDone,
+  proveProfilePaths,
   proveProfiles,
   validateSdlcProfiles
 } from "../packages/profiles/project-detector.mjs";
@@ -93,6 +94,10 @@ test("definition of done combines detected profiles, risk, commands, and stop co
 test("profile validation and proof scripts expose deterministic gates", () => {
   assert.equal(validateSdlcProfiles().status, "passed");
   assert.equal(proveProfiles({ root }).status, "passed");
+  const pathProof = proveProfilePaths({ paths: ["."] }, { root });
+  assert.equal(pathProof.status, "passed");
+  assert.equal(pathProof.mode, "explicit-paths");
+  assert.equal(pathProof.results[0].profile, "mcp-server");
 
   const validate = spawnSync("node", ["packages/profiles/scripts/profiles-validate.mjs"], { cwd: root, encoding: "utf8" });
   assert.equal(validate.status, 0, validate.stderr || validate.stdout);
@@ -101,6 +106,10 @@ test("profile validation and proof scripts expose deterministic gates", () => {
   const prove = spawnSync("node", ["packages/profiles/scripts/profiles-prove.mjs"], { cwd: root, encoding: "utf8" });
   assert.equal(prove.status, 0, prove.stderr || prove.stdout);
   assert.equal(JSON.parse(prove.stdout).status, "passed");
+
+  const provePaths = spawnSync("node", ["packages/profiles/scripts/profiles-prove-paths.mjs", "."], { cwd: root, encoding: "utf8" });
+  assert.equal(provePaths.status, 0, provePaths.stderr || provePaths.stdout);
+  assert.equal(JSON.parse(provePaths.stdout).status, "passed");
 });
 
 test("CLI and MCP expose profile detection and definition of done", async () => {
@@ -122,4 +131,3 @@ test("CLI and MCP expose profile detection and definition of done", async () => 
   assert.equal(mcpDone.risk, "high");
   await assert.rejects(() => callKernelTool(root, "kernel.done.generate", { profile: "missing" }), /Unknown SDLC profile/);
 });
-
