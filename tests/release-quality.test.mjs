@@ -14,6 +14,7 @@ import { createWarehouseSummary } from "../packages/ai-warehouse/scripts/warehou
 import { validateIntelligence } from "../packages/intelligence/scripts/validate-intelligence.mjs";
 import { validateMarkdownLinks, validatePublicSurface } from "../scripts/validate-public-surface.mjs";
 import { validateReleaseProvenance } from "../scripts/validate-release-provenance.mjs";
+import { evaluateCriticalCoverage, parseCoverageReport, runCoverageCriticalGate } from "../scripts/coverage-critical-gate.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -53,6 +54,7 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-lines=98/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-branches=90/);
   assert.match(pkg.scripts["test:coverage"], /--test-coverage-functions=97/);
+  assert.equal(pkg.scripts["coverage:critical"], "node scripts/coverage-critical-gate.mjs");
   assert.equal(pkg.scripts["release:check"], "node scripts/release-check.mjs");
   assert.equal(pkg.scripts["release:provenance"], "node scripts/validate-release-provenance.mjs");
   assert.equal(pkg.scripts["public:validate"], "node scripts/validate-public-surface.mjs");
@@ -71,7 +73,13 @@ test("package metadata is ready for public OSS distribution", () => {
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/ISSUE_TEMPLATE/bug_report.md",
     ".github/ISSUE_TEMPLATE/feature_request.md",
+    ".github/ISSUE_TEMPLATE/quality_gate.md",
+    ".github/ISSUE_TEMPLATE/mcp_tool_request.md",
+    ".github/ISSUE_TEMPLATE/template_request.md",
     "docs/SECURITY_MODEL.md",
+    "docs/QUALITY_RATCHET.md",
+    "docs/ROADMAP.md",
+    "docs/RELEASE_PROOF.md",
     "docs/RELEASE_PROCESS.md",
     "assets/sage-kernel-architecture.svg",
     "assets/sage-kernel-workflow.svg",
@@ -95,6 +103,7 @@ test("package metadata is ready for public OSS distribution", () => {
     "packages/intelligence/schemas/experiment-run.schema.json",
     "packages/intelligence/schemas/runbook.schema.json",
     "packages/intelligence/schemas/semantic-adapter.schema.json",
+    "scripts/coverage-critical-gate.mjs",
     "scripts/release-check.mjs",
     "scripts/validate-release-provenance.mjs",
     "scripts/verify-fresh-install.mjs",
@@ -106,6 +115,8 @@ test("package metadata is ready for public OSS distribution", () => {
 
   const ci = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
   assert.match(ci, /npm run test:coverage/);
+  assert.match(ci, /RUNNER_TEMP\/sage-coverage-output\.txt/);
+  assert.match(ci, /npm run coverage:critical -- "\$RUNNER_TEMP\/sage-coverage-output\.txt"/);
   assert.match(ci, /npm run public:validate/);
   assert.match(ci, /Postgres Integration/);
   assert.match(ci, /Fresh Install Verification/);
@@ -125,6 +136,47 @@ test("package metadata is ready for public OSS distribution", () => {
   assert.match(securityModel, /Approval Rules/);
   assert.match(securityModel, /Filesystem Rules/);
   assert.match(securityModel, /Secret Handling/);
+});
+
+test("critical coverage ratchet parses coverage output and fails regressions", () => {
+  const sample = [
+    "# file | line % | branch % | funcs % | uncovered lines",
+    "# apps |        |        |        |",
+    "#  dashboard |        |        |        |",
+    "#   server.mjs | 100.00 | 91.03 | 100.00 |",
+    "# packages |        |        |        |",
+    "#  db |        |        |        |",
+    "#   adapter.mjs | 99.29 | 89.84 | 100.00 |",
+    "# scripts |        |        |        |",
+    "#  soak-runner.mjs | 100.00 | 95.35 | 100.00 |"
+  ].join("\n");
+  const rows = parseCoverageReport(sample);
+  assert.equal(rows.get("apps/dashboard/server.mjs").branchPct, 91.03);
+
+  const passed = evaluateCriticalCoverage(sample, {
+    "apps/dashboard/server.mjs": 91,
+    "packages/db/adapter.mjs": 89,
+    "scripts/soak-runner.mjs": 95
+  });
+  assert.equal(passed.status, "passed");
+  assert.equal(passed.checks.find((check) => check.file === "packages/db/adapter.mjs").targetGap > 0, true);
+
+  const failed = evaluateCriticalCoverage(sample, {
+    "apps/dashboard/server.mjs": 98,
+    "missing.mjs": 1
+  });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.checks.find((check) => check.file === "missing.mjs").branchPct, null);
+
+  const reportPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "sage-coverage-gate-")), "coverage.txt");
+  fs.writeFileSync(reportPath, sample);
+  const lines = [];
+  assert.equal(runCoverageCriticalGate([reportPath], {
+    floors: { "apps/dashboard/server.mjs": 91 },
+    stdout: (line) => lines.push(line)
+  }), 0);
+  assert.equal(JSON.parse(lines[0]).status, "passed");
+  assert.throws(() => runCoverageCriticalGate([], { stdout: () => {} }), /Usage/);
 });
 
 test("intelligence contracts validate fixtures and reject unsafe shapes", () => {

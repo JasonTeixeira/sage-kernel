@@ -38,7 +38,9 @@ jobs:
           npm run v03:validate
 
       - name: Test with hard coverage gates
-        run: npm run test:coverage
+        run: |
+          npm run test:coverage | tee "$RUNNER_TEMP/sage-coverage-output.txt"
+          npm run coverage:critical -- "$RUNNER_TEMP/sage-coverage-output.txt"
 
       - name: MCP smoke
         run: npm run mcp:smoke

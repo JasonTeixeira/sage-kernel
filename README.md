@@ -153,6 +153,7 @@ The project is built around hard gates:
 ```bash
 npm test
 npm run test:coverage
+npm run coverage:critical -- /tmp/sage-coverage-output.txt
 npm run release:check
 npm run mcp:smoke
 npm run security:scan
@@ -177,6 +178,10 @@ docker compose -f docker-compose.postgres.yml down
 
 CI runs the quality gates and a real Postgres integration service on GitHub Actions.
 
+The current CI ratchet prevents branch-coverage regression on critical runtime
+modules while the project continues toward 98%+ meaningful branch coverage per
+critical file. See [Quality Ratchet](docs/QUALITY_RATCHET.md).
+
 ## Documentation Map
 
 - [Install](docs/INSTALL.md)
@@ -186,7 +191,10 @@ CI runs the quality gates and a real Postgres integration service on GitHub Acti
 - [Runtime Engine](docs/RUNTIME_ENGINE.md)
 - [Persistence](docs/PERSISTENCE.md)
 - [Security Model](docs/SECURITY_MODEL.md)
+- [Quality Ratchet](docs/QUALITY_RATCHET.md)
 - [Release Process](docs/RELEASE_PROCESS.md)
+- [Release Proof](docs/RELEASE_PROOF.md)
+- [Roadmap](docs/ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security Policy](SECURITY.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)

@@ -6,7 +6,8 @@ Sage Kernel releases must be reproducible from a clean checkout.
 
 ```bash
 npm ci
-npm run test:coverage
+npm run test:coverage | tee /tmp/sage-coverage-output.txt
+npm run coverage:critical -- /tmp/sage-coverage-output.txt
 npm run catalog:validate
 npm run infra:validate
 npm run jobs:validate
@@ -34,6 +35,9 @@ git diff --check
 - Functions: 97%+
 
 Do not lower these thresholds to ship a release.
+
+`npm run coverage:critical -- /tmp/sage-coverage-output.txt` also prevents branch
+coverage regression on critical files. See [Quality Ratchet](QUALITY_RATCHET.md).
 
 ## Packaging
 
@@ -118,6 +122,9 @@ the MCP surface, builds the dashboard, and dry-packs the release.
 8. Publish a GitHub Release for that tag.
 9. Watch the `Release` workflow publish to npm with provenance.
 10. Verify the npm package page shows provenance after publish.
+
+Record final local, CI, npm, MCP-client, and soak evidence in
+[Release Proof](RELEASE_PROOF.md) or in the GitHub Release notes.
 
 ## Versioning
 

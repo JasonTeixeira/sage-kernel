@@ -113,6 +113,7 @@
     "v03:validate": "node scripts/validate-v03.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "test:coverage": "SAGE_SQLITE_DRIVER=cli node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-lines=98 --test-coverage-branches=90 --test-coverage-functions=97 --test-coverage-exclude=tests/postgres-integration.test.mjs tests/*.test.mjs",
+    "coverage:critical": "node scripts/coverage-critical-gate.mjs",
     "qa:gate": "node scripts/qa-gate.mjs",
     "db:init": "node packages/db/scripts/db-init.mjs",
     "db:migrate": "node packages/db/scripts/db-migrate.mjs",
