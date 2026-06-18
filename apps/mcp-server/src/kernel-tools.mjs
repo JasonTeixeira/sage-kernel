@@ -37,7 +37,10 @@ import {
   auditTests,
   createReleaseProof,
   createReviewScore,
-  inspectRepository
+  createSeniorReview,
+  inspectRepository,
+  mapRoutesToTests,
+  reviewDiff
 } from "../../../packages/review/review-engine.mjs";
 import {
   detectProjectProfile,
@@ -347,8 +350,17 @@ export async function callKernelTool(root, toolName, input = {}) {
     case "kernel.review.security_audit":
       return auditSecurity({ root, projectPath: input.projectPath || "." });
 
+    case "kernel.review.diff_review":
+      return reviewDiff({ root, projectPath: input.projectPath || ".", diff: input.diff });
+
+    case "kernel.review.route_test_map":
+      return mapRoutesToTests({ root, projectPath: input.projectPath || "." });
+
     case "kernel.review.quality_score":
       return createReviewScore({ root, projectPath: input.projectPath || "." });
+
+    case "kernel.review.senior_review":
+      return createSeniorReview({ root, projectPath: input.projectPath || ".", diff: input.diff });
 
     case "kernel.review.release_proof":
       return createReleaseProof({ root, projectPath: input.projectPath || "." });

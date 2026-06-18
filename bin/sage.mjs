@@ -36,8 +36,11 @@ import {
   auditTests,
   createReleaseProof,
   createReviewScore,
+  createSeniorReview,
   formatReviewOutput,
-  inspectRepository
+  inspectRepository,
+  mapRoutesToTests,
+  reviewDiff
 } from "../packages/review/review-engine.mjs";
 import {
   detectProjectProfile,
@@ -131,7 +134,7 @@ Usage:
   sage loop [plan|dry-run|run|validate|prove] [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--json]
   sage workflow [validate|prove|run] [workflow-json-file] [--json]
   sage done generate [projectPath] [--objective=text] [--risk=low|medium|high|critical] [--profile=id] [--json]
-  sage review [inspect|architecture|clean-code|tests|security|score|prove] [projectPath] [--json]
+  sage review [inspect|architecture|clean-code|tests|security|diff|routes|score|senior|prove] [projectPath] [--json]
   sage drift [map|scope|audit|prove] [--json]
   sage mcp [start|config|smoke]
   sage daily
@@ -540,13 +543,19 @@ switch (command) {
             ? auditCleanCode({ root, projectPath })
             : subcommand === "tests"
               ? auditTests({ root, projectPath })
-              : subcommand === "security"
-                ? auditSecurity({ root, projectPath })
-                : subcommand === "score"
-                  ? createReviewScore({ root, projectPath })
-                  : subcommand === "prove"
-                    ? createReleaseProof({ root, projectPath })
-                    : null;
+                : subcommand === "security"
+                  ? auditSecurity({ root, projectPath })
+                  : subcommand === "diff"
+                    ? reviewDiff({ root, projectPath })
+                    : subcommand === "routes"
+                      ? mapRoutesToTests({ root, projectPath })
+                      : subcommand === "score"
+                        ? createReviewScore({ root, projectPath })
+                        : subcommand === "senior"
+                          ? createSeniorReview({ root, projectPath })
+                          : subcommand === "prove"
+                            ? createReleaseProof({ root, projectPath })
+                            : null;
       if (!value) {
         console.error(`Unknown review subcommand: ${subcommand}`);
         process.exitCode = 1;

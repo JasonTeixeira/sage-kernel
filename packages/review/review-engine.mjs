@@ -127,6 +127,156 @@ export function createReviewScore(options = {}) {
   return { inspection, report };
 }
 
+export function reviewDiff(options = {}) {
+  const inspection = options.inspection || inspectRepository(options);
+  const diff = typeof options.diff === "string" ? options.diff : gitOutput(inspection.project.root, ["diff", "--no-ext-diff"]);
+  const changedFiles = parseChangedFiles(diff).map((file) => ({
+    ...file,
+    risk: classifyChangedFileRisk(file.path, file.addedLines)
+  }));
+  const findings = [];
+
+  for (const file of changedFiles) {
+    if (file.risk === "high") {
+      findings.push(seniorFinding({
+        severity: "high",
+        category: "security",
+        message: `High-risk diff touches ${file.path}.`,
+        evidence: file.path,
+        confidence: 0.86,
+        recommendation: "Require focused tests, reviewer sign-off, and security review before release."
+      }));
+    }
+    if (isRouteFile(file.path) && !hasCompanionTest(file.path, inspection.tests)) {
+      findings.push(seniorFinding({
+        severity: "high",
+        category: "testing",
+        message: `Changed route lacks direct test coverage: ${file.path}.`,
+        evidence: file.path,
+        confidence: 0.82,
+        recommendation: "Add route/API contract or E2E coverage for the changed behavior."
+      }));
+    }
+    if (file.addedLines.some((line) => /\bprocess\.env\.[A-Z0-9_]*(SECRET|TOKEN|KEY|PASSWORD)\b/i.test(line))) {
+      findings.push(seniorFinding({
+        severity: "high",
+        category: "security",
+        message: `Diff reads sensitive environment variable in ${file.path}.`,
+        evidence: file.path,
+        confidence: 0.9,
+        recommendation: "Verify redaction, permission boundaries, and secret handling tests."
+      }));
+    }
+    if (file.addedLines.some((line) => /\b(eval|execSync|spawnSync|child_process)\b/.test(line))) {
+      findings.push(seniorFinding({
+        severity: "medium",
+        category: "security",
+        message: `Diff introduces command execution or dynamic evaluation in ${file.path}.`,
+        evidence: file.path,
+        confidence: 0.78,
+        recommendation: "Validate inputs, root boundaries, approvals, and command allowlists."
+      }));
+    }
+  }
+
+  return {
+    status: findings.some((item) => ["critical", "high"].includes(item.severity)) ? "needs_work" : "passed",
+    project: reviewProject(inspection),
+    diff,
+    changedFiles,
+    findings
+  };
+}
+
+export function mapRoutesToTests(options = {}) {
+  const inspection = options.inspection || inspectRepository(options);
+  const files = listFiles(inspection.project.root);
+  const routeFiles = files.filter((file) => isRouteFile(file));
+  const routes = routeFiles.map((route) => {
+    const matchingTests = findRouteTests(route, inspection.tests);
+    return {
+      route,
+      tested: matchingTests.length > 0,
+      tests: matchingTests
+    };
+  });
+  const untested = routes.filter((route) => !route.tested);
+  return {
+    status: untested.length > 0 ? "needs_work" : "passed",
+    project: reviewProject(inspection),
+    routes,
+    summary: {
+      routes: routes.length,
+      tested: routes.length - untested.length,
+      untested: untested.length
+    },
+    findings: untested.map((route) => seniorFinding({
+      severity: "high",
+      category: "testing",
+      message: `Untested route detected: ${route.route}.`,
+      evidence: route.route,
+      confidence: 0.84,
+      recommendation: "Add unit, contract, or browser E2E coverage for this route."
+    }))
+  };
+}
+
+export function createSeniorReview(options = {}) {
+  const inspection = inspectRepository(options);
+  const diffReview = reviewDiff({ ...options, inspection });
+  const routeTestMap = mapRoutesToTests({ ...options, inspection });
+  const base = createReviewScore({ ...options, inspection });
+  const categories = base.report.categories.map((category) => ({
+    ...category,
+    findings: [...category.findings]
+  }));
+
+  for (const item of [...diffReview.findings, ...routeTestMap.findings]) {
+    const category = categories.find((candidate) => candidate.id === normalizeReviewCategory(item.category));
+    if (category) {
+      category.findings.push(item);
+      category.score = Math.max(0, category.score - severityPenalty(item.severity));
+    }
+  }
+
+  const remaining = [
+    ...base.report.remaining,
+    ...diffReview.findings.map((item) => item.message),
+    ...routeTestMap.findings.map((item) => item.message)
+  ];
+  const evidence = [
+    ...base.report.evidence,
+    {
+      kind: "file",
+      ref: "git diff",
+      status: diffReview.findings.length > 0 ? "warning" : "passed",
+      summary: `${diffReview.changedFiles.length} changed file(s) reviewed for risk.`
+    },
+    {
+      kind: "file",
+      ref: "routes-to-tests",
+      status: routeTestMap.status === "passed" ? "passed" : "warning",
+      summary: `${routeTestMap.summary.tested}/${routeTestMap.summary.routes} route(s) have direct test coverage.`
+    }
+  ];
+  const report = createReviewReport({
+    id: "review_senior_engine",
+    project: reviewProject(inspection),
+    objective: options.objective || "Run senior review across diff, architecture, routes, tests, security, and release readiness.",
+    categories,
+    evidence,
+    remaining
+  });
+
+  return {
+    status: report.status,
+    inspection,
+    diffReview,
+    routeTestMap,
+    report
+  };
+}
+
 export function createReleaseProof(options = {}) {
   const result = createReviewScore({ ...options, objective: options.objective || "Prove release readiness." });
   const evidence = [
@@ -174,6 +324,70 @@ function reviewEvidence(inspection, release) {
   if (release) refs.push(["command", "npm run release:check", inspection.scripts.includes("release:check") ? "passed" : "warning"]);
   return refs.map(([kind, ref, status]) => ({ kind, ref, status, summary: "Declared project command availability." }));
 }
+
+function parseChangedFiles(diff) {
+  if (!diff.trim()) return [];
+  const files = [];
+  let current = null;
+  for (const line of diff.split(/\r?\n/)) {
+    const match = /^diff --git a\/(.+?) b\/(.+)$/.exec(line);
+    if (match) {
+      current = { path: match[2], addedLines: [] };
+      files.push(current);
+      continue;
+    }
+    const plus = /^\+(?!\+\+)(.*)$/.exec(line);
+    if (current && plus) current.addedLines.push(plus[1]);
+  }
+  return files;
+}
+
+function classifyChangedFileRisk(file, addedLines = []) {
+  if (/(^|\/)(security|auth|approval|permissions?|secrets?)\b/i.test(file)) return "high";
+  if (/(^|\/)(routes?|api|server|middleware)\//i.test(file)) return "high";
+  if (/\.(sql|env|ya?ml|toml)$/.test(file)) return "medium";
+  if (addedLines.some((line) => /\b(SECRET|TOKEN|PASSWORD|process\.env|child_process|execSync|spawnSync)\b/i.test(line))) return "high";
+  if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(file)) return "low";
+  return "medium";
+}
+
+function isRouteFile(file) {
+  return /(^|\/)(routes?|api|pages|app)\//.test(file)
+    && /\.(mjs|js|ts|tsx|jsx)$/.test(file)
+    && !/\.(test|spec)\.[cm]?[jt]sx?$/.test(file);
+}
+
+function findRouteTests(route, tests) {
+  const routeBase = path.basename(route).replace(/\.[^.]+$/, "").toLowerCase();
+  const routeStem = route.replace(/\.[^.]+$/, "").toLowerCase();
+  return tests.filter((test) => {
+    const lower = test.toLowerCase();
+    return lower.includes(routeBase) || lower.includes(routeStem);
+  });
+}
+
+function hasCompanionTest(route, tests) {
+  return findRouteTests(route, tests).length > 0;
+}
+
+function seniorFinding({ severity, category, message, evidence, confidence, recommendation }) {
+  return {
+    severity,
+    category,
+    confidence,
+    message,
+    evidence,
+    recommendation
+  };
+}
+
+function normalizeReviewCategory(category) {
+  if (category === "maintainability") return "clean_code";
+  if (category === "correctness") return "testing";
+  return REVIEW_CATEGORY_IDS.has(category) ? category : "architecture";
+}
+
+const REVIEW_CATEGORY_IDS = new Set(["architecture", "clean_code", "testing", "security", "release"]);
 
 function inspectionFindings({ scripts, docs, ci, tests }) {
   const findings = [];
@@ -242,6 +456,10 @@ function finding(severity, message, evidence, recommendation = undefined) {
 function penalty(findings) {
   const weights = { info: 1, low: 4, medium: 8, high: 15, critical: 30 };
   return findings.reduce((sum, item) => sum + weights[item.severity], 0);
+}
+
+function severityPenalty(severity) {
+  return { info: 1, low: 4, medium: 8, high: 15, critical: 30 }[severity] || 0;
 }
 
 function exists(projectRoot, relativePath) {

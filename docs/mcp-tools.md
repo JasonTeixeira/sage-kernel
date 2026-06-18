@@ -67,7 +67,10 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.review.clean_code_audit` | safe | `review:read` | No | none |
 | `kernel.review.test_audit` | safe | `review:read` | No | none |
 | `kernel.review.security_audit` | safe | `review:read` | No | none |
+| `kernel.review.diff_review` | safe | `review:read` | No | none |
+| `kernel.review.route_test_map` | safe | `review:read` | No | none |
 | `kernel.review.quality_score` | safe | `review:read` | No | none |
+| `kernel.review.senior_review` | safe | `review:read` | No | none |
 | `kernel.review.release_proof` | safe | `review:read` | No | none |
 | `kernel.drift.map` | safe | `drift:read` | No | none |
 | `kernel.drift.scope` | safe | `drift:read` | No | none |
@@ -851,9 +854,45 @@ Example input:
 }
 ```
 
+### `kernel.review.diff_review`
+
+Diff review with changed files, risk classification, severity/confidence findings, and pass/needs-work status.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.review.route_test_map`
+
+Route-to-test map with route counts, matching tests, untested route findings, and status.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
 ### `kernel.review.quality_score`
 
 Inspection plus validated review report with architecture, clean-code, testing, security, and release scores.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.review.senior_review`
+
+Senior review result with inspection, diff review, route-test map, validated report, status, and remaining work.
 
 Example input:
 
@@ -1262,10 +1301,25 @@ Example input:
 - Project path is outside allowed review roots.
 - Security metadata cannot be scanned.
 
+### `kernel.review.diff_review`
+
+- Project path is outside allowed review roots.
+- Diff cannot be parsed.
+
+### `kernel.review.route_test_map`
+
+- Project path is outside allowed review roots.
+- Route files cannot be scanned.
+
 ### `kernel.review.quality_score`
 
 - Project path is outside allowed review roots.
 - Review report cannot be constructed.
+
+### `kernel.review.senior_review`
+
+- Project path is outside allowed review roots.
+- Senior review report cannot be constructed.
 
 ### `kernel.review.release_proof`
 

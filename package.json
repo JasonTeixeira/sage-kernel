@@ -88,6 +88,7 @@
     "review:validate": "node packages/review/scripts/review-validate.mjs",
     "review:inspect": "node bin/sage.mjs review inspect --json",
     "review:score": "node bin/sage.mjs review score --json",
+    "review:senior": "node bin/sage.mjs review senior --json",
     "review:prove": "node bin/sage.mjs review prove --json",
     "drift:map": "node bin/sage.mjs drift map --json",
     "drift:scope": "node bin/sage.mjs drift scope --json",

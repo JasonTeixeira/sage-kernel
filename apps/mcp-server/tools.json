@@ -1772,6 +1772,53 @@
       ]
     },
     {
+      "name": "kernel.review.diff_review",
+      "description": "Review a git diff for risky files, security-sensitive changes, missing route tests, and severity/confidence findings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" },
+          "diff": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Diff review with changed files, risk classification, severity/confidence findings, and pass/needs-work status.",
+      "examples": [
+        {
+          "description": "Review the current repo diff.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Diff cannot be parsed."
+      ]
+    },
+    {
+      "name": "kernel.review.route_test_map",
+      "description": "Map route/API files to direct tests and report untested route surfaces.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Route-to-test map with route counts, matching tests, untested route findings, and status.",
+      "examples": [
+        {
+          "description": "Map current repo routes to tests.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Route files cannot be scanned."
+      ]
+    },
+    {
       "name": "kernel.review.quality_score",
       "description": "Create a full senior engineering quality score report for a project.",
       "inputSchema": {
@@ -1792,6 +1839,30 @@
       "failureModes": [
         "Project path is outside allowed review roots.",
         "Review report cannot be constructed."
+      ]
+    },
+    {
+      "name": "kernel.review.senior_review",
+      "description": "Run the Senior Review Engine 2.0 across repo inspection, risky diff review, route/test mapping, and quality scoring.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" },
+          "diff": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "review:read",
+      "outputShape": "Senior review result with inspection, diff review, route-test map, validated report, status, and remaining work.",
+      "examples": [
+        {
+          "description": "Run senior review for the current repo.",
+          "input": { "projectPath": "." }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed review roots.",
+        "Senior review report cannot be constructed."
       ]
     },
     {
