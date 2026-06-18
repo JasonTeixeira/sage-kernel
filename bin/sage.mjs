@@ -55,13 +55,30 @@ import {
   formatTestingLabOutput,
   generateTestStrategy
 } from "../packages/testing/testing-lab.mjs";
+import { createReleaseStressEvidence, formatReleaseEvidenceOutput } from "../packages/testing/release-evidence.mjs";
 import {
   approveLearningUpdate,
   createKnowledgeGraph,
+  createMemoryE2EProof,
   enforceMemoryPolicy,
   formatKnowledgeOutput,
   proposeLearningUpdate
 } from "../packages/intelligence/knowledge-graph.mjs";
+import {
+  createBenchmarkReport,
+  createExternalComparisonReport,
+  createQualityScoreboard,
+  createScoreRegressionReport,
+  formatScoreOutput,
+  validateScoreModel
+} from "../packages/score/scoreboard.mjs";
+import {
+  applyApprovedRepair,
+  createRepairPlan,
+  createSelfHealingProof,
+  formatSelfHealingOutput
+} from "../packages/self-healing/self-healing.mjs";
+import { createFinalAuditReport, formatFinalAuditOutput } from "../packages/audit/final-audit.mjs";
 import {
   detectProjectProfile,
   formatProfileOutput,
@@ -157,7 +174,11 @@ Usage:
   sage review [inspect|architecture|clean-code|tests|security|diff|routes|score|senior|prove] [projectPath] [--json]
   sage security [threat-model|supply-chain|prove] [projectPath] [--json]
   sage testing [strategy|playwright|budget|proof] [projectPath] [--json]
-  sage memory [policy|graph|learn|approve] [projectPath] [--summary=text] [--failure=text] [--fix=text] [--json]
+  sage release-evidence [projectPath] [--json]
+  sage memory [policy|graph|learn|approve|e2e] [projectPath] [--summary=text] [--failure=text] [--fix=text] [--json]
+  sage score [validate|report|benchmarks|regression|compare] [projectPath] [--json]
+  sage self-heal [plan|prove|apply] [--approved] [--json]
+  sage final-audit [projectPath] [--json]
   sage drift [map|scope|audit|prove] [--json]
   sage mcp [start|config|smoke]
   sage daily
@@ -644,6 +665,29 @@ switch (command) {
     break;
   }
 
+  case "release-evidence": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = await createReleaseStressEvidence({
+        root,
+        projectPath,
+        queueCount: Number(valueArg(args, "--queue-count") || 1000),
+        dashboardCount: Number(valueArg(args, "--dashboard-count") || 0),
+        cycles: Number(valueArg(args, "--cycles") || 1),
+        includeDashboard: args.includes("--dashboard"),
+        profile: valueArg(args, "--profile") || "release-evidence"
+      });
+      console.log(formatReleaseEvidenceOutput(value, { json }));
+      process.exitCode = value.status === "passed" ? 0 : 1;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
   case "memory": {
     const positional = args.filter((arg) => !arg.startsWith("--"));
     const [subcommand = "graph", projectPath = "."] = positional;
@@ -672,13 +716,90 @@ switch (command) {
             ? proposal
             : subcommand === "approve"
               ? approveLearningUpdate(proposal, { approvedBy: valueArg(args, "--approved-by") || "local-user" })
-              : null;
+              : subcommand === "e2e"
+                ? createMemoryE2EProof({ root, projectPath })
+                : null;
       if (!value) {
         console.error(`Unknown memory subcommand: ${subcommand}`);
         process.exitCode = 1;
         break;
       }
       console.log(formatKnowledgeOutput(value, { json }));
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "score": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "report", projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = subcommand === "validate"
+        ? validateScoreModel()
+        : subcommand === "report"
+          ? await createQualityScoreboard({ root, projectPath })
+          : subcommand === "benchmarks"
+            ? createBenchmarkReport({ root, projectPath })
+            : subcommand === "regression"
+              ? createScoreRegressionReport({ scoreboard: await createQualityScoreboard({ root, projectPath }) })
+              : subcommand === "compare"
+                ? createExternalComparisonReport()
+                : null;
+      if (!value) {
+        console.error(`Unknown score subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatScoreOutput(value, { json }));
+      process.exitCode = value.status === "failed" ? 1 : 0;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "self-heal": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [subcommand = "prove"] = positional;
+    const json = args.includes("--json");
+    try {
+      const plan = createRepairPlan({
+        failedGate: valueArg(args, "--gate") || "test -f SELF_HEALING_PROOF.txt",
+        signal: valueArg(args, "--signal") || "controlled proof failure"
+      });
+      const value = subcommand === "plan"
+        ? plan
+        : subcommand === "prove"
+          ? createSelfHealingProof({ root })
+          : subcommand === "apply"
+            ? applyApprovedRepair(plan, { root, approved: args.includes("--approved") })
+            : null;
+      if (!value) {
+        console.error(`Unknown self-heal subcommand: ${subcommand}`);
+        process.exitCode = 1;
+        break;
+      }
+      console.log(formatSelfHealingOutput(value, { json }));
+      process.exitCode = value.status === "failed" ? 1 : 0;
+    } catch (error) {
+      console.error(error.message);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case "final-audit": {
+    const positional = args.filter((arg) => !arg.startsWith("--"));
+    const [projectPath = "."] = positional;
+    const json = args.includes("--json");
+    try {
+      const value = await createFinalAuditReport({ root, projectPath });
+      console.log(formatFinalAuditOutput(value, { json }));
+      process.exitCode = value.status === "failed" ? 1 : 0;
     } catch (error) {
       console.error(error.message);
       process.exitCode = 1;

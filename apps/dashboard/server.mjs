@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 import { createSqliteAdapter } from "../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../packages/security/approvals.mjs";
 import { createOperatingSnapshot } from "../../packages/intelligence/runbooks.mjs";
+import { createKnowledgeGraph } from "../../packages/intelligence/knowledge-graph.mjs";
+import { createPerformanceBudget, createTestingLabProof } from "../../packages/testing/testing-lab.mjs";
+import { createRepairPlan } from "../../packages/self-healing/self-healing.mjs";
+import { createBenchmarkReport, createExternalComparisonReport, validateScoreModel } from "../../packages/score/scoreboard.mjs";
 import { createDefaultWorkflowDefinition, validateWorkflowDefinition } from "../../packages/workflows/engine.mjs";
 import { listDashboardWorkflows, runDashboardWorkflow } from "./dashboard-workflows.mjs";
 import { renderDashboardHtmlView } from "./dashboard-render.mjs";
@@ -81,6 +85,18 @@ export function dashboardSnapshot(options = {}) {
         failures: ["Workflow engine validation failed."]
       }),
       active: latestWorkflowRuns(db)
+    },
+    cockpit: {
+      testing: safeValue(() => createTestingLabProof({ root, projectPath: "." }), { status: "failed" }),
+      memory: safeValue(() => {
+        const graph = createKnowledgeGraph({ root, projectPath: "." });
+        return { status: graph.status, nodes: graph.nodes.length, edges: graph.edges.length };
+      }, { status: "failed", nodes: 0, edges: 0 }),
+      score: safeValue(() => validateScoreModel(), { status: "failed", categories: [], failures: ["Score model unavailable."] }),
+      selfHealing: safeValue(() => createRepairPlan({ failedGate: "controlled fixture proof" }), { status: "failed", steps: [] }),
+      stress: safeValue(() => createPerformanceBudget({ root, projectPath: "." }), { status: "failed", stressProfiles: [] }),
+      benchmarks: safeValue(() => createBenchmarkReport({ root, projectPath: "." }), { status: "failed", tasks: [] }),
+      externalComparison: safeValue(() => createExternalComparisonReport(), { status: "failed", requiredEvidence: [] })
     },
     system: {
       health: systemHealth({ phases, repoHealthRows, templates, tools, jobTimeline }),

@@ -1,5 +1,7 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { createMemoryRecord } from "./memory-store.mjs";
 import { detectProjectProfile } from "../profiles/project-detector.mjs";
 
@@ -138,6 +140,56 @@ export function approveLearningUpdate(proposal, options = {}) {
   };
 }
 
+export function createMemoryE2EProof(options = {}) {
+  const root = options.root || process.cwd();
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-memory-e2e-"));
+  fs.mkdirSync(path.join(fixtureRoot, "src"), { recursive: true });
+  fs.mkdirSync(path.join(fixtureRoot, "tests"), { recursive: true });
+  fs.writeFileSync(path.join(fixtureRoot, "package.json"), JSON.stringify({
+    name: "sage-memory-e2e-fixture",
+    type: "module",
+    scripts: { test: "node tests/math.test.mjs" }
+  }, null, 2));
+  fs.writeFileSync(path.join(fixtureRoot, "src/math.mjs"), "export function double(value) { return value; }\n");
+  fs.writeFileSync(path.join(fixtureRoot, "tests/math.test.mjs"), [
+    "import { double } from '../src/math.mjs';",
+    "if (double(2) !== 4) {",
+    "  console.error('expected double(2) to equal 4');",
+    "  process.exit(1);",
+    "}",
+    "console.log('memory e2e fixture passed');"
+  ].join("\n"));
+  const before = runCommand("npm test", fixtureRoot);
+  fs.writeFileSync(path.join(fixtureRoot, "src/math.mjs"), "export function double(value) { return value * 2; }\n");
+  const after = runCommand("npm test", fixtureRoot);
+  const proposal = proposeLearningUpdate({
+    root,
+    projectPath: options.projectPath || ".",
+    failure: "double(2) returned the wrong value in fixture workflow.",
+    fix: "Added the smallest regression fix and reran npm test.",
+    evidenceRef: "memory:e2e"
+  });
+  const approved = proposal.status === "proposed"
+    ? approveLearningUpdate(proposal, { approvedBy: "memory-e2e" })
+    : null;
+  const futureContext = approved
+    ? {
+        usedMemory: true,
+        summary: approved.memory.content.summary,
+        recommendation: "When the same failure signature appears, rerun the focused regression test before broadening scope."
+      }
+    : { usedMemory: false };
+  return {
+    status: before.status !== 0 && after.status === 0 && approved ? "passed" : "failed",
+    fixtureRoot,
+    before: commandProof(before),
+    after: commandProof(after),
+    proposal,
+    approved,
+    futureContext
+  };
+}
+
 export function formatKnowledgeOutput(value, options = {}) {
   if (options.json) return `${JSON.stringify(stripFunctions(value), null, 2)}\n`;
   if (value.nodes && value.edges) return `Knowledge graph ${value.status}: ${value.nodes.length} node(s), ${value.edges.length} edge(s)\n`;
@@ -180,6 +232,24 @@ function readJson(file, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function runCommand(command, cwd) {
+  const result = spawnSync(command, { cwd, shell: true, encoding: "utf8", timeout: 30000 });
+  return {
+    command,
+    status: result.status ?? 1,
+    stdout: String(result.stdout || "").trim(),
+    stderr: String(result.stderr || "").trim()
+  };
+}
+
+function commandProof(result) {
+  return {
+    ...result,
+    exitCode: result.status,
+    status: result.status === 0 ? "passed" : "failed"
+  };
 }
 
 function stripFunctions(value) {

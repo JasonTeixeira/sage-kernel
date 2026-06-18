@@ -10,6 +10,15 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
     engine: { status: "missing", checked: { steps: 0 }, states: [], failures: ["Workflow engine snapshot unavailable."] },
     active: []
   };
+  const cockpit = snapshot.cockpit || {
+    testing: { status: "missing", strategy: { layers: [] }, performance: { stressProfiles: [] } },
+    memory: { status: "missing", nodes: 0, edges: 0 },
+    score: { status: "missing", categories: [], failures: [] },
+    selfHealing: { status: "missing", steps: [] },
+    stress: { status: "missing", stressProfiles: [] },
+    benchmarks: { status: "missing", tasks: [] },
+    externalComparison: { status: "missing", requiredEvidence: [] }
+  };
 
   return `<!doctype html>
 <html lang="en">
@@ -27,7 +36,7 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
         <span>MCP command cockpit · v${escapeHtml(snapshot.version)}</span>
       </div>
       <nav class="nav" aria-label="Dashboard views">
-        ${["Overview", "Cockpit", "Workflows", "Approvals", "Jobs", "MCP Tools", "Repos", "Templates", "Data"].map((view, index) => `<button type="button" data-view-target="${slug(view)}" aria-selected="${index === 0 ? "true" : "false"}">${escapeHtml(view)}</button>`).join("")}
+        ${["Overview", "Cockpit", "Testing", "Memory", "Scoreboard", "Self-Healing", "Stress", "Final Audit", "Workflows", "Approvals", "Jobs", "MCP Tools", "Repos", "Templates", "Data"].map((view, index) => `<button type="button" data-view-target="${slug(view)}" aria-selected="${index === 0 ? "true" : "false"}">${escapeHtml(view)}</button>`).join("")}
       </nav>
       <div class="sidebar-footer">
         <strong class="status-${escapeHtml(health.status)}">${escapeHtml(health.status)}</strong>
@@ -105,6 +114,34 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
         <article class="panel span-12"><div class="panel-header"><h2>Daily Workflows</h2><span class="badge badge-ok">ready</span></div><div class="panel-body command-grid">${workflowCommands.map(renderCommand).join("")}</div></article>
         <article class="panel span-12"><div class="panel-header"><h2>Active Workflow Engine</h2><span class="badge ${workflows.engine.status === "passed" ? "badge-ok" : "badge-warn"}">${escapeHtml(workflows.engine.status)}</span></div><div class="panel-body">${renderWorkflowEngineStatus(workflows)}</div></article>
         <article class="panel span-12"><div class="panel-header"><h2>Workflow Result Summary</h2><span class="badge">live</span></div><div class="panel-body"><div id="workflow-status" class="status-box">Ready.</div></div></article>
+      </section>
+
+      <section id="testing" class="view grid" data-view="testing">
+        <article class="panel span-7" data-panel="testing-lab"><div class="panel-header"><h2>Testing Lab</h2><span class="badge ${cockpit.testing.status === "passed" ? "badge-ok" : "badge-warn"}">${escapeHtml(cockpit.testing.status)}</span></div><div class="panel-body">${renderTestingLab(cockpit.testing)}</div></article>
+        <article class="panel span-5" data-panel="playwright-template"><div class="panel-header"><h2>Browser And Mobile E2E</h2><span class="badge">Playwright</span></div><div class="panel-body">${renderPlaywrightPanel(cockpit.testing)}</div></article>
+      </section>
+
+      <section id="memory" class="view grid" data-view="memory">
+        <article class="panel span-6" data-panel="memory-graph"><div class="panel-header"><h2>Knowledge Graph</h2><span class="badge ${cockpit.memory.status === "passed" ? "badge-ok" : "badge-warn"}">${escapeHtml(cockpit.memory.status)}</span></div><div class="panel-body">${renderMemoryGraph(cockpit.memory)}</div></article>
+        <article class="panel span-6" data-panel="memory-learning"><div class="panel-header"><h2>Learning Loop</h2><span class="badge">approval gated</span></div><div class="panel-body"><ul class="list"><li>Policy check before memory writes.</li><li>Project and global scopes are separated.</li><li>Global standards require approval.</li><li>Memory E2E proof runs with <code>npm run memory:e2e</code>.</li></ul></div></article>
+      </section>
+
+      <section id="scoreboard" class="view grid" data-view="scoreboard">
+        <article class="panel span-6" data-panel="score-model"><div class="panel-header"><h2>Evidence Score Model</h2><span class="badge ${cockpit.score.status === "passed" ? "badge-ok" : "badge-warn"}">${escapeHtml(cockpit.score.status)}</span></div><div class="panel-body">${renderScoreModel(cockpit.score)}</div></article>
+        <article class="panel span-6" data-panel="benchmarks"><div class="panel-header"><h2>Workflow Benchmarks</h2><span class="badge">${escapeHtml(cockpit.benchmarks.tasks?.length || 0)} tasks</span></div><div class="panel-body">${renderBenchmarks(cockpit.benchmarks)}</div></article>
+      </section>
+
+      <section id="self-healing" class="view grid" data-view="self-healing">
+        <article class="panel span-12" data-panel="self-healing"><div class="panel-header"><h2>Bounded Self-Healing</h2><span class="badge badge-warn">approval required</span></div><div class="panel-body">${renderSelfHealing(cockpit.selfHealing)}</div></article>
+      </section>
+
+      <section id="stress" class="view grid" data-view="stress">
+        <article class="panel span-12" data-panel="stress-profiles"><div class="panel-header"><h2>Stress And Soak Profiles</h2><span class="badge">${escapeHtml(cockpit.stress.stressProfiles?.length || 0)} profiles</span></div><div class="panel-body">${renderStressProfiles(cockpit.stress)}</div></article>
+      </section>
+
+      <section id="final-audit" class="view grid" data-view="final-audit">
+        <article class="panel span-6" data-panel="external-proof"><div class="panel-header"><h2>External Proof</h2><span class="badge badge-warn">${escapeHtml(cockpit.externalComparison.status)}</span></div><div class="panel-body">${renderExternalComparison(cockpit.externalComparison)}</div></article>
+        <article class="panel span-6" data-panel="final-gaps"><div class="panel-header"><h2>Final Gap Closure</h2><span class="badge">Program 14</span></div><div class="panel-body"><ul class="list"><li>Run <code>npm run audit:full</code> once final audit command is enabled.</li><li>Attach public npm install proof.</li><li>Attach real MCP client proof.</li><li>Attach long-soak release artifacts.</li></ul></div></article>
       </section>
 
       <section id="approvals" class="view grid" data-view="approvals">
@@ -496,4 +533,51 @@ function renderExperiment(experiment) {
     </li>
     <li data-search="experiment evaluation metric"><div class="split"><h3>Evaluation</h3><strong>${escapeHtml(experiment.evaluation?.metric || "metric")}</strong></div><p>${escapeHtml(experiment.evaluation?.command || "No command recorded.")}</p></li>
   </ul>`;
+}
+
+function renderTestingLab(testing) {
+  const strategy = testing.strategy || { profile: "unknown", layers: [], missingLayers: [] };
+  const layers = strategy.layers || [];
+  return `<ul class="list">
+    <li data-search="testing strategy profile layers"><div class="split"><h3>Profile</h3><strong>${escapeHtml(strategy.profile || "unknown")}</strong></div><p>${escapeHtml(layers.length)} layer(s), ${escapeHtml(strategy.missingLayers?.length || 0)} missing.</p></li>
+    ${(testing.performance?.stressProfiles || []).slice(0, 4).map((profile) => `<li data-search="${escapeHtml(`${profile.id} ${profile.command} stress profile`)}"><div class="split"><h3>${escapeHtml(profile.id)}</h3><code>${escapeHtml(profile.count || profile.profile || "profile")}</code></div><p>${escapeHtml(profile.command)}</p></li>`).join("")}
+  </ul>`;
+}
+
+function renderPlaywrightPanel(testing) {
+  const files = Object.keys(testing.playwright?.files || {});
+  return `<ul class="list">${files.map((file) => `<li data-search="${escapeHtml(`${file} playwright e2e mobile browser`)}"><div class="split"><h3>${escapeHtml(file)}</h3><strong>template</strong></div></li>`).join("") || "<li>No Playwright template available.</li>"}</ul>`;
+}
+
+function renderMemoryGraph(memory) {
+  return `<ul class="list">
+    <li data-search="knowledge graph nodes"><div class="split"><h3>Nodes</h3><strong>${escapeHtml(memory.nodes || 0)}</strong></div><p>Projects, routes, tests, dependencies, and frameworks.</p></li>
+    <li data-search="knowledge graph edges"><div class="split"><h3>Edges</h3><strong>${escapeHtml(memory.edges || 0)}</strong></div><p>Relationship evidence for planning and review.</p></li>
+  </ul>`;
+}
+
+function renderScoreModel(score) {
+  return `<ul class="list">
+    <li data-search="score model categories"><div class="split"><h3>Categories</h3><strong>${escapeHtml(score.categories?.length || 0)}</strong></div><p>Total weight ${escapeHtml(score.totalWeight || 0)}.</p></li>
+    ${(score.failures || []).map((failure) => `<li data-search="${escapeHtml(`score failure ${failure}`)}">${escapeHtml(failure)}</li>`).join("")}
+  </ul>`;
+}
+
+function renderBenchmarks(benchmarks) {
+  return `<ul class="list">${(benchmarks.tasks || []).map((task) => `<li data-search="${escapeHtml(`${task.id} ${task.task} benchmark`)}"><div class="split"><h3>${escapeHtml(task.task)}</h3><strong>${escapeHtml(task.status)}</strong></div><p>${escapeHtml((task.metrics || []).join(", "))}</p></li>`).join("") || "<li>No benchmark tasks defined.</li>"}</ul>`;
+}
+
+function renderSelfHealing(plan) {
+  return `<ul class="list">
+    <li data-search="self healing approval retry rollback"><div class="split"><h3>Approval Boundary</h3><strong>${escapeHtml(plan.approvalRequired ? "required" : "not required")}</strong></div><p>Retry budget ${escapeHtml(plan.retryBudget || 0)}.</p></li>
+    ${(plan.steps || []).map((step) => `<li data-search="${escapeHtml(`${step.id} ${step.action} self healing`)}"><div class="split"><h3>${escapeHtml(step.id)}</h3><strong>${escapeHtml(step.mutates ? "mutates" : "read-only")}</strong></div><p>${escapeHtml(step.action)}</p></li>`).join("")}
+  </ul>`;
+}
+
+function renderStressProfiles(stress) {
+  return `<ul class="list">${(stress.stressProfiles || []).map((profile) => `<li data-search="${escapeHtml(`${profile.id} ${profile.command} stress soak performance`)}"><div class="split"><h3>${escapeHtml(profile.id)}</h3><strong>${escapeHtml(profile.count || profile.profile || "profile")}</strong></div><p>${escapeHtml(profile.command)}</p></li>`).join("") || "<li>No stress profiles available.</li>"}</ul>`;
+}
+
+function renderExternalComparison(comparison) {
+  return `<ul class="list">${(comparison.requiredEvidence || []).map((item) => `<li data-search="${escapeHtml(`${item} external proof final audit`)}">${escapeHtml(item)}</li>`).join("") || "<li>No external evidence requirements recorded.</li>"}</ul>`;
 }
