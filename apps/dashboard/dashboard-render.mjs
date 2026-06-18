@@ -6,6 +6,10 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
   const failedRuns = snapshot.jobs.timeline.filter((run) => run.status === "failed").length;
   const readyTemplates = snapshot.templates.readiness.filter((template) => template.status === "ready").length;
   const dbTotal = Object.values(snapshot.db).reduce((sum, value) => sum + Number(value), 0);
+  const workflows = snapshot.workflows || {
+    engine: { status: "missing", checked: { steps: 0 }, states: [], failures: ["Workflow engine snapshot unavailable."] },
+    active: []
+  };
 
   return `<!doctype html>
 <html lang="en">
@@ -63,6 +67,10 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
             </ul>
           </div>
         </article>
+        <article class="panel span-12" data-panel="active-workflow-engine">
+          <div class="panel-header"><h2>Active Workflow Engine</h2><span class="badge ${workflows.engine.status === "passed" ? "badge-ok" : "badge-warn"}">${escapeHtml(workflows.engine.status)}</span></div>
+          <div class="panel-body">${renderWorkflowEngineStatus(workflows)}</div>
+        </article>
 
         <article class="panel span-6" data-panel="approval-inbox">
           <div class="panel-header"><h2>Approval Inbox</h2><span class="badge ${pendingApprovals > 0 ? "badge-warn" : "badge-ok"}" data-live-pending>${pendingApprovals} pending</span></div>
@@ -95,6 +103,7 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
 
       <section id="workflows" class="view grid" data-view="workflows">
         <article class="panel span-12"><div class="panel-header"><h2>Daily Workflows</h2><span class="badge badge-ok">ready</span></div><div class="panel-body command-grid">${workflowCommands.map(renderCommand).join("")}</div></article>
+        <article class="panel span-12"><div class="panel-header"><h2>Active Workflow Engine</h2><span class="badge ${workflows.engine.status === "passed" ? "badge-ok" : "badge-warn"}">${escapeHtml(workflows.engine.status)}</span></div><div class="panel-body">${renderWorkflowEngineStatus(workflows)}</div></article>
         <article class="panel span-12"><div class="panel-header"><h2>Workflow Result Summary</h2><span class="badge">live</span></div><div class="panel-body"><div id="workflow-status" class="status-box">Ready.</div></div></article>
       </section>
 
@@ -271,6 +280,11 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
       if (stdout?.profile?.id) items.push("Profile: " + stdout.profile.id);
       if (Array.isArray(stdout?.commands)) items.push("Verification commands: " + stdout.commands.length);
       if (Array.isArray(stdout?.phases)) items.push("Loop phases: " + stdout.phases.length);
+      if (stdout?.checked?.steps !== undefined) items.push("Engine checked steps: " + stdout.checked.steps);
+      if (Array.isArray(stdout?.states)) items.push("Engine states: " + stdout.states.join(" -> "));
+      if (stdout?.before?.status && stdout?.after?.status) items.push("Proof path: " + stdout.before.status + " -> " + stdout.after.status);
+      if (Array.isArray(stdout?.workflow?.repairs)) items.push("Repairs applied: " + stdout.workflow.repairs.length);
+      if (Array.isArray(stdout?.workflow?.audit)) items.push("Audit events: " + stdout.workflow.audit.length);
       if (Array.isArray(stdout?.run)) {
         const failed = stdout.run.filter((item) => item.status !== "passed").length;
         items.push("Run checks: " + stdout.run.length + " total, " + failed + " needing attention");
@@ -324,6 +338,30 @@ function renderCommand(workflow) {
       <button class="button" type="button" data-copy="${escapeHtml(workflow.command)}">Copy</button>
     </div>
   </div>`;
+}
+
+function renderWorkflowEngineStatus(workflows) {
+  const engine = workflows?.engine || { status: "missing", checked: { steps: 0 }, states: [], failures: ["Workflow engine snapshot unavailable."] };
+  const active = workflows?.active || [];
+  return `<div class="grid">
+    <div class="span-4" data-search="${escapeHtml(`workflow engine ${engine.status} ${engine.checked?.steps || 0} steps`)}">
+      <div class="metric-small status-${escapeHtml(engine.status)}">${escapeHtml(engine.status)}</div>
+      <p>${escapeHtml(engine.checked?.steps || 0)} checked steps · ${escapeHtml((engine.states || []).length)} states</p>
+    </div>
+    <div class="span-8">
+      <ul class="list">
+        ${active.map(renderActiveWorkflowRun).join("") || "<li>No active workflow engine runs recorded yet.</li>"}
+        ${(engine.failures || []).map((failure) => `<li data-search="${escapeHtml(`workflow engine failure ${failure}`)}">${escapeHtml(failure)}</li>`).join("")}
+      </ul>
+    </div>
+  </div>`;
+}
+
+function renderActiveWorkflowRun(run) {
+  return `<li data-search="${escapeHtml(`${run.id} ${run.workflowId} ${run.status} active workflow engine`)}">
+    <div class="split"><h3>${escapeHtml(run.workflowId)}</h3><strong class="status-${escapeHtml(run.status)}">${escapeHtml(run.status)}</strong></div>
+    <p>${escapeHtml(run.durationMs)}ms · ${run.signed ? "signed" : "local"} · ${escapeHtml(run.createdAt)}</p>
+  </li>`;
 }
 
 function renderTool(tool) {

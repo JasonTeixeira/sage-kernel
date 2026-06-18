@@ -7,11 +7,13 @@ import test from "node:test";
 
 import {
   __workflowEngineTestInternals,
+  createDefaultWorkflowDefinition,
   createWorkflowEngineFixture,
   formatWorkflowEngineOutput,
   runWorkflow,
   validateWorkflowDefinition
 } from "../packages/workflows/engine.mjs";
+import { callKernelTool } from "../apps/mcp-server/src/kernel-tools.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
@@ -117,6 +119,31 @@ test("workflow engine fixture proves controlled bug repair end to end", () => {
   assert.equal(proof.after.status, "passed");
   assert.equal(proof.workflow.repairs.length, 1);
   assert.equal(fs.readFileSync(path.join(proof.fixtureRoot, "src/math.mjs"), "utf8").includes("return 2"), true);
+});
+
+test("workflow engine exposes canonical MCP validation, proof, and approved execution", async () => {
+  const validation = await callKernelTool(root, "kernel.workflow_engine.validate", {});
+  assert.equal(validation.status, "passed");
+  assert.equal(validation.checked.steps, createDefaultWorkflowDefinition().steps.length);
+
+  const proof = await callKernelTool(root, "kernel.workflow_engine.prove", {});
+  assert.equal(proof.status, "passed");
+  assert.equal(proof.before.status, "failed");
+  assert.equal(proof.workflow.status, "passed");
+  assert.equal(proof.after.status, "passed");
+
+  const run = await callKernelTool(root, "kernel.workflow_engine.run", {
+    definition: {
+      id: "mcp_runtime_smoke",
+      objective: "Prove approved MCP workflow execution.",
+      steps: [
+        { id: "inspect", type: "inspect" },
+        { id: "review", type: "review" }
+      ]
+    }
+  });
+  assert.equal(run.status, "passed");
+  assert.equal(run.id, "mcp_runtime_smoke");
 });
 
 test("workflow engine CLI exposes validation and fixture proof", () => {

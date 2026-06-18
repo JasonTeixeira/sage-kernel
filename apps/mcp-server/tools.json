@@ -340,6 +340,103 @@
       ]
     },
     {
+      "name": "kernel.workflow_engine.validate",
+      "description": "Validate the canonical state-machine workflow engine definition used by CLI, MCP, and dashboard controls.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "definition": {
+            "type": "object"
+          }
+        }
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Workflow engine validation report with status, state coverage, checked step count, and failures.",
+      "examples": [
+        {
+          "description": "Validate the built-in workflow engine definition.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Workflow definition is malformed.",
+        "A command-required step is missing a command."
+      ]
+    },
+    {
+      "name": "kernel.workflow_engine.prove",
+      "description": "Run the deterministic workflow engine fixture that fails, repairs through a bounded retry, and passes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "risk": "mutating",
+      "permission": "workflow:read",
+      "sideEffects": "creates a temporary fixture project and runs npm test inside it",
+      "outputShape": "Workflow engine proof report with before failure, repaired workflow run, after pass, audit trail, and repair evidence.",
+      "examples": [
+        {
+          "description": "Prove workflow engine repair behavior.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Fixture setup fails.",
+        "The controlled failing test does not fail before repair.",
+        "The repaired fixture test does not pass."
+      ]
+    },
+    {
+      "name": "kernel.workflow_engine.run",
+      "description": "Run a caller-provided state-machine workflow definition with retries, approvals, rollback, and audit records.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "definition"
+        ],
+        "properties": {
+          "definition": {
+            "type": "object"
+          },
+          "approvals": {
+            "type": "array"
+          }
+        }
+      },
+      "risk": "mutating",
+      "permission": "workflow:write",
+      "approvalRequired": true,
+      "sideEffects": "runs local workflow commands declared by the provided workflow definition",
+      "outputShape": "Workflow execution report with final status, state, validation, step results, repairs, rollback entries, audit trail, and next actions.",
+      "examples": [
+        {
+          "description": "Run a read-only inspect and review workflow.",
+          "input": {
+            "definition": {
+              "id": "mcp_runtime_smoke",
+              "steps": [
+                {
+                  "id": "inspect",
+                  "type": "inspect"
+                },
+                {
+                  "id": "review",
+                  "type": "review"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "failureModes": [
+        "Input definition is missing.",
+        "Workflow validation fails.",
+        "A workflow command fails after retry budget.",
+        "A required approval is missing."
+      ]
+    },
+    {
       "name": "kernel.warehouse.summary",
       "description": "Summarize the connected AI Warehouse inventory.",
       "inputSchema": {

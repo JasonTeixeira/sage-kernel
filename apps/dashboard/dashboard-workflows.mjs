@@ -54,6 +54,28 @@ const workflowDefinitions = [
     input: { projectPath: ".", objective: "Verify the current sprint.", risk: "low" }
   },
   {
+    id: "workflow-engine-validate",
+    label: "Engine Validate",
+    command: "sage workflow validate",
+    description: "Validate the canonical state-machine workflow runtime.",
+    risk: "safe",
+    permission: "dashboard.workflow.read",
+    requiresApproval: false,
+    tool: "kernel.workflow_engine.validate",
+    input: {}
+  },
+  {
+    id: "workflow-engine-proof",
+    label: "Engine Proof",
+    command: "sage workflow prove",
+    description: "Run the controlled fail-repair-pass workflow engine proof.",
+    risk: "local-compute",
+    permission: "dashboard.workflow.qa",
+    requiresApproval: true,
+    tool: "kernel.workflow_engine.prove",
+    input: {}
+  },
+  {
     id: "full-qa",
     label: "Full QA",
     command: "sage full-qa .",

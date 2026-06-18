@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createSqliteAdapter } from "../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../packages/security/approvals.mjs";
 import { createOperatingSnapshot } from "../../packages/intelligence/runbooks.mjs";
+import { createDefaultWorkflowDefinition, validateWorkflowDefinition } from "../../packages/workflows/engine.mjs";
 import { listDashboardWorkflows, runDashboardWorkflow } from "./dashboard-workflows.mjs";
 import { renderDashboardHtmlView } from "./dashboard-render.mjs";
 
@@ -72,6 +73,15 @@ export function dashboardSnapshot(options = {}) {
       recent: latestArtifacts(db)
     },
     operating,
+    workflows: {
+      engine: safeValue(() => validateWorkflowDefinition(createDefaultWorkflowDefinition()), {
+        status: "failed",
+        states: [],
+        checked: { steps: 0 },
+        failures: ["Workflow engine validation failed."]
+      }),
+      active: latestWorkflowRuns(db)
+    },
     system: {
       health: systemHealth({ phases, repoHealthRows, templates, tools, jobTimeline }),
       coverage: {
@@ -187,6 +197,23 @@ function latestArtifacts(db) {
     kind: row.kind,
     path: row.path,
     metadata: parseJson(row.metadata_json, {}),
+    createdAt: row.created_at
+  }));
+}
+
+function latestWorkflowRuns(db) {
+  return safeQuery(
+    db,
+    `SELECT id, job_id, status, duration_ms, result_json, signature, created_at
+     FROM job_runs WHERE job_id LIKE 'dashboard.workflow-%'
+     ORDER BY created_at DESC LIMIT 8`
+  ).map((row) => ({
+    id: row.id,
+    workflowId: row.job_id,
+    status: row.status,
+    durationMs: Number(row.duration_ms || 0),
+    signed: Boolean(row.signature),
+    result: parseJson(row.result_json, {}),
     createdAt: row.created_at
   }));
 }
@@ -391,6 +418,7 @@ export const __dashboardTestInternals = {
   latestApprovals,
   latestArtifacts,
   latestJobRuns,
+  latestWorkflowRuns,
   latestQueuedJobs,
   latestRunFiles,
   readJson,

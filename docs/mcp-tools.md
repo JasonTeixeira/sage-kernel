@@ -15,6 +15,9 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.loop.run` | mutating | `workflow:write` | No | runs local allowlisted verification commands |
 | `kernel.loop.validate` | safe | `workflow:read` | No | none |
 | `kernel.loop.prove` | safe | `workflow:read` | No | none |
+| `kernel.workflow_engine.validate` | safe | `workflow:read` | No | none |
+| `kernel.workflow_engine.prove` | mutating | `workflow:read` | No | creates a temporary fixture project and runs npm test inside it |
+| `kernel.workflow_engine.run` | mutating | `workflow:write` | Yes | runs local workflow commands declared by the provided workflow definition |
 | `kernel.warehouse.summary` | safe | `warehouse:read` | No | none |
 | `kernel.warehouse.search` | safe | `warehouse:read` | No | none |
 | `kernel.qa.profile` | safe | `qa:read` | No | none |
@@ -201,6 +204,50 @@ Example input:
 
 ```json
 {}
+```
+
+### `kernel.workflow_engine.validate`
+
+Workflow engine validation report with status, state coverage, checked step count, and failures.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.workflow_engine.prove`
+
+Workflow engine proof report with before failure, repaired workflow run, after pass, audit trail, and repair evidence.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.workflow_engine.run`
+
+Workflow execution report with final status, state, validation, step results, repairs, rollback entries, audit trail, and next actions.
+
+Example input:
+
+```json
+{
+  "definition": {
+    "id": "mcp_runtime_smoke",
+    "steps": [
+      {
+        "id": "inspect",
+        "type": "inspect"
+      },
+      {
+        "id": "review",
+        "type": "review"
+      }
+    ]
+  }
+}
 ```
 
 ### `kernel.warehouse.summary`
@@ -862,6 +909,24 @@ Example input:
 ### `kernel.loop.prove`
 
 - Closed-loop fixture proof fails.
+
+### `kernel.workflow_engine.validate`
+
+- Workflow definition is malformed.
+- A command-required step is missing a command.
+
+### `kernel.workflow_engine.prove`
+
+- Fixture setup fails.
+- The controlled failing test does not fail before repair.
+- The repaired fixture test does not pass.
+
+### `kernel.workflow_engine.run`
+
+- Input definition is missing.
+- Workflow validation fails.
+- A workflow command fails after retry budget.
+- A required approval is missing.
 
 ### `kernel.warehouse.summary`
 

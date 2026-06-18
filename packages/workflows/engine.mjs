@@ -47,6 +47,18 @@ const STATE_BY_TYPE = {
   release: "released"
 };
 
+export function createDefaultWorkflowDefinition() {
+  return {
+    id: "default_workflow",
+    objective: "Validate the Sage workflow engine runtime.",
+    steps: [
+      { id: "inspect", type: "inspect" },
+      { id: "verify", type: "test", command: "npm run workflows:validate" },
+      { id: "review", type: "review" }
+    ]
+  };
+}
+
 export function validateWorkflowDefinition(definition = {}) {
   const failures = [];
   const id = definition.id || "";

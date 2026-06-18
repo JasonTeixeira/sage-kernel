@@ -35,6 +35,9 @@ test("dashboard snapshot exposes operational command-center panels", () => {
   assert.equal(snapshot.operating.todayPlan.steps.length > 0, true);
   assert.equal(snapshot.operating.runbooks.length > 0, true);
   assert.equal(typeof snapshot.operating.evals.status, "string");
+  assert.equal(snapshot.workflows.engine.status, "passed");
+  assert.equal(snapshot.workflows.engine.checked.steps > 0, true);
+  assert.equal(Array.isArray(snapshot.workflows.active), true);
   assert.equal(snapshot.system.health.status, "operational");
   assert.equal(snapshot.system.coverage.line >= 80, true);
 });
@@ -99,6 +102,10 @@ test("dashboard HTML view renders populated and fallback cockpit branches safely
       evals: { status: "failed", summary: { passed: 0, total: 1 }, latestId: null },
       runbooks: [{ id: "runbook_test", title: "Test", risk: "low", stepCount: 1, verificationCount: 1, requiresApproval: false }],
       experiments: null
+    },
+    workflows: {
+      engine: { status: "passed", checked: { steps: 3 }, states: ["proposed", "planned", "passed"], failures: [] },
+      active: [{ id: "run_workflow", workflowId: "dashboard.workflow-engine-validate", status: "passed", createdAt: "now" }]
     }
   };
   const html = renderDashboardHtmlView(snapshot, [
@@ -114,6 +121,7 @@ test("dashboard HTML view renders populated and fallback cockpit branches safely
   assert.match(html, /signed/);
   assert.match(html, /ready/);
   assert.match(html, /Workflow Result Summary/);
+  assert.match(html, /Active Workflow Engine/);
   assert.match(html, /workflow-result/);
   assert.doesNotMatch(html, /deploy<prod>/);
 });
@@ -183,6 +191,8 @@ test("dashboard workflow API exposes an allowlisted executable control plane", a
   assert.equal(workflows.some((workflow) => workflow.id === "full-qa" && workflow.requiresApproval), true);
   assert.equal(workflows.some((workflow) => workflow.id === "loop-plan" && workflow.tool === "kernel.loop.plan" && !workflow.requiresApproval), true);
   assert.equal(workflows.some((workflow) => workflow.id === "loop-run" && workflow.tool === "kernel.loop.run" && workflow.requiresApproval), true);
+  assert.equal(workflows.some((workflow) => workflow.id === "workflow-engine-validate" && workflow.tool === "kernel.workflow_engine.validate" && !workflow.requiresApproval), true);
+  assert.equal(workflows.some((workflow) => workflow.id === "workflow-engine-proof" && workflow.tool === "kernel.workflow_engine.prove" && workflow.requiresApproval), true);
 
   const safe = await runDashboardWorkflow({ id: "pending-approvals" }, { root: sandbox });
   assert.equal(safe.status, "executed");
@@ -223,6 +233,33 @@ test("dashboard exposes closed-loop plan and run workflows", async () => {
   assert.equal(executed.status, "executed");
   assert.equal(executed.workflow.tool, "kernel.loop.run");
   assert.match(executed.result.stdout, /kernel.loop.run/);
+});
+
+test("dashboard exposes workflow engine runtime controls and records active workflow runs", async () => {
+  const sandbox = createDashboardFixture();
+  fs.mkdirSync(path.join(sandbox, "apps/mcp-server/scripts"), { recursive: true });
+  fs.writeFileSync(path.join(sandbox, "apps/mcp-server/scripts/call-tool.mjs"), [
+    "const [, , tool, input] = process.argv;",
+    "console.log(JSON.stringify({ tool, input: JSON.parse(input), status: 'passed', workflow: { status: 'passed', repairs: [] } }));"
+  ].join("\n"));
+
+  const validation = await runDashboardWorkflow({ id: "workflow-engine-validate" }, { root: sandbox });
+  assert.equal(validation.status, "executed");
+  assert.equal(validation.workflow.tool, "kernel.workflow_engine.validate");
+  assert.match(validation.result.stdout, /kernel.workflow_engine.validate/);
+
+  const requested = await runDashboardWorkflow({ id: "workflow-engine-proof" }, { root: sandbox });
+  assert.equal(requested.status, "approval_required");
+  const db = createSqliteAdapter({ root: sandbox });
+  db.init();
+  createApprovalLedger({ db }).approve({ id: requested.approval.id, decidedBy: "test" });
+
+  const proof = await runDashboardWorkflow({ id: "workflow-engine-proof", approvalId: requested.approval.id }, { root: sandbox });
+  assert.equal(proof.status, "executed");
+  assert.equal(proof.workflow.tool, "kernel.workflow_engine.prove");
+
+  const snapshot = dashboardSnapshot({ root: sandbox, schemaRoot: root });
+  assert.equal(snapshot.workflows.active.some((run) => run.workflowId === "dashboard.workflow-engine-proof"), true);
 });
 
 test("dashboard guarded workflows require matching signed approvals before execution", async () => {

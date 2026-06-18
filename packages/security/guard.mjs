@@ -12,6 +12,7 @@ const SAFE_ACTIONS = new Set([
   "loop.plan",
   "loop.validate",
   "loop.prove",
+  "workflow_engine.validate",
   "warehouse.summary",
   "warehouse.search",
   "qa.profile",
@@ -65,6 +66,8 @@ const MUTATING_ACTIONS = new Set([
   "workflow.run_full_qa",
   "workflow.create_app",
   "loop.run",
+  "workflow_engine.prove",
+  "workflow_engine.run",
   "agents.install_global"
 ]);
 

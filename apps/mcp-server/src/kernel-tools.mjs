@@ -41,6 +41,12 @@ import {
   proveClosedLoopWorkflows,
   validateClosedLoopWorkflows
 } from "../../../packages/workflows/closed-loop.mjs";
+import {
+  createDefaultWorkflowDefinition,
+  createWorkflowEngineFixture,
+  runWorkflow,
+  validateWorkflowDefinition
+} from "../../../packages/workflows/engine.mjs";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const knownKernelToolNames = new Set(
@@ -137,6 +143,22 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.loop.prove":
       return proveClosedLoopWorkflows({ root });
+
+    case "kernel.workflow_engine.validate":
+      return validateWorkflowDefinition(input.definition || createDefaultWorkflowDefinition());
+
+    case "kernel.workflow_engine.prove":
+      return createWorkflowEngineFixture({ root });
+
+    case "kernel.workflow_engine.run": {
+      if (!input.definition || typeof input.definition !== "object") {
+        throw new Error("kernel.workflow_engine.run requires input.definition");
+      }
+      return runWorkflow(input.definition, {
+        root,
+        approvals: Array.isArray(input.approvals) ? input.approvals : []
+      });
+    }
 
     case "kernel.warehouse.summary":
       return JSON.parse(runNode(root, "packages/ai-warehouse/scripts/warehouse-summary.mjs"));

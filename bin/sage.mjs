@@ -45,6 +45,7 @@ import {
   validateClosedLoopWorkflows
 } from "../packages/workflows/closed-loop.mjs";
 import {
+  createDefaultWorkflowDefinition,
   createWorkflowEngineFixture,
   formatWorkflowEngineOutput,
   runWorkflow,
@@ -412,7 +413,7 @@ switch (command) {
     const [subcommand = "validate", workflowFile] = positional;
     const json = args.includes("--json");
     try {
-      const definition = workflowFile ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), workflowFile), "utf8")) : defaultWorkflowDefinition();
+      const definition = workflowFile ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), workflowFile), "utf8")) : createDefaultWorkflowDefinition();
       const value = subcommand === "validate"
         ? validateWorkflowDefinition(definition)
         : subcommand === "prove"
@@ -592,16 +593,4 @@ switch (command) {
 function valueArg(values, name) {
   const arg = values.find((item) => item.startsWith(`${name}=`));
   return arg ? arg.slice(name.length + 1) : null;
-}
-
-function defaultWorkflowDefinition() {
-  return {
-    id: "default_workflow",
-    objective: "Validate the Sage workflow engine runtime.",
-    steps: [
-      { id: "inspect", type: "inspect" },
-      { id: "verify", type: "test", command: "npm run workflows:validate" },
-      { id: "review", type: "review" }
-    ]
-  };
 }
