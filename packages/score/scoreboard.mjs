@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { createDoctorReport } from "../core/doctor.mjs";
 import { createDriftProof } from "../drift/drift-engine.mjs";
 import { createAgentsDoctorReport } from "../agents/agent-pack.mjs";
@@ -6,6 +7,7 @@ import { createReleaseProof, createReviewScore } from "../review/review-engine.m
 import { createSecurityProof } from "../security/supply-chain.mjs";
 import { createTestingLabProof } from "../testing/testing-lab.mjs";
 import { createKnowledgeGraph, createMemoryE2EProof } from "../intelligence/knowledge-graph.mjs";
+import { readLatestEvalReport } from "../intelligence/scripts/eval-runner.mjs";
 
 const CATEGORIES = [
   { id: "installability", weight: 8 },
@@ -57,11 +59,18 @@ export async function createQualityScoreboard(options = {}) {
   const categories = CATEGORIES.map((category) => scoreCategory(category, evidence));
   const weighted = categories.reduce((sum, category) => sum + category.score * category.weight, 0);
   const weight = categories.reduce((sum, category) => sum + category.weight, 0);
-  const score = Math.round(weighted / weight);
-  const blockers = categories.flatMap((category) => category.blockers.map((blocker) => ({ category: category.id, blocker })));
+  const rawScore = Math.round(weighted / weight);
+  const caps = createScoreCaps({ root, evidence });
+  const score = Math.min(rawScore, ...caps.map((cap) => cap.maxScore));
+  const blockers = [
+    ...categories.flatMap((category) => category.blockers.map((blocker) => ({ category: category.id, blocker }))),
+    ...caps.map((cap) => ({ category: "score_cap", blocker: `${cap.reason} Cap=${cap.maxScore}.` }))
+  ];
   return {
     status: blockers.length ? "needs_work" : "passed",
     score,
+    rawScore,
+    caps,
     categories,
     evidence: summarizeEvidence(evidence),
     blockers,
@@ -110,6 +119,44 @@ export function createExternalComparisonReport() {
   };
 }
 
+export function createScoreCaps(options = {}) {
+  const root = options.root || process.cwd();
+  const caps = [];
+  const matrix = readJson(`${root}/.sage-kernel/evidence/real-repo-matrix-latest.json`);
+  const clientProof = readJson(`${root}/.sage-kernel/evidence/mcp-client-proof-latest.json`);
+  const releaseProof = readJson(`${root}/.sage-kernel/evidence/release-pipeline-latest.json`);
+  const evalReport = readLatestEvalReport({ root });
+
+  if (!matrix || matrix.corpusKind !== "real" || Number(matrix.summary?.count || matrix.results?.length || 0) < 20) {
+    caps.push({
+      id: "real_repo_matrix_missing",
+      maxScore: 89,
+      reason: "20-repo benchmark matrix evidence is missing."
+    });
+  }
+
+  const hasPublicInstall = releaseProof?.registry?.status === "published" && releaseProof?.publicGlobalInstall?.status === "passed";
+  const hasRealClients = clientProof?.status === "passed" && (clientProof.results || []).every((result) => result.uiProof === "verified");
+  if (!hasPublicInstall || !hasRealClients) {
+    caps.push({
+      id: "external_release_or_clients_missing",
+      maxScore: 94,
+      reason: "Public npm install proof or real Claude Desktop/Cursor UI proof is missing."
+    });
+  }
+
+  const metrics = evalReport?.metrics || {};
+  if (!(metrics.passAt1 >= 0.8 && metrics.passAt3 >= 0.9 && metrics.passPower3 >= 0.8)) {
+    caps.push({
+      id: "pass_k_evals_missing",
+      maxScore: 96,
+      reason: "pass@1/pass@3/pass^3 eval metrics are missing or below target."
+    });
+  }
+
+  return caps;
+}
+
 export function formatScoreOutput(value, options = {}) {
   if (options.json) return `${JSON.stringify(value, null, 2)}\n`;
   if (value.categories) return `Scoreboard ${value.status}: ${value.score}/100, ${value.blockers?.length || 0} blocker(s)\n`;
@@ -154,6 +201,14 @@ function safe(fn, fallback) {
     return fn();
   } catch (error) {
     return { ...fallback, error: error.message };
+  }
+}
+
+function readJson(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return null;
   }
 }
 

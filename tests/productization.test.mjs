@@ -6,7 +6,11 @@ import path from "node:path";
 
 import { __doctorTestInternals, createDoctorReport, formatDoctorReport } from "../packages/core/doctor.mjs";
 import { buildMcpClientConfig, formatMcpClientConfig } from "../packages/core/mcp-client-config.mjs";
+import { createMcpClientProof } from "../packages/core/mcp-client-proof.mjs";
+import { createBenchmarkMatrixReport } from "../packages/benchmark/benchmark-matrix.mjs";
+import { runExecutableRedteam } from "../packages/security/redteam-fixtures.mjs";
 import { dbPath, sqlJson, sqlString } from "../packages/db/scripts/db-lib.mjs";
+import { detectProjectProfile } from "../packages/profiles/project-detector.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -25,6 +29,55 @@ test("MCP client config generator covers codex, Claude/Cursor, all clients, text
   assert.match(formatMcpClientConfig("cursor", { root }), /mcpServers/);
   assert.match(formatMcpClientConfig("all", { root }), /## codex/);
   assert.throws(() => buildMcpClientConfig("missing", { root }), /Unknown MCP client/);
+});
+
+test("MCP client proof runs SDK tool calls and writes evidence without installing app configs", async () => {
+  const evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-client-proof-"));
+  const proof = await createMcpClientProof({ root, clients: ["claude-desktop", "cursor"], evidenceRoot });
+  assert.equal(proof.status, "passed_with_manual_ui_gaps");
+  assert.equal(proof.results.length, 2);
+  assert.equal(proof.results.every((result) => result.toolCall.status === "passed"), true);
+  assert.equal(fs.existsSync(path.join(evidenceRoot, "mcp-client-proof-latest.json")), true);
+  assert.equal(proof.remainingManualProof.length, 2);
+});
+
+test("red-team fixtures execute hostile cases deterministically", () => {
+  const report = runExecutableRedteam({ root });
+  assert.equal(report.status, "passed");
+  assert.deepEqual(report.results.map((result) => result.id).sort(), [
+    "broken-package-script",
+    "corrupt-database",
+    "dependency-confusion",
+    "destructive-tool-call",
+    "fake-secret",
+    "flaky-test",
+    "huge-binary",
+    "huge-log",
+    "malicious-mcp-manifest",
+    "malicious-repo-content",
+    "poisoned-memory",
+    "prompt-injection",
+    "repo-readme-prompt-injection",
+    "slow-filesystem",
+    "symlink-traversal",
+    "tool-output-injection"
+  ]);
+});
+
+test("benchmark matrix saves evidence, compares scores, and profile detector explains decisions", () => {
+  const matrixRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-benchmark-matrix-"));
+  fs.writeFileSync(path.join(matrixRoot, "package.json"), JSON.stringify({ name: "matrix-app", dependencies: { next: "1", react: "1" }, scripts: { test: "node --test" } }));
+  fs.mkdirSync(path.join(matrixRoot, "tests"));
+  fs.writeFileSync(path.join(matrixRoot, "tests/app.test.js"), "test('ok', () => {})\n");
+  const detected = detectProjectProfile({ root: matrixRoot });
+  assert.equal(detected.profileDecision.winner, "web-app");
+  assert.equal(typeof detected.profileDecision.reason, "string");
+
+  const first = createBenchmarkMatrixReport({ root: matrixRoot, paths: ["."], save: true });
+  assert.equal(first.status, "passed");
+  assert.equal(fs.existsSync(path.join(matrixRoot, ".sage-kernel/evidence/benchmark-matrix-latest.json")), true);
+  const second = createBenchmarkMatrixReport({ root: matrixRoot, paths: ["."], compare: true, failOnRegression: true });
+  assert.equal(second.comparison.status, "passed");
 });
 
 test("doctor report formats passing and failing checks", async () => {

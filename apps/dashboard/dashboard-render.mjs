@@ -28,6 +28,43 @@ import {
   slug
 } from "./dashboard-components.mjs";
 export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
+  snapshot = {
+    phases: [],
+    system: { health: { status: "unknown" } },
+    approvals: { pending: 0 },
+    jobs: { timeline: [] },
+    templates: { readiness: [] },
+    db: {},
+    tools: [],
+    repos: { health: [] },
+    artifacts: { recent: [] },
+    operating: {
+      todayPlan: { status: "missing", steps: [] },
+      evals: { status: "missing", gates: [] },
+      runbooks: [],
+      experiments: { status: "missing" }
+    },
+    version: "unknown",
+    generatedAt: new Date(0).toISOString(),
+    ...snapshot
+  };
+  snapshot.system = {
+    health: { status: "unknown" },
+    coverage: { line: 0, gate: "coverage unavailable" },
+    ...(snapshot.system || {})
+  };
+  snapshot.approvals = { pending: 0, inbox: [], ...(snapshot.approvals || {}) };
+  snapshot.jobs = { timeline: [], queued: [], ...(snapshot.jobs || {}) };
+  snapshot.templates = { readiness: [], ...(snapshot.templates || {}) };
+  snapshot.repos = { health: [], ...(snapshot.repos || {}) };
+  snapshot.artifacts = { recent: [], ...(snapshot.artifacts || {}) };
+  snapshot.operating = {
+    todayPlan: { status: "missing", steps: [] },
+    evals: { status: "missing", gates: [] },
+    runbooks: [],
+    experiments: { status: "missing" },
+    ...(snapshot.operating || {})
+  };
   const completed = snapshot.phases.filter((phase) => phase.status === "complete").length;
   const health = snapshot.system.health;
   const pendingApprovals = snapshot.approvals.pending;

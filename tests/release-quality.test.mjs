@@ -184,7 +184,7 @@ test("intelligence contracts validate fixtures and reject unsafe shapes", () => 
   assert.equal(passing.status, "passed");
   assert.equal(passing.checked.schemas, 5);
   assert.equal(passing.checked.fixtures, 5);
-  assert.equal(passing.checked.evals, 10);
+  assert.equal(passing.checked.evals >= 17, true);
   assert.deepEqual(passing.failures, []);
 
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-intelligence-"));

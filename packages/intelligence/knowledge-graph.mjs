@@ -5,7 +5,8 @@ import { spawnSync } from "node:child_process";
 import { createMemoryRecord } from "./memory-store.mjs";
 import { detectProjectProfile } from "../profiles/project-detector.mjs";
 
-const SECRET_PATTERN = /(secret|token|password|api[_-]?key)\s+[A-Za-z0-9_./+=-]{8,}/i;
+const SECRET_PATTERN = /(secret|token|password|api[\s_-]?key)\s+[A-Za-z0-9_./+=-]{8,}/i;
+const POISONED_INSTRUCTION_PATTERN = /(always|never|ignore|bypass|disable|skip)\s+(the\s+)?(rules?|tests?|verification|approval|security|policy|audit)/i;
 
 export function enforceMemoryPolicy(input = {}) {
   const failures = [];
@@ -16,6 +17,7 @@ export function enforceMemoryPolicy(input = {}) {
   if (!input.evidenceRef) failures.push("evidenceRef is required");
   if (confidence < 0.5) failures.push("confidence must be at least 0.5");
   if (SECRET_PATTERN.test(input.summary || "")) failures.push("memory summary appears to contain secret material");
+  if (POISONED_INSTRUCTION_PATTERN.test(input.summary || "")) failures.push("memory summary appears to contain poisoned instruction material");
   return {
     status: failures.length > 0 ? "blocked" : "passed",
     scope,

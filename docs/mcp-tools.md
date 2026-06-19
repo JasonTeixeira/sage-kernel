@@ -10,11 +10,14 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.project.plan` | safe | `project:read` | No | none |
 | `kernel.project.scaffold` | mutating | `project:write` | No | writes local files only |
 | `kernel.profile.detect` | safe | `profile:read` | No | none |
+| `kernel.profile.gaps` | safe | `profile:read` | No | none |
 | `kernel.done.generate` | safe | `profile:read` | No | none |
 | `kernel.loop.plan` | safe | `workflow:read` | No | none |
 | `kernel.loop.run` | mutating | `workflow:write` | No | runs local allowlisted verification commands |
 | `kernel.loop.validate` | safe | `workflow:read` | No | none |
 | `kernel.loop.prove` | safe | `workflow:read` | No | none |
+| `kernel.loop.score` | safe | `workflow:read` | No | none |
+| `kernel.loop.full_cycle` | safe | `workflow:read` | No | none |
 | `kernel.workflow_engine.validate` | safe | `workflow:read` | No | none |
 | `kernel.workflow_engine.prove` | mutating | `workflow:read` | No | creates a temporary fixture project and runs npm test inside it |
 | `kernel.workflow_engine.run` | mutating | `workflow:write` | Yes | runs local workflow commands declared by the provided workflow definition |
@@ -79,6 +82,11 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.testing.playwright_template` | safe | `testing:read` | No | none |
 | `kernel.testing.performance_budget` | safe | `testing:read` | No | none |
 | `kernel.testing.proof` | safe | `testing:read` | No | none |
+| `kernel.evidence.list` | safe | `evidence:read` | No | none |
+| `kernel.evidence.compare` | safe | `evidence:read` | No | none |
+| `kernel.postmortem.generate` | safe | `evidence:read` | No | none |
+| `kernel.redteam.agent_safety` | safe | `security:read` | No | none |
+| `kernel.benchmark.matrix` | safe | `testing:read` | No | none |
 | `kernel.memory.policy` | safe | `memory:read` | No | none |
 | `kernel.memory.graph` | safe | `memory:read` | No | none |
 | `kernel.memory.learning_propose` | safe | `memory:read` | No | none |
@@ -163,6 +171,18 @@ Example input:
 }
 ```
 
+### `kernel.profile.gaps`
+
+Profile gap report with primary/secondary profiles, loop proof status, missing evidence, and next actions.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
 ### `kernel.done.generate`
 
 Definition-of-done object with acceptance criteria, required checks, commands, evidence, rollback requirement, and stop conditions.
@@ -223,6 +243,33 @@ Example input:
 
 ```json
 {}
+```
+
+### `kernel.loop.score`
+
+Loop score with profile, required checks, phases, hard gaps, and status.
+
+Example input:
+
+```json
+{
+  "projectPath": ".",
+  "risk": "high"
+}
+```
+
+### `kernel.loop.full_cycle`
+
+Full-cycle plan and scorecard without mutating the target project.
+
+Example input:
+
+```json
+{
+  "projectPath": ".",
+  "objective": "Prepare production release",
+  "risk": "high"
+}
 ```
 
 ### `kernel.workflow_engine.validate`
@@ -1009,6 +1056,69 @@ Example input:
 }
 ```
 
+### `kernel.evidence.list`
+
+Evidence artifact list with kind, path, size, and modified timestamp.
+
+Example input:
+
+```json
+{
+  "limit": 10
+}
+```
+
+### `kernel.evidence.compare`
+
+Evidence comparison with summarized left/right status and score delta.
+
+Example input:
+
+```json
+{
+  "left": ".sage-kernel/runs/a.json",
+  "right": ".sage-kernel/runs/b.json"
+}
+```
+
+### `kernel.postmortem.generate`
+
+Postmortem draft with failure, impact, hypotheses, prevention rules, and next actions.
+
+Example input:
+
+```json
+{
+  "failure": "Dashboard stress failed at concurrency 200."
+}
+```
+
+### `kernel.redteam.agent_safety`
+
+Agent safety red-team scenario matrix with expected defenses and missing automation.
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
+### `kernel.benchmark.matrix`
+
+Benchmark matrix over local project paths with profile detection and recommended proof commands.
+
+Example input:
+
+```json
+{
+  "paths": [
+    "."
+  ]
+}
+```
+
 ### `kernel.memory.policy`
 
 Memory policy decision with status, scope, approval requirement, confidence, failures, and allowed kinds.
@@ -1134,6 +1244,11 @@ Example input:
 - Project path is outside allowed profile roots.
 - Project files are unreadable.
 
+### `kernel.profile.gaps`
+
+- Project path is outside allowed profile roots.
+- Project profile cannot be detected.
+
 ### `kernel.done.generate`
 
 - Project path is outside allowed profile roots.
@@ -1156,6 +1271,16 @@ Example input:
 ### `kernel.loop.prove`
 
 - Closed-loop fixture proof fails.
+
+### `kernel.loop.score`
+
+- Project path is outside allowed profile roots.
+- Project profile cannot be detected.
+
+### `kernel.loop.full_cycle`
+
+- Project path is outside allowed profile roots.
+- Review, security, or testing proof cannot be generated.
 
 ### `kernel.workflow_engine.validate`
 
@@ -1508,6 +1633,29 @@ Example input:
 
 - Project path is outside allowed roots.
 - Testing proof cannot be constructed.
+
+### `kernel.evidence.list`
+
+- Evidence directories are missing or unreadable.
+
+### `kernel.evidence.compare`
+
+- Evidence path is missing.
+- Evidence JSON cannot be parsed.
+
+### `kernel.postmortem.generate`
+
+- Input failure context is too vague for useful postmortem detail.
+
+### `kernel.redteam.agent_safety`
+
+- Project path is outside allowed roots.
+- Project profile cannot be detected.
+
+### `kernel.benchmark.matrix`
+
+- One or more project paths are outside allowed profile roots.
+- Project profile cannot be detected.
 
 ### `kernel.memory.policy`
 

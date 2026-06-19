@@ -1,0 +1,24 @@
+{
+  "id": "eval_100_benchmark_matrix",
+  "name": "100 Score Benchmark Matrix",
+  "scope": "benchmark",
+  "version": 1,
+  "description": "Proves benchmark matrix scoring, evidence comparison, and regression detection for the active repo.",
+  "graders": [
+    {
+      "id": "benchmark-save-compare",
+      "type": "command",
+      "command": "npm run benchmark:matrix -- --save --compare --fail-on-regression"
+    },
+    {
+      "id": "benchmark-evidence",
+      "type": "file_exists",
+      "path": ".sage-kernel/evidence/benchmark-matrix-latest.json"
+    }
+  ],
+  "successCriteria": [
+    "Benchmark matrix runs and saves latest evidence.",
+    "Benchmark matrix comparison reports no regression."
+  ],
+  "requiresApproval": false
+}

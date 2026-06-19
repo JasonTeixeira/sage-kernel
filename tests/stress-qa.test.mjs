@@ -313,13 +313,17 @@ test("dashboard stress core covers defaults, response failures, and thrown fetch
     baseUrl: "http://127.0.0.1:8787",
     count: 100,
     concurrency: 10,
-    endpoint: "/api/snapshot"
+    endpoint: "/api/snapshot",
+    timeoutMs: 10000,
+    maxFailureRate: 0
   });
   assert.deepEqual(parseDashboardStressArgs(["--url=http://x.test", "--count=2", "--concurrency=1", "--endpoint=/ready"]), {
     baseUrl: "http://x.test",
     count: 2,
     concurrency: 1,
-    endpoint: "/ready"
+    endpoint: "/ready",
+    timeoutMs: 10000,
+    maxFailureRate: 0
   });
   let tick = 0;
   const passed = await createDashboardStressReport({
@@ -332,6 +336,11 @@ test("dashboard stress core covers defaults, response failures, and thrown fetch
   });
   assert.equal(passed.status, "passed");
   assert.equal(passed.failures, 0);
+  assert.equal(passed.statusCodes["200"], 2);
+  assert.equal(passed.errorCodes.timeout || 0, 0);
+  assert.equal(typeof passed.latencyMs.p99, "number");
+  assert.equal(typeof passed.latencyMs.p999, "number");
+  assert.equal(typeof passed.memory.delta.rssBytes, "number");
 
   let defaultFetches = 0;
   const defaulted = await createDashboardStressReport({
@@ -355,11 +364,12 @@ test("dashboard stress core covers defaults, response failures, and thrown fetch
     concurrency: 1,
     fetchImpl: async (url) => {
       assert.equal(url.pathname, "/health");
-      return { ok: false, text: async () => "nope" };
+      return { ok: false, status: 503, text: async () => "nope" };
     }
   });
   assert.equal(failed.status, "failed");
   assert.equal(failed.failures, 2);
+  assert.equal(failed.statusCodes["503"], 2);
 
   const thrown = await createDashboardStressReport({
     baseUrl: "http://127.0.0.1",
@@ -370,6 +380,7 @@ test("dashboard stress core covers defaults, response failures, and thrown fetch
     }
   });
   assert.equal(thrown.failures, 1);
+  assert.equal(thrown.errorCodes.connection_error, 1);
 });
 
 test("QA runner covers mode selection, static checks, failures, and root boundaries", () => {

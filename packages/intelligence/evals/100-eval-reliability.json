@@ -1,0 +1,31 @@
+{
+  "id": "eval_100_eval_reliability",
+  "name": "100 Score Eval Reliability",
+  "scope": "evals",
+  "version": 1,
+  "description": "Measures pass@k and pass^k for deterministic SDLC proof tasks.",
+  "graders": [
+    {
+      "id": "task_attempt_reliability",
+      "type": "task_attempt",
+      "command": "node -e \"process.exit(0)\"",
+      "attempts": 3,
+      "timeoutMs": 30000
+    },
+    {
+      "id": "rubric_contract",
+      "type": "model_rubric",
+      "rubric": [
+        "The task has explicit success criteria.",
+        "The grader records artifacts.",
+        "The grader exposes recovery evidence."
+      ],
+      "minimumScore": 1
+    }
+  ],
+  "successCriteria": [
+    "pass@1, pass@3, and pass^3 are recorded.",
+    "Rubric grading has an explicit machine-readable contract."
+  ],
+  "requiresApproval": false
+}

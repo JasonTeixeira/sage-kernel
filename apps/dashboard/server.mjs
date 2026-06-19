@@ -324,6 +324,10 @@ export function createDashboardServer(options = {}) {
     root: options.root || defaultRoot,
     ttlMs: options.ttlMs ?? Number(process.env.SAGE_DASHBOARD_CACHE_MS || 500)
   });
+  const getResponses = options.getResponses || createResponseCache({
+    getSnapshot,
+    ttlMs: options.responseTtlMs ?? Number(process.env.SAGE_DASHBOARD_RESPONSE_CACHE_MS || 500)
+  });
 
   return http.createServer(async (request, response) => {
     const url = new URL(request.url || "/", "http://127.0.0.1");
@@ -333,22 +337,20 @@ export function createDashboardServer(options = {}) {
       return;
     }
     if (request.method === "GET" && url.pathname === "/ready") {
-      const snapshot = getSnapshot();
+      const snapshot = getResponses().snapshot;
       const ready = snapshot.system.health.status === "operational";
       response.writeHead(ready ? 200 : 503, { "content-type": "application/json" });
       response.end(JSON.stringify({ status: ready ? "ready" : "not-ready", health: snapshot.system.health }));
       return;
     }
     if (request.method === "GET" && url.pathname === "/metrics") {
-      const snapshot = getSnapshot();
       response.writeHead(200, { "content-type": "text/plain; version=0.0.4" });
-      response.end(renderMetrics(snapshot));
+      response.end(getResponses().metrics);
       return;
     }
     if (request.method === "GET" && url.pathname === "/api/snapshot") {
-      const snapshot = getSnapshot();
       response.writeHead(200, { "content-type": "application/json" });
-      response.end(JSON.stringify(snapshot, null, 2));
+      response.end(getResponses().snapshotJson);
       return;
     }
     if (request.method === "GET" && url.pathname === "/api/workflows") {
@@ -364,9 +366,8 @@ export function createDashboardServer(options = {}) {
       response.end(JSON.stringify(result, null, 2));
       return;
     }
-    const snapshot = getSnapshot();
     response.writeHead(200, { "content-type": "text/html" });
-    response.end(renderDashboardHtml(snapshot));
+    response.end(getResponses().html);
   });
 }
 
@@ -383,6 +384,25 @@ export function createSnapshotCache({ root = defaultRoot, ttlMs }) {
     const now = Date.now();
     if (!cached || now >= expiresAt) {
       cached = dashboardSnapshot({ root });
+      expiresAt = now + ttlMs;
+    }
+    return cached;
+  };
+}
+
+export function createResponseCache({ getSnapshot, ttlMs = 500 }) {
+  let cached = null;
+  let expiresAt = 0;
+  return () => {
+    const now = Date.now();
+    if (!cached || now >= expiresAt) {
+      const snapshot = getSnapshot();
+      cached = {
+        snapshot,
+        snapshotJson: JSON.stringify(snapshot, null, 2),
+        html: renderDashboardHtml(snapshot),
+        metrics: renderMetrics(snapshot)
+      };
       expiresAt = now + ttlMs;
     }
     return cached;
@@ -446,5 +466,6 @@ export const __dashboardTestInternals = {
   safeQuery,
   safeValue,
   parseJson,
-  readRequestJson
+  readRequestJson,
+  createResponseCache
 };

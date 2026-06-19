@@ -22,7 +22,15 @@ const checks = [
   ["npm", ["run", "mcp:validate"]],
   ["npm", ["run", "mcp:contracts"]],
   ["npm", ["run", "mcp:smoke"]],
+  ["npm", ["run", "mcp:clients:prove"]],
   ["npm", ["run", "soak:quick"]],
+  ["npm", ["run", "redteam:fixtures"]],
+  ["npm", ["run", "benchmark:matrix"]],
+  ["npm", ["run", "benchmark:corpus"]],
+  ["npm", ["run", "stress:matrix"]],
+  ["npm", ["run", "retrieval:prove"]],
+  ["npm", ["run", "orchestration:prove"]],
+  ["npm", ["run", "observability:prove"]],
   ["npm", ["run", "template:validate-blueprints"]],
   ["npm", ["run", "templates:e2e"]],
   ["npm", ["run", "templates:benchmark"]],
@@ -45,6 +53,7 @@ const checks = [
   ["npm", ["audit"]],
   ["npm", ["run", "public:validate"]],
   ["npm", ["run", "release:provenance"]],
+  ["npm", ["run", "verify:global-install"]],
   ["npm", ["run", "qa:gate"]],
   ["npm", ["pack", "--dry-run"]]
 ];

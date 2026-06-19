@@ -69,6 +69,16 @@ import {
   validateClosedLoopWorkflows
 } from "../../../packages/workflows/closed-loop.mjs";
 import {
+  compareEvidence,
+  createAgentSafetyRedteam,
+  createBenchmarkMatrix,
+  createFullCyclePlan,
+  createLoopScore,
+  createProfileGapReport,
+  generatePostmortem,
+  listEvidence
+} from "./sdlc-tools.mjs";
+import {
   createDefaultWorkflowDefinition,
   createWorkflowEngineFixture,
   runWorkflow,
@@ -141,6 +151,9 @@ export async function callKernelTool(root, toolName, input = {}) {
     case "kernel.profile.detect":
       return detectProjectProfile({ root, projectPath: input.projectPath ?? "." });
 
+    case "kernel.profile.gaps":
+      return createProfileGapReport(root, input);
+
     case "kernel.done.generate":
       return generateDefinitionOfDone({
         projectPath: input.projectPath ?? ".",
@@ -170,6 +183,12 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.loop.prove":
       return proveClosedLoopWorkflows({ root });
+
+    case "kernel.loop.score":
+      return createLoopScore(root, input);
+
+    case "kernel.loop.full_cycle":
+      return createFullCyclePlan(root, input);
 
     case "kernel.workflow_engine.validate":
       return validateWorkflowDefinition(input.definition || createDefaultWorkflowDefinition());
@@ -409,6 +428,21 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.testing.proof":
       return createTestingLabProof({ root, projectPath: input.projectPath || ".", risk: input.risk });
+
+    case "kernel.evidence.list":
+      return listEvidence(root, input);
+
+    case "kernel.evidence.compare":
+      return compareEvidence(root, input);
+
+    case "kernel.postmortem.generate":
+      return generatePostmortem(input);
+
+    case "kernel.redteam.agent_safety":
+      return createAgentSafetyRedteam(root, input);
+
+    case "kernel.benchmark.matrix":
+      return createBenchmarkMatrix(root, input);
 
     case "kernel.memory.policy":
       return enforceMemoryPolicy({

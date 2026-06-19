@@ -1,0 +1,42 @@
+{
+  "id": "eval_100_full_proof_matrix",
+  "name": "100 Score Full Proof Matrix",
+  "scope": "sdlc",
+  "version": 1,
+  "description": "Runs executable corpus, stress, retrieval, orchestration, observability, and hostile proof gates.",
+  "graders": [
+    {
+      "id": "benchmark-corpus",
+      "type": "command",
+      "command": "npm run benchmark:corpus"
+    },
+    {
+      "id": "stress-matrix",
+      "type": "command",
+      "command": "npm run stress:matrix"
+    },
+    {
+      "id": "retrieval-proof",
+      "type": "command",
+      "command": "npm run retrieval:prove -- --query=release"
+    },
+    {
+      "id": "orchestration-proof",
+      "type": "command",
+      "command": "npm run orchestration:prove"
+    },
+    {
+      "id": "observability-proof",
+      "type": "command",
+      "command": "npm run observability:prove"
+    }
+  ],
+  "successCriteria": [
+    "20-repo corpus proof is executable.",
+    "Stress matrix emits latency, failure, and memory evidence.",
+    "Retrieval proof emits citations and freshness fields.",
+    "Orchestration proof emits durable trace and replay metadata.",
+    "Observability proof emits trace-shaped spans and metrics."
+  ],
+  "requiresApproval": false
+}

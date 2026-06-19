@@ -1,0 +1,25 @@
+{
+  "id": "eval_100_mcp_clients",
+  "name": "100 Score MCP Client Proof",
+  "scope": "orchestration",
+  "version": 1,
+  "description": "Proves Claude Desktop, Codex, and Cursor-compatible MCP stdio tool calls through generated configs.",
+  "graders": [
+    {
+      "id": "mcp-client-proof",
+      "type": "command",
+      "command": "npm run mcp:clients:prove"
+    },
+    {
+      "id": "mcp-client-evidence",
+      "type": "file_exists",
+      "path": ".sage-kernel/evidence/mcp-client-proof-latest.json"
+    }
+  ],
+  "successCriteria": [
+    "All generated MCP client configs can start the server through SDK-compatible stdio.",
+    "A safe MCP tool call succeeds for each client config.",
+    "Evidence is written for client proof."
+  ],
+  "requiresApproval": false
+}

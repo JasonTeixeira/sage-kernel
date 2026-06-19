@@ -3,6 +3,7 @@ import path from "node:path";
 import { createProfileProofFixtures } from "./profile-fixtures.mjs";
 
 const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "build", "coverage", "generated", ".next"]);
+const CODE_FILE_PATTERN = /\.(mjs|cjs|js|jsx|ts|tsx|py|go|rs|swift|sql)$/;
 
 export const SDLC_PROFILES = [
   {
@@ -12,6 +13,30 @@ export const SDLC_PROFILES = [
     requiredChecks: ["install", "lint", "typecheck", "unit", "e2e", "accessibility", "security", "release"],
     commands: ["npm test", "npm run test:coverage", "npm run dashboard:e2e"],
     evidence: ["route inventory", "browser proof", "mobile viewport proof", "security scan", "fresh install"]
+  },
+  {
+    id: "saas-app",
+    title: "SaaS App",
+    appliesTo: ["nextjs", "auth", "billing", "tenant"],
+    requiredChecks: ["install", "auth", "tenant-isolation", "billing", "unit", "e2e", "security", "release"],
+    commands: ["npm test", "npm run test:coverage", "npm run security:scan"],
+    evidence: ["auth boundary proof", "tenant isolation proof", "billing/webhook proof", "browser proof", "fresh install"]
+  },
+  {
+    id: "admin-dashboard",
+    title: "Admin Dashboard",
+    appliesTo: ["dashboard", "admin", "privileged-actions"],
+    requiredChecks: ["install", "auth", "authorization", "audit-log", "e2e", "accessibility", "security"],
+    commands: ["npm test", "npm run test:coverage"],
+    evidence: ["permission-denied proof", "audit log proof", "admin action review", "browser proof"]
+  },
+  {
+    id: "browser-extension",
+    title: "Browser Extension",
+    appliesTo: ["extension", "manifest"],
+    requiredChecks: ["manifest", "permissions", "unit", "e2e", "security", "package"],
+    commands: ["npm test", "npm run test:coverage", "npm pack --dry-run"],
+    evidence: ["manifest permission review", "content-script proof", "extension package proof"]
   },
   {
     id: "mobile-app",
@@ -28,6 +53,14 @@ export const SDLC_PROFILES = [
     requiredChecks: ["install", "unit", "integration", "contract", "database", "security", "load", "release"],
     commands: ["npm test", "npm run test:coverage"],
     evidence: ["API contract proof", "database migration proof", "auth boundary proof", "load test"]
+  },
+  {
+    id: "worker-service",
+    title: "Worker Service",
+    appliesTo: ["worker", "queue", "cron"],
+    requiredChecks: ["install", "unit", "idempotency", "retry", "dead-letter", "observability", "stress"],
+    commands: ["npm test", "npm run stress:queue -- --count=10000"],
+    evidence: ["retry proof", "dead-letter proof", "idempotency proof", "queue stress proof"]
   },
   {
     id: "mcp-server",
@@ -62,12 +95,68 @@ export const SDLC_PROFILES = [
     evidence: ["input/output fixtures", "schema validation", "idempotency proof", "retry proof"]
   },
   {
+    id: "data-warehouse-dbt",
+    title: "Data Warehouse / dbt",
+    appliesTo: ["dbt", "warehouse", "analytics"],
+    requiredChecks: ["schema", "lineage", "freshness", "idempotency", "backfill", "data-quality"],
+    commands: ["npm test"],
+    evidence: ["lineage proof", "freshness proof", "data quality report", "backfill replay proof"]
+  },
+  {
+    id: "trading-system",
+    title: "Trading System",
+    appliesTo: ["trading", "market-data", "signals"],
+    requiredChecks: ["data-integrity", "clock-skew", "replay", "risk-controls", "latency", "audit"],
+    commands: ["npm test", "npm run test:coverage"],
+    evidence: ["market data replay", "risk guard proof", "latency budget", "decision audit trail"]
+  },
+  {
     id: "ai-agent-app",
     title: "AI Agent App",
     appliesTo: ["ai-agent"],
     requiredChecks: ["tool-boundaries", "evals", "memory-policy", "redaction", "approval-boundaries", "regression"],
     commands: ["npm run eval:run", "npm run security:scan", "npm test"],
     evidence: ["eval report", "tool permission matrix", "memory audit", "redaction proof"]
+  },
+  {
+    id: "ai-app",
+    title: "AI App",
+    appliesTo: ["ai", "llm", "prompt"],
+    requiredChecks: ["evals", "prompt-injection", "pii-redaction", "latency", "cost", "regression"],
+    commands: ["npm run eval:run", "npm run security:scan", "npm test"],
+    evidence: ["eval report", "prompt-injection proof", "PII redaction proof", "cost/latency budget"]
+  },
+  {
+    id: "llm-agent-platform",
+    title: "LLM Agent Platform",
+    appliesTo: ["agents", "tools", "memory", "orchestration"],
+    requiredChecks: ["tool-boundaries", "approval-boundaries", "memory-policy", "redteam", "evals", "audit"],
+    commands: ["npm run agents:eval", "npm run security:e2e", "npm test"],
+    evidence: ["tool abuse proof", "memory poisoning proof", "agent eval report", "approval ledger"]
+  },
+  {
+    id: "payments-system",
+    title: "Payments System",
+    appliesTo: ["stripe", "billing", "webhooks"],
+    requiredChecks: ["webhook-signature", "idempotency", "replay", "auth", "audit", "live-mode-boundary"],
+    commands: ["npm test", "npm run security:scan"],
+    evidence: ["webhook signature proof", "duplicate delivery proof", "out-of-order proof", "test/live separation"]
+  },
+  {
+    id: "healthcare-app",
+    title: "Healthcare App",
+    appliesTo: ["healthcare", "phi", "hipaa"],
+    requiredChecks: ["phi-boundary", "access-control", "audit-log", "encryption", "retention", "security"],
+    commands: ["npm test", "npm run security:scan"],
+    evidence: ["PHI data-flow proof", "access audit proof", "retention policy", "security review"]
+  },
+  {
+    id: "fintech-app",
+    title: "Fintech App",
+    appliesTo: ["fintech", "money", "kyc", "payments"],
+    requiredChecks: ["money-movement-boundary", "audit-log", "idempotency", "auth", "risk-controls", "security"],
+    commands: ["npm test", "npm run security:scan"],
+    evidence: ["money movement audit", "risk control proof", "idempotency proof", "auth boundary proof"]
   },
   {
     id: "infrastructure",
@@ -99,6 +188,7 @@ export function detectProjectProfile(options = {}) {
   const frameworks = detectFrameworks({ projectRoot, files, fileSet, deps, scripts });
   const projectTypes = detectProjectTypes({ projectRoot, files, fileSet, deps, scripts, languages, frameworks, pkg });
   const profile = chooseProfile(projectTypes, frameworks);
+  const profileDecision = explainProfileDecision({ profile, projectTypes, frameworks, files, deps, scripts });
 
   return {
     project: {
@@ -109,7 +199,8 @@ export function detectProjectProfile(options = {}) {
     },
     profile,
     secondaryProfiles: secondaryProfiles(projectTypes, profile.id),
-    confidence: confidenceScore({ files, pkg, frameworks, projectTypes }),
+    confidence: confidenceScore({ files, pkg, frameworks, projectTypes, profileDecision }),
+    profileDecision,
     packageManager: detectPackageManager(fileSet),
     languages,
     frameworks,
@@ -286,13 +377,27 @@ function detectFrameworks({ projectRoot, files, fileSet, deps, scripts }) {
 function detectProjectTypes({ files, fileSet, deps, scripts, languages, frameworks, pkg }) {
   const types = new Set();
   if (frameworks.some((item) => ["nextjs", "react", "vite"].includes(item))) types.add("web-app");
+  if (hasAnyFile(files, /(app|pages|src)\/(api\/)?(billing|subscription|stripe|checkout|tenant|auth)/) || hasDep(deps, "stripe") || hasDep(deps, "next-auth")) types.add("saas-app");
+  if (hasAnyFile(files, /(^|\/)(admin|dashboard|operator|backoffice)\//) || scripts.some((script) => script.includes("dashboard"))) types.add("admin-dashboard");
+  if (fileSet.has("manifest.json") || hasAnyFile(files, /(^|\/)(background|content-script|extension)\.[cm]?[jt]s$/)) types.add("browser-extension");
   if (frameworks.some((item) => ["expo", "react-native", "swift"].includes(item)) || fileSet.has("ios") || fileSet.has("android")) types.add("mobile-app");
   if (frameworks.some((item) => ["express", "fastapi", "django"].includes(item)) || fileSet.has("go.mod") || fileSet.has("Cargo.toml")) types.add("backend-api");
+  if (hasAnyFile(files, /(^|\/)(workers?|queues?|cron|jobs?)\//) || scripts.some((script) => /worker|queue|jobs?/.test(script))) types.add("worker-service");
   if (frameworks.includes("mcp")) types.add("mcp-server");
   if (pkg?.bin || files.some((file) => file.startsWith("bin/"))) types.add("cli-tool");
   if (pkg?.exports || fileSet.has("src/index.ts") || fileSet.has("src/index.js")) types.add("library");
   if (files.some((file) => /(^|\/)(pipelines?|etl|datasets?|notebooks?)\//.test(file))) types.add("data-pipeline");
-  if (hasDep(deps, "openai") || hasDep(deps, "@anthropic-ai/sdk") || files.some((file) => /agents?|prompts?|evals?/.test(file))) types.add("ai-agent-app");
+  if (fileSet.has("dbt_project.yml") || hasAnyFile(files, /(^|\/)(models|macros|snapshots)\/.*\.sql$/)) types.add("data-warehouse-dbt");
+  if (hasCodeFile(files, /(^|\/)(trading|market-data|signals?|positions?|risk-engine|risk\/|orders\/)/)) types.add("trading-system");
+  const hasAgentSurface = hasAnyFile(files, /(^|\/)(agents?|evals?)\//) || scripts.some((script) => /(^|:)(agents?|eval)(:|$)/.test(script));
+  const hasAiSurface = hasDep(deps, "ai") || hasDep(deps, "openai") || hasDep(deps, "@anthropic-ai/sdk") || hasAnyFile(files, /prompts?|llm|completion|chat/);
+  const hasAgentPlatformSurface = hasAnyFile(files, /(^|\/)(memory|tools|orchestration|council)\//);
+  if (hasAgentSurface) types.add("ai-agent-app");
+  if (hasAiSurface) types.add("ai-app");
+  if (hasAgentSurface && hasAgentPlatformSurface && (types.has("ai-agent-app") || frameworks.includes("mcp"))) types.add("llm-agent-platform");
+  if (hasDep(deps, "stripe") || hasCodeFile(files, /(^|\/)(stripe|checkout|webhooks?|billing)\//)) types.add("payments-system");
+  if (hasCodeFile(files, /(^|\/)(healthcare|hipaa|phi|patient|medical)\//) || hasCodeFile(files, /(^|\/)src\/(patient|phi|medical)\//)) types.add("healthcare-app");
+  if (hasCodeFile(files, /(^|\/)(fintech|kyc|ledger|wallet|banking)\//) || hasCodeFile(files, /(^|\/)src\/(ledger|wallet|kyc|money)\//)) types.add("fintech-app");
   if (files.some((file) => /^(infra|terraform|k8s|helm|docker-compose)/.test(file)) || hasAny(fileSet, ["Dockerfile", "docker-compose.yml"])) types.add("infrastructure");
   if (pkg?.workspaces || fileSet.has("pnpm-workspace.yaml") || fileSet.has("turbo.json") || fileSet.has("nx.json")) types.add("monorepo");
   if (types.size === 0 && languages.length > 0) types.add("library");
@@ -300,10 +405,33 @@ function detectProjectTypes({ files, fileSet, deps, scripts, languages, framewor
 }
 
 function chooseProfile(projectTypes, frameworks) {
-  const order = ["mcp-server", "mobile-app", "web-app", "backend-api", "ai-agent-app", "infrastructure", "monorepo", "cli-tool", "data-pipeline", "library"];
-  const id = order.find((candidate) => projectTypes.includes(candidate)) || (frameworks.includes("mcp") ? "mcp-server" : "library");
+  const id = PROFILE_PRIORITY.find((candidate) => projectTypes.includes(candidate)) || (frameworks.includes("mcp") ? "mcp-server" : "library");
   return findProfile(id);
 }
+
+const PROFILE_PRIORITY = [
+    "payments-system",
+    "healthcare-app",
+    "fintech-app",
+    "trading-system",
+    "mcp-server",
+    "llm-agent-platform",
+    "mobile-app",
+    "saas-app",
+    "admin-dashboard",
+    "browser-extension",
+    "worker-service",
+    "web-app",
+    "backend-api",
+    "ai-agent-app",
+    "ai-app",
+    "data-warehouse-dbt",
+    "infrastructure",
+    "monorepo",
+    "cli-tool",
+    "data-pipeline",
+    "library"
+];
 
 function secondaryProfiles(projectTypes, primaryId) {
   return projectTypes.filter((id) => id !== primaryId).map((id) => findProfile(id));
@@ -315,13 +443,15 @@ function findProfile(id) {
   return profile;
 }
 
-function confidenceScore({ files, pkg, frameworks, projectTypes }) {
+function confidenceScore({ files, pkg, frameworks, projectTypes, profileDecision }) {
   let score = 35;
   if (pkg) score += 15;
   if (frameworks.length > 0) score += 20;
   if (projectTypes.length > 0) score += 15;
   if (files.some((file) => isTestFile(file))) score += 10;
   if (files.some((file) => file === "README.md")) score += 5;
+  if (profileDecision?.ambiguous) score -= 10;
+  if (profileDecision?.candidates?.[0]?.score < 60) score -= 10;
   return Math.min(100, score);
 }
 
@@ -375,7 +505,54 @@ function detectionWarnings({ pkg, files, projectTypes }) {
   if (!pkg && files.length > 0) warnings.push("No package.json found; detection is based on files only.");
   if (projectTypes.length === 0) warnings.push("No specific project type detected.");
   if (!files.some((file) => isTestFile(file))) warnings.push("No automated tests detected.");
+  for (const [name, script] of Object.entries(pkg?.scripts || {})) {
+    if (/(rm\s+-rf|mkfs|diskutil\s+erase|dd\s+if=|shutdown|reboot)/i.test(String(script))) {
+      warnings.push(`Potentially destructive package script detected: ${name}`);
+    }
+  }
   return warnings;
+}
+
+function explainProfileDecision({ profile, projectTypes, frameworks, files, deps, scripts }) {
+  const candidates = [...new Set([...projectTypes, frameworks.includes("mcp") ? "mcp-server" : null, "library"].filter(Boolean))]
+    .map((id) => ({
+      id,
+      score: profileEvidenceScore(id, { projectTypes, frameworks, files, deps, scripts }),
+      priority: PROFILE_PRIORITY.indexOf(id) === -1 ? PROFILE_PRIORITY.length : PROFILE_PRIORITY.indexOf(id),
+      reasons: profileReasons(id, { projectTypes, frameworks, files, deps, scripts })
+    }))
+    .sort((left, right) => right.score - left.score || left.priority - right.priority);
+  const winner = candidates.find((candidate) => candidate.id === profile.id) || candidates[0] || { id: profile.id, score: 0, reasons: [] };
+  const close = candidates.filter((candidate) => candidate.id !== winner.id && Math.abs(candidate.score - winner.score) <= 10);
+  return {
+    winner: winner.id,
+    reason: winner.reasons.join("; ") || "Selected by fallback priority.",
+    ambiguous: close.length > 0,
+    closeCandidates: close.map((candidate) => candidate.id),
+    candidates: candidates.slice(0, 8)
+  };
+}
+
+function profileEvidenceScore(id, context) {
+  let score = context.projectTypes.includes(id) ? 55 : 10;
+  const reasons = profileReasons(id, context);
+  score += Math.min(35, reasons.length * 10);
+  if (id === "mcp-server" && context.frameworks.includes("mcp")) score += 15;
+  if (id === "library" && context.projectTypes.length === 0) score += 20;
+  return Math.min(100, score);
+}
+
+function profileReasons(id, { projectTypes, frameworks, files, deps, scripts }) {
+  const reasons = [];
+  if (projectTypes.includes(id)) reasons.push(`detected project type ${id}`);
+  if (id === "mcp-server" && frameworks.includes("mcp")) reasons.push("MCP SDK/tool manifest/script detected");
+  if (id === "web-app" && frameworks.some((item) => ["nextjs", "react", "vite"].includes(item))) reasons.push(`web framework: ${frameworks.join(", ")}`);
+  if (id === "payments-system" && deps.has("stripe")) reasons.push("Stripe dependency detected");
+  if (id === "cli-tool" && files.some((file) => file.startsWith("bin/"))) reasons.push("bin entrypoint detected");
+  if (id === "worker-service" && scripts.some((script) => /worker|queue|jobs?/.test(script))) reasons.push("worker/queue script detected");
+  if (id === "data-warehouse-dbt" && files.some((file) => file === "dbt_project.yml")) reasons.push("dbt_project.yml detected");
+  if (id === "library" && projectTypes.length === 0) reasons.push("fallback for untyped code/documentation repository");
+  return reasons;
 }
 
 function resolveProjectRoot(root, projectPath) {
@@ -419,6 +596,14 @@ function hasDep(deps, name) {
 
 function hasAny(set, values) {
   return values.some((value) => set.has(value));
+}
+
+function hasAnyFile(files, pattern) {
+  return files.some((file) => pattern.test(file));
+}
+
+function hasCodeFile(files, pattern) {
+  return files.some((file) => CODE_FILE_PATTERN.test(file) && pattern.test(file));
 }
 
 function readJson(file, fallback) {

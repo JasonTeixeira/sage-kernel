@@ -150,16 +150,34 @@ function validateMemoryRecord(record, label, failures) {
 function validateEvalDefinition(definition, label, failures) {
   requireString(definition.id, /^eval_[a-z0-9][a-z0-9_-]*$/, `${label}.id`, failures);
   requireString(definition.name, null, `${label}.name`, failures);
-  requireEnum(definition.scope, ["mcp", "cli", "dashboard", "memory", "release", "template", "security"], `${label}.scope`, failures);
+  requireEnum(definition.scope, [
+    "mcp",
+    "cli",
+    "dashboard",
+    "memory",
+    "release",
+    "template",
+    "security",
+    "sdlc",
+    "benchmark",
+    "orchestration",
+    "architecture",
+    "retrieval",
+    "infrastructure",
+    "evals"
+  ], `${label}.scope`, failures);
   requireIntegerMin(definition.version, 1, `${label}.version`, failures);
   requireArray(definition.graders, `${label}.graders`, failures);
   for (const [index, grader] of arrayItems(definition.graders).entries()) {
     requireString(grader.id, null, `${label}.graders[${index}].id`, failures);
-    requireEnum(grader.type, ["command", "json_schema", "file_exists", "coverage", "mcp_contract"], `${label}.graders[${index}].type`, failures);
+    requireEnum(grader.type, ["command", "json_schema", "file_exists", "coverage", "mcp_contract", "task_attempt", "model_rubric"], `${label}.graders[${index}].type`, failures);
     if (grader.type === "command") requireString(grader.command, null, `${label}.graders[${index}].command`, failures);
+    if (grader.type === "task_attempt") requireString(grader.command, null, `${label}.graders[${index}].command`, failures);
     if (grader.type === "json_schema") requireString(grader.schema, null, `${label}.graders[${index}].schema`, failures);
     if (grader.type === "file_exists") requireString(grader.path, null, `${label}.graders[${index}].path`, failures);
     if (grader.type === "coverage") requireNumberRange(grader.threshold, 0, 100, `${label}.graders[${index}].threshold`, failures);
+    if (grader.attempts !== undefined) requireIntegerMin(grader.attempts, 1, `${label}.graders[${index}].attempts`, failures);
+    if (grader.minimumScore !== undefined) requireNumberRange(grader.minimumScore, 0, 1, `${label}.graders[${index}].minimumScore`, failures);
   }
   requireStringArray(definition.successCriteria, `${label}.successCriteria`, failures, { minItems: 1 });
 }

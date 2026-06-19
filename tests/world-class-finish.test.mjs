@@ -7,9 +7,15 @@ import path from "node:path";
 
 import { dashboardSnapshot, renderDashboardHtml } from "../apps/dashboard/server.mjs";
 import { createFinalAuditReport } from "../packages/audit/final-audit.mjs";
+import { createBenchmarkCorpusProof } from "../packages/benchmark/corpus-proof.mjs";
 import { createMemoryE2EProof } from "../packages/intelligence/knowledge-graph.mjs";
+import { createRetrievalProof } from "../packages/intelligence/retrieval-proof.mjs";
+import { createDurableOrchestrationProof } from "../packages/orchestration/durable-proof.mjs";
+import { createObservabilityProof } from "../packages/observability/proof.mjs";
 import { createQualityScoreboard, validateScoreModel } from "../packages/score/scoreboard.mjs";
 import { applyApprovedRepair, createRepairPlan, createSelfHealingProof } from "../packages/self-healing/self-healing.mjs";
+import { runExecutableRedteam } from "../packages/security/redteam-fixtures.mjs";
+import { createFullStressMatrix } from "../packages/testing/stress-matrix.mjs";
 import { createReleaseStressEvidence } from "../packages/testing/release-evidence.mjs";
 import { runTemplatesE2E } from "../scripts/templates-e2e.mjs";
 import { runTemplatesBenchmark } from "../scripts/templates-benchmark.mjs";
@@ -64,6 +70,38 @@ test("scoreboard, release evidence, self-healing, memory e2e, and final audit pr
   const audit = await createFinalAuditReport({ root, projectPath: "." });
   assert.equal(["passed", "needs_work"].includes(audit.status), true);
   assert.equal(audit.checks.some((check) => check.id === "self_healing"), true);
+  assert.equal(audit.checks.find((check) => check.id === "external_comparison").status, "warning");
+});
+
+test("100 proof modules generate corpus, hostile, stress, retrieval, orchestration, and observability evidence", async () => {
+  const corpus = createBenchmarkCorpusProof({ root, save: false });
+  assert.equal(corpus.status, "passed");
+  assert.equal(corpus.matrix.summary.count, 20);
+
+  const redteam = runExecutableRedteam({ root });
+  assert.equal(redteam.status, "passed");
+  assert.equal(redteam.results.some((item) => item.id === "malicious-mcp-manifest"), true);
+  assert.equal(redteam.results.some((item) => item.id === "symlink-traversal"), true);
+
+  const stress = await createFullStressMatrix({ root });
+  assert.equal(stress.status, "passed");
+  assert.equal(stress.dashboard.latencyMs.p99 >= 0, true);
+  assert.equal(stress.soak.thresholdChecks.memoryGrowth.status, "passed");
+
+  const retrieval = createRetrievalProof({ root, query: "release" });
+  assert.equal(retrieval.status, "passed");
+  assert.equal(retrieval.results.length > 0, true);
+  assert.equal(retrieval.index.citationsRequired, true);
+
+  const orchestration = createDurableOrchestrationProof({ root });
+  assert.equal(orchestration.status, "passed");
+  assert.equal(orchestration.leases.length, 5);
+  assert.equal(orchestration.failureReplay.available, true);
+
+  const observability = createObservabilityProof({ root });
+  assert.equal(observability.status, "passed");
+  assert.equal(observability.openTelemetryShape, true);
+  assert.equal(observability.spans.length >= 4, true);
 });
 
 test("new world-class finish commands are executable from the CLI", () => {

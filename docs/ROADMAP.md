@@ -3,6 +3,8 @@
 This roadmap is scoped to making Sage Kernel useful as a daily local MCP
 engineering operating system and credible as a public open-source project.
 
+The canonical MCP-first operating contract is `docs/GLOBAL.md`.
+
 ## Now
 
 - MCP server as the primary product interface.
@@ -34,4 +36,3 @@ engineering operating system and credible as a public open-source project.
 - Mutating third-party repos without explicit approval.
 - Replacing a full CI/CD system.
 - Secret management beyond local redaction and approval boundaries.
-

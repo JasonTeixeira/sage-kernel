@@ -95,7 +95,7 @@ test("profile validation and proof scripts expose deterministic gates", () => {
   assert.equal(validateSdlcProfiles().status, "passed");
   const fixtureProof = proveProfiles({ root });
   assert.equal(fixtureProof.status, "passed");
-  assert.equal(fixtureProof.results.length, 10);
+  assert.equal(fixtureProof.results.length, 21);
   const pathProof = proveProfilePaths({ paths: ["."] }, { root });
   assert.equal(pathProof.status, "passed");
   assert.equal(pathProof.mode, "explicit-paths");

@@ -188,6 +188,33 @@
       ]
     },
     {
+      "name": "kernel.profile.gaps",
+      "description": "Report missing profile proof, external evidence, and next hardening actions for a project path.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string"
+          }
+        }
+      },
+      "risk": "safe",
+      "permission": "profile:read",
+      "outputShape": "Profile gap report with primary/secondary profiles, loop proof status, missing evidence, and next actions.",
+      "examples": [
+        {
+          "description": "Find profile proof gaps for the active project.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed profile roots.",
+        "Project profile cannot be detected."
+      ]
+    },
+    {
       "name": "kernel.done.generate",
       "description": "Generate a machine-checkable definition of done from project profile, objective, and risk level.",
       "inputSchema": {
@@ -337,6 +364,75 @@
       ],
       "failureModes": [
         "Closed-loop fixture proof fails."
+      ]
+    },
+    {
+      "name": "kernel.loop.score",
+      "description": "Score a profile-aware SDLC loop and report hard evidence gaps.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          }
+        }
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Loop score with profile, required checks, phases, hard gaps, and status.",
+      "examples": [
+        {
+          "description": "Score the active project loop.",
+          "input": {
+            "projectPath": ".",
+            "risk": "high"
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed profile roots.",
+        "Project profile cannot be detected."
+      ]
+    },
+    {
+      "name": "kernel.loop.full_cycle",
+      "description": "Plan and score a full SDLC cycle across profile detection, done criteria, loop, review, security, testing, and score.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          }
+        }
+      },
+      "risk": "safe",
+      "permission": "workflow:read",
+      "outputShape": "Full-cycle plan and scorecard without mutating the target project.",
+      "examples": [
+        {
+          "description": "Create a high-risk full-cycle plan.",
+          "input": {
+            "projectPath": ".",
+            "objective": "Prepare production release",
+            "risk": "high"
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed profile roots.",
+        "Review, security, or testing proof cannot be generated."
       ]
     },
     {
@@ -2023,6 +2119,87 @@
       "outputShape": "Testing lab proof with strategy, Playwright template, performance budget, and release soak plan.",
       "examples": [{ "description": "Run testing lab proof.", "input": { "projectPath": "." } }],
       "failureModes": ["Project path is outside allowed roots.", "Testing proof cannot be constructed."]
+    },
+    {
+      "name": "kernel.evidence.list",
+      "description": "List local Sage evidence artifacts such as run records, exports, and backups.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "number" }
+        }
+      },
+      "risk": "safe",
+      "permission": "evidence:read",
+      "outputShape": "Evidence artifact list with kind, path, size, and modified timestamp.",
+      "examples": [{ "description": "List recent evidence artifacts.", "input": { "limit": 10 } }],
+      "failureModes": ["Evidence directories are missing or unreadable."]
+    },
+    {
+      "name": "kernel.evidence.compare",
+      "description": "Compare two local JSON evidence artifacts and report status or score changes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "left": { "type": "string" },
+          "right": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "evidence:read",
+      "outputShape": "Evidence comparison with summarized left/right status and score delta.",
+      "examples": [{ "description": "Compare two evidence files.", "input": { "left": ".sage-kernel/runs/a.json", "right": ".sage-kernel/runs/b.json" } }],
+      "failureModes": ["Evidence path is missing.", "Evidence JSON cannot be parsed."]
+    },
+    {
+      "name": "kernel.postmortem.generate",
+      "description": "Generate a postmortem draft from a failed loop, stress run, or verification gate.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "failure": { "type": "string" },
+          "impact": { "type": "string" },
+          "rootCauseHypotheses": { "type": "array", "items": { "type": "string" } },
+          "nextActions": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "risk": "safe",
+      "permission": "evidence:read",
+      "outputShape": "Postmortem draft with failure, impact, hypotheses, prevention rules, and next actions.",
+      "examples": [{ "description": "Draft a stress-failure postmortem.", "input": { "failure": "Dashboard stress failed at concurrency 200." } }],
+      "failureModes": ["Input failure context is too vague for useful postmortem detail."]
+    },
+    {
+      "name": "kernel.redteam.agent_safety",
+      "description": "Generate hostile agent-safety scenarios for prompt injection, unsafe tools, poisoned memory, huge logs, and destructive commands.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectPath": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "security:read",
+      "outputShape": "Agent safety red-team scenario matrix with expected defenses and missing automation.",
+      "examples": [{ "description": "Generate red-team scenarios for current repo.", "input": { "projectPath": "." } }],
+      "failureModes": ["Project path is outside allowed roots.", "Project profile cannot be detected."]
+    },
+    {
+      "name": "kernel.benchmark.matrix",
+      "description": "Create a real-repo benchmark matrix with detected profiles, recommended commands, and stress commands.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "paths": { "type": "array", "items": { "type": "string" } },
+          "risk": { "type": "string" }
+        }
+      },
+      "risk": "safe",
+      "permission": "testing:read",
+      "outputShape": "Benchmark matrix over local project paths with profile detection and recommended proof commands.",
+      "examples": [{ "description": "Benchmark the active repo.", "input": { "paths": ["."] } }],
+      "failureModes": ["One or more project paths are outside allowed profile roots.", "Project profile cannot be detected."]
     },
     {
       "name": "kernel.memory.policy",

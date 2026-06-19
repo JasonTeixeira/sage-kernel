@@ -70,6 +70,7 @@ export function runEvalSuite(options = {}) {
       passed: evals.filter((item) => item.status === "passed").length,
       failed: evals.filter((item) => item.status !== "passed").length
     },
+    metrics: summarizeMetrics(evals),
     failures
   };
 
@@ -105,6 +106,8 @@ function runGrader(workspace, grader) {
   if (grader.type === "mcp_contract") return runMcpContractGrader(workspace, grader);
   if (grader.type === "json_schema") return runJsonSchemaGrader(workspace, grader);
   if (grader.type === "coverage") return runCoverageGrader(grader);
+  if (grader.type === "task_attempt") return runTaskAttemptGrader(workspace, grader);
+  if (grader.type === "model_rubric") return runModelRubricGrader(grader);
   /* node:coverage ignore next 6 */
   return {
     id: grader.id,
@@ -115,11 +118,12 @@ function runGrader(workspace, grader) {
 }
 
 function runCommandGrader(workspace, grader) {
+  const started = Date.now();
   const result = spawnSync(grader.command, {
     cwd: workspace,
     shell: true,
     encoding: "utf8",
-    timeout: 180000,
+    timeout: grader.timeoutMs || 180000,
     maxBuffer: 1024 * 1024 * 8
   });
   return {
@@ -128,8 +132,63 @@ function runCommandGrader(workspace, grader) {
     status: result.status === 0 ? "passed" : "failed",
     command: grader.command,
     exitCode: result.status ?? 1,
+    durationMs: Date.now() - started,
     stdout: trimOutput(result.stdout),
     stderr: trimOutput(result.stderr)
+  };
+}
+
+function runTaskAttemptGrader(workspace, grader) {
+  const attempts = Number(grader.attempts || 3);
+  const results = [];
+  for (let index = 0; index < attempts; index += 1) {
+    results.push(runCommandGrader(workspace, {
+      ...grader,
+      id: `${grader.id}_attempt_${index + 1}`,
+      type: "command"
+    }));
+  }
+  const passed = results.filter((result) => result.status === "passed").length;
+  return {
+    id: grader.id,
+    type: grader.type,
+    status: passed > 0 ? "passed" : "failed",
+    attempts,
+    passed,
+    passAt1: results[0]?.status === "passed" ? 1 : 0,
+    passAtK: passed > 0 ? 1 : 0,
+    passPowerK: passed === attempts ? 1 : 0,
+    durationMs: results.reduce((sum, result) => sum + Number(result.durationMs || 0), 0),
+    results
+  };
+}
+
+function runModelRubricGrader(grader) {
+  const rubric = Array.isArray(grader.rubric) ? grader.rubric : [];
+  const score = rubric.length > 0 ? 1 : 0;
+  const minimumScore = Number(grader.minimumScore ?? 1);
+  return {
+    id: grader.id,
+    type: grader.type,
+    status: score >= minimumScore ? "passed" : "failed",
+    score,
+    minimumScore,
+    rubric,
+    note: "Deterministic rubric placeholder; attach provider-backed model grading before using this as human-quality evidence."
+  };
+}
+
+function summarizeMetrics(evals) {
+  const taskGraders = evals.flatMap((item) => item.graders || []).filter((grader) => grader.type === "task_attempt");
+  if (taskGraders.length === 0) return { passAt1: 0, passAt3: 0, passPower3: 0, taskAttemptGraders: 0 };
+  const average = (field) => Number((taskGraders.reduce((sum, grader) => sum + Number(grader[field] || 0), 0) / taskGraders.length).toFixed(4));
+  return {
+    passAt1: average("passAt1"),
+    passAt3: average("passAtK"),
+    passPower3: average("passPowerK"),
+    taskAttemptGraders: taskGraders.length,
+    totalAttempts: taskGraders.reduce((sum, grader) => sum + Number(grader.attempts || 0), 0),
+    totalDurationMs: taskGraders.reduce((sum, grader) => sum + Number(grader.durationMs || 0), 0)
   };
 }
 
@@ -217,6 +276,8 @@ export const __evalRunnerTestInternals = {
   parseArgs,
   runCommandGrader,
   runCoverageGrader,
+  runModelRubricGrader,
+  runTaskAttemptGrader,
   runFileExistsGrader,
   runGrader,
   runJsonSchemaGrader,

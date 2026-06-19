@@ -10,6 +10,44 @@ export function createProfileProofFixtures() {
       expected: "web-app"
     },
     {
+      name: "next-saas",
+      files: {
+        "package.json": JSON.stringify({ name: "next-saas", dependencies: { next: "latest", react: "latest", stripe: "latest", "next-auth": "latest" }, scripts: { test: "node --test" } }),
+        "app/api/billing/route.ts": "export function POST() {}\n",
+        "tests/billing.test.js": "test('ok', () => {})\n"
+      },
+      expected: "payments-system"
+    },
+    {
+      name: "tenant-saas",
+      files: {
+        "package.json": JSON.stringify({ name: "tenant-saas", dependencies: { next: "latest", react: "latest", "next-auth": "latest" }, scripts: { test: "node --test" } }),
+        "app/api/tenant/route.ts": "export function GET() {}\n",
+        "app/auth/page.tsx": "export default function Auth() { return null; }\n",
+        "tests/tenant.test.js": "test('ok', () => {})\n"
+      },
+      expected: "saas-app"
+    },
+    {
+      name: "admin-dashboard",
+      files: {
+        "package.json": JSON.stringify({ name: "admin-dashboard", dependencies: { react: "latest", vite: "latest" }, scripts: { test: "node --test", "dashboard:e2e": "node test.mjs" } }),
+        "src/admin/index.tsx": "export const Admin = () => null;\n",
+        "tests/admin.test.js": "test('ok', () => {})\n"
+      },
+      expected: "admin-dashboard"
+    },
+    {
+      name: "browser-extension",
+      files: {
+        "package.json": JSON.stringify({ name: "browser-extension", scripts: { test: "node --test" } }),
+        "manifest.json": JSON.stringify({ manifest_version: 3, permissions: [] }),
+        "content-script.js": "console.log('ok')\n",
+        "tests/extension.test.js": "test('ok', () => {})\n"
+      },
+      expected: "browser-extension"
+    },
+    {
       name: "fastapi-service",
       files: {
         "pyproject.toml": "[project]\ndependencies = ['fastapi']\n",
@@ -17,6 +55,15 @@ export function createProfileProofFixtures() {
         "tests/test_app.py": "def test_ok(): assert True\n"
       },
       expected: "backend-api"
+    },
+    {
+      name: "worker-service",
+      files: {
+        "package.json": JSON.stringify({ name: "worker-service", scripts: { test: "node --test", "worker:run": "node workers/run.mjs" } }),
+        "workers/run.mjs": "console.log('work')\n",
+        "tests/worker.test.js": "test('ok', () => {})\n"
+      },
+      expected: "worker-service"
     },
     {
       name: "mcp-tool",
@@ -63,6 +110,24 @@ export function createProfileProofFixtures() {
       expected: "data-pipeline"
     },
     {
+      name: "dbt-warehouse",
+      files: {
+        "dbt_project.yml": "name: warehouse\n",
+        "models/orders.sql": "select 1 as id\n",
+        "tests/test_models.py": "def test_ok(): assert True\n"
+      },
+      expected: "data-warehouse-dbt"
+    },
+    {
+      name: "trading-system",
+      files: {
+        "package.json": JSON.stringify({ name: "trading-system", scripts: { test: "node --test" } }),
+        "src/signals/risk-engine.js": "export const risk = true;\n",
+        "tests/risk.test.js": "test('ok', () => {})\n"
+      },
+      expected: "trading-system"
+    },
+    {
       name: "agent-app",
       files: {
         "package.json": JSON.stringify({ name: "agent-app", dependencies: { openai: "latest" }, scripts: { test: "node --test", "eval:run": "node evals/run.mjs" } }),
@@ -71,6 +136,44 @@ export function createProfileProofFixtures() {
         "tests/agent.test.js": "test('ok', () => {})\n"
       },
       expected: "ai-agent-app"
+    },
+    {
+      name: "ai-app",
+      files: {
+        "package.json": JSON.stringify({ name: "ai-app", dependencies: { openai: "latest" }, scripts: { test: "node --test" } }),
+        "src/prompts/chat.ts": "export const prompt = 'answer safely';\n",
+        "tests/ai.test.js": "test('ok', () => {})\n"
+      },
+      expected: "ai-app"
+    },
+    {
+      name: "llm-agent-platform",
+      files: {
+        "package.json": JSON.stringify({ name: "llm-agent-platform", dependencies: { openai: "latest" }, scripts: { test: "node --test", "agents:eval": "node evals/run.mjs" } }),
+        "agents/builder.md": "Build safely.\n",
+        "memory/policy.md": "Memory policy.\n",
+        "tools/manifest.json": "{}\n",
+        "tests/platform.test.js": "test('ok', () => {})\n"
+      },
+      expected: "llm-agent-platform"
+    },
+    {
+      name: "healthcare-app",
+      files: {
+        "package.json": JSON.stringify({ name: "healthcare-app", scripts: { test: "node --test" } }),
+        "src/patient/phi-boundary.js": "export const phi = true;\n",
+        "tests/phi.test.js": "test('ok', () => {})\n"
+      },
+      expected: "healthcare-app"
+    },
+    {
+      name: "fintech-app",
+      files: {
+        "package.json": JSON.stringify({ name: "fintech-app", scripts: { test: "node --test" } }),
+        "src/ledger/money-movement.js": "export const ledger = true;\n",
+        "tests/ledger.test.js": "test('ok', () => {})\n"
+      },
+      expected: "fintech-app"
     },
     {
       name: "infra-stack",

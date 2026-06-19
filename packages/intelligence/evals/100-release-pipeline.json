@@ -1,0 +1,30 @@
+{
+  "id": "eval_100_release_pipeline",
+  "name": "100 Score Release Pipeline",
+  "scope": "release",
+  "version": 1,
+  "description": "Proves local release readiness, provenance configuration, and fresh global install simulation.",
+  "graders": [
+    {
+      "id": "release-provenance",
+      "type": "command",
+      "command": "npm run release:provenance"
+    },
+    {
+      "id": "global-install",
+      "type": "command",
+      "command": "npm run verify:global-install"
+    },
+    {
+      "id": "release-check",
+      "type": "command",
+      "command": "npm run release:check"
+    }
+  ],
+  "successCriteria": [
+    "Release provenance configuration passes.",
+    "Temporary global install can run doctor, MCP smoke, and config generation.",
+    "The expanded release check passes."
+  ],
+  "requiresApproval": false
+}

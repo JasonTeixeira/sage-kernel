@@ -53,6 +53,7 @@ jobs:
       - name: QA gate and release package
         run: |
           npm run qa:gate
+          npm run benchmark:matrix -- --save --compare --fail-on-regression
           npm run release:check
           git diff --check
 

@@ -54,7 +54,8 @@ async function check(id, fn) {
 }
 
 function normalizeStatus(result) {
-  if (["passed", "defined", "needs_external_evidence"].includes(result?.status)) return "passed";
+  if (["passed", "defined"].includes(result?.status)) return "passed";
+  if (result?.status === "needs_external_evidence") return "warning";
   if (result?.report?.status === "passed") return "passed";
   return result?.status === "needs_work" ? "warning" : "failed";
 }

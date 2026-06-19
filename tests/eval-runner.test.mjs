@@ -145,6 +145,22 @@ test("eval runner covers parser, fallback graders, and alternate contract branch
   assert.equal(__evalRunnerTestInternals.runCoverageGrader({ id: "too_high", type: "coverage", threshold: 101 }).status, "failed");
   assert.equal(__evalRunnerTestInternals.runCoverageGrader({ id: "not_number", type: "coverage", threshold: "90" }).status, "failed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "future", type: "future" }).status, "failed");
+  const attempts = __evalRunnerTestInternals.runTaskAttemptGrader(workspace, {
+    id: "attempts",
+    type: "task_attempt",
+    command: "node -e \"process.exit(0)\"",
+    attempts: 3
+  });
+  assert.equal(attempts.status, "passed");
+  assert.equal(attempts.passAt1, 1);
+  assert.equal(attempts.passAtK, 1);
+  assert.equal(attempts.passPowerK, 1);
+  assert.equal(__evalRunnerTestInternals.runModelRubricGrader({
+    id: "rubric",
+    type: "model_rubric",
+    rubric: ["clear"],
+    minimumScore: 1
+  }).status, "passed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "resources", type: "mcp_contract", path: "contracts/resources.snapshot.json" }).status, "passed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "prompts", type: "mcp_contract", path: "contracts/prompts.snapshot.json" }).status, "passed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "unknown_contract", type: "mcp_contract", path: "contracts/unknown.snapshot.json" }).status, "failed");

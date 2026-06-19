@@ -167,8 +167,10 @@ export function renderTodayPlan(plan) {
 export function renderRiskGates(plan, evals) {
   const risks = plan?.risks || [];
   const gates = plan?.gates || [];
+  const evalSummary = evals?.summary || { passed: 0, total: 0 };
+  const evalStatus = evals?.status || "missing";
   return `<ul class="list">
-    <li data-search="eval status latest report"><div class="split"><h3>Latest Evals</h3><strong class="status-${escapeHtml(evals.status)}">${escapeHtml(evals.status)}</strong></div><p>${escapeHtml(evals.summary.passed)}/${escapeHtml(evals.summary.total)} passed · ${escapeHtml(evals.latestId || "no latest run")}</p></li>
+    <li data-search="eval status latest report"><div class="split"><h3>Latest Evals</h3><strong class="status-${escapeHtml(evalStatus)}">${escapeHtml(evalStatus)}</strong></div><p>${escapeHtml(evalSummary.passed)}/${escapeHtml(evalSummary.total)} passed · ${escapeHtml(evals?.latestId || "no latest run")}</p></li>
     ${risks.map((risk) => `<li data-search="${escapeHtml(`${risk.id} ${risk.level} ${risk.description} risk`)}"><div class="split"><h3>${escapeHtml(risk.id)}</h3><strong>${escapeHtml(risk.level)}</strong></div><p>${escapeHtml(risk.description)}</p></li>`).join("")}
     <li data-search="verification gates commands"><div class="split"><h3>Verification Gates</h3><strong>${gates.length}</strong></div><p>${escapeHtml(gates.join(" · "))}</p></li>
   </ul>`;

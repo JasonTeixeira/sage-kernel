@@ -4,9 +4,10 @@ import { createDashboardStressReport } from "./stress-dashboard.mjs";
 import { createQueueStressReport } from "./stress-queue.mjs";
 
 const profiles = {
-  quick: { cycles: 2, queueCount: 100, dashboardCount: 20, concurrency: 5, includeMcp: true, includeDashboard: false },
-  local: { cycles: 3, queueCount: 1000, dashboardCount: 200, concurrency: 20, includeMcp: true, includeDashboard: true },
-  extended: { cycles: 10, queueCount: 10000, dashboardCount: 1000, concurrency: 50, includeMcp: true, includeDashboard: true }
+  quick: { cycles: 2, queueCount: 100, dashboardCount: 20, concurrency: 5, includeMcp: true, includeDashboard: false, maxFailureRate: 0, maxRssGrowthMb: 96 },
+  local: { cycles: 3, queueCount: 1000, dashboardCount: 200, concurrency: 20, includeMcp: true, includeDashboard: true, maxFailureRate: 0, maxRssGrowthMb: 128 },
+  extended: { cycles: 10, queueCount: 10000, dashboardCount: 1000, concurrency: 50, includeMcp: true, includeDashboard: true, maxFailureRate: 0, maxRssGrowthMb: 192 },
+  release: { cycles: 50, queueCount: 100000, dashboardCount: 1000, concurrency: 100, includeMcp: true, includeDashboard: true, dashboardIsolated: true, maxFailureRate: 0.001, maxRssGrowthMb: 256 }
 };
 
 export function parseSoakArgs(argv = process.argv.slice(2)) {
@@ -22,7 +23,10 @@ export function parseSoakArgs(argv = process.argv.slice(2)) {
     baseUrl: valueFor(argv, "--url") || "http://127.0.0.1:8787",
     endpoint: valueFor(argv, "--endpoint") || "/health",
     includeDashboard: argv.includes("--dashboard") ? true : argv.includes("--skip-dashboard") ? false : profile.includeDashboard,
-    includeMcp: argv.includes("--mcp") ? true : argv.includes("--skip-mcp") ? false : profile.includeMcp
+    includeMcp: argv.includes("--mcp") ? true : argv.includes("--skip-mcp") ? false : profile.includeMcp,
+    dashboardIsolated: argv.includes("--dashboard-isolated") ? true : argv.includes("--dashboard-inline") ? false : Boolean(profile.dashboardIsolated),
+    maxFailureRate: numberValue(argv, "--max-failure-rate", profile.maxFailureRate),
+    maxRssGrowthMb: numberValue(argv, "--max-rss-growth-mb", profile.maxRssGrowthMb)
   };
 }
 
@@ -46,13 +50,16 @@ export async function createSoakReport(options = {}) {
     cycle.checks.push({ name: "queue", status: queue.status, report: queue });
 
     if (config.includeDashboard) {
-      const dashboard = await createDashboardStressReport({
-        baseUrl: config.baseUrl,
-        endpoint: config.endpoint,
-        count: config.dashboardCount,
-        concurrency: config.concurrency,
-        fetchImpl: options.fetchImpl
-      });
+      const dashboard = config.dashboardIsolated && !options.fetchImpl
+        ? runDashboardStress(root, config)
+        : await createDashboardStressReport({
+            baseUrl: config.baseUrl,
+            endpoint: config.endpoint,
+            count: config.dashboardCount,
+            concurrency: config.concurrency,
+            maxFailureRate: config.maxFailureRate,
+            fetchImpl: options.fetchImpl
+          });
       cycle.checks.push({ name: "dashboard", status: dashboard.status, report: dashboard });
     }
 
@@ -67,14 +74,28 @@ export async function createSoakReport(options = {}) {
   }
 
   const durationMs = Date.now() - started;
+  const delta = memoryDelta(memory);
+  const rssLimitBytes = Number(config.maxRssGrowthMb ?? 0) * 1024 * 1024;
+  const memoryStatus = rssLimitBytes > 0 && delta.rssBytes > rssLimitBytes ? "failed" : "passed";
   const report = {
     type: "soak",
     profile: config.profile,
+    thresholds: {
+      maxFailureRate: Number(config.maxFailureRate ?? 0),
+      maxRssGrowthMb: Number(config.maxRssGrowthMb ?? 0)
+    },
     cycles,
     memory,
-    memoryDelta: memoryDelta(memory),
+    memoryDelta: delta,
+    thresholdChecks: {
+      memoryGrowth: {
+        status: memoryStatus,
+        rssGrowthMb: Number((delta.rssBytes / 1024 / 1024).toFixed(2)),
+        maxRssGrowthMb: Number(config.maxRssGrowthMb ?? 0)
+      }
+    },
     durationMs,
-    status: cycles.every((cycle) => cycle.status === "passed") ? "passed" : "failed"
+    status: cycles.every((cycle) => cycle.status === "passed") && memoryStatus === "passed" ? "passed" : "failed"
   };
   return report;
 }
@@ -92,6 +113,33 @@ export function runMcpSmoke(root) {
     stdout: result.stdout?.trim() || "",
     stderr: result.stderr?.trim() || ""
   };
+}
+
+export function runDashboardStress(root, config) {
+  const result = spawnSync("node", [
+    "scripts/stress-dashboard.mjs",
+    `--url=${config.baseUrl}`,
+    `--endpoint=${config.endpoint}`,
+    `--count=${config.dashboardCount}`,
+    `--concurrency=${config.concurrency}`,
+    `--max-failure-rate=${config.maxFailureRate ?? 0}`
+  ], {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 120000,
+    maxBuffer: 1024 * 1024 * 8
+  });
+  try {
+    return JSON.parse(result.stdout);
+  } catch {
+    return {
+      type: "dashboard-stress",
+      status: "failed",
+      exitCode: result.status ?? 1,
+      stdout: result.stdout?.trim() || "",
+      stderr: result.stderr?.trim() || ""
+    };
+  }
 }
 
 export async function runSoakCli(args = process.argv.slice(2), options = {}) {

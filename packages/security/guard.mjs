@@ -8,10 +8,13 @@ const SAFE_ACTIONS = new Set([
   "template.list",
   "project.plan",
   "profile.detect",
+  "profile.gaps",
   "done.generate",
   "loop.plan",
   "loop.validate",
   "loop.prove",
+  "loop.score",
+  "loop.full_cycle",
   "workflow_engine.validate",
   "warehouse.summary",
   "warehouse.search",
@@ -63,6 +66,11 @@ const SAFE_ACTIONS = new Set([
   "testing.playwright_template",
   "testing.performance_budget",
   "testing.proof",
+  "evidence.list",
+  "evidence.compare",
+  "postmortem.generate",
+  "redteam.agent_safety",
+  "benchmark.matrix",
   "memory.policy",
   "memory.graph",
   "memory.learning_propose",
@@ -99,6 +107,10 @@ export function assertToolAllowed(root, action, payload = {}) {
   if (isReadOnlyMode()) {
     throw new Error(`Read-only mode blocks mutating action: ${action}`);
   }
+  if (containsDestructiveCommand(payload) && !payload.approvalId) {
+    const approval = requestApproval(root, action, `Destructive command payload requires approval: ${action}`, payload);
+    throw new Error(`Action requires approval before execution: ${approval.id}`);
+  }
   if (MUTATING_ACTIONS.has(action)) return { allowed: true, action };
   if (payload.approvalId) {
     const db = createSqliteAdapter({ root });
@@ -124,4 +136,9 @@ export function listApprovals(root, status = null) {
 
 export function signRecord(record) {
   return crypto.createHash("sha256").update(JSON.stringify(record)).digest("hex");
+}
+
+function containsDestructiveCommand(payload) {
+  const text = JSON.stringify(payload || {});
+  return /\b(rm\s+-rf|mkfs|diskutil\s+erase|dd\s+if=|shutdown|reboot)\b/i.test(text);
 }

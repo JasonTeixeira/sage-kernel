@@ -1,0 +1,36 @@
+{
+  "id": "eval_100_score_program",
+  "name": "100 Score Program Definition",
+  "scope": "sdlc",
+  "version": 1,
+  "description": "Proves the 100/100 implementation program, audit report, and gap audit are present and public-surface valid.",
+  "graders": [
+    {
+      "id": "program-doc",
+      "type": "file_exists",
+      "path": "docs/100_SCORE_IMPLEMENTATION_PROGRAM.md"
+    },
+    {
+      "id": "gap-audit-doc",
+      "type": "file_exists",
+      "path": "docs/SDLC_AI_GAP_AUDIT.md"
+    },
+    {
+      "id": "audit-report-doc",
+      "type": "file_exists",
+      "path": "docs/AUDIT_REPORT.md"
+    },
+    {
+      "id": "public-surface",
+      "type": "command",
+      "command": "npm run public:validate"
+    }
+  ],
+  "successCriteria": [
+    "The 100-score implementation program is documented.",
+    "The current SDLC/AI gap audit is documented.",
+    "The release audit report is documented.",
+    "The public documentation/package surface validates."
+  ],
+  "requiresApproval": false
+}
