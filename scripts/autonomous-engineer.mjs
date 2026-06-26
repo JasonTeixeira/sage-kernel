@@ -41,10 +41,12 @@ function run(cmd) {
   return { ok: r.status === 0, stdout: r.stdout || "", stderr: r.stderr || "" };
 }
 
-function measureCategory(cat) {
+function measureCategory(cat, round) {
   let stdout = "";
-  // Regenerate evidence: live categories only with --live; otherwise run the gate.
+  // Regenerate evidence: live categories only with --live; per-round commandFor
+  // (fresh-seed) categories vary by round; otherwise run the fixed gate.
   if (live && LIVE_COMMANDS[cat.id]) ({ stdout } = run(LIVE_COMMANDS[cat.id]));
+  else if (cat.commandFor) ({ stdout } = run(cat.commandFor(round)));
   else if (cat.command) ({ stdout } = run(cat.command));
   return assessCategory(cat, root, { stdout });
 }
@@ -66,7 +68,7 @@ for (let round = 1; round <= maxRounds; round += 1) {
   const ledger = verifyLedger({ root });
   if (ledger.status === "tampered") { stopReason = "ledger_tampered"; journal({ round, abort: "ledger_tampered" }); break; }
 
-  const scorecard = CAPABILITY_REGISTRY.map(measureCategory);
+  const scorecard = CAPABILITY_REGISTRY.map((cat) => measureCategory(cat, round));
   lastScorecard = scorecard;
   const below = scorecard.filter((c) => !c.met);
 

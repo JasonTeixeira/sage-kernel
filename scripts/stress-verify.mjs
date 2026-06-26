@@ -15,7 +15,7 @@ const root = process.cwd();
 const args = process.argv.slice(2);
 const passes = (() => { const i = args.indexOf("--passes"); return i >= 0 ? Number(args[i + 1]) : 5; })();
 // Live categories are excluded from stress (model calls aren't free to repeat).
-const DETERMINISTIC = CAPABILITY_REGISTRY.filter((c) => c.command);
+const DETERMINISTIC = CAPABILITY_REGISTRY.filter((c) => c.command || c.commandFor);
 
 function run(cmd) { spawnSync(cmd, { cwd: root, shell: true, encoding: "utf8", timeout: 1_200_000, maxBuffer: 1024 * 1024 * 64 }); }
 function readJson(rel) { try { return JSON.parse(fs.readFileSync(path.join(root, rel), "utf8")); } catch { return null; } }
@@ -25,7 +25,9 @@ for (let p = 1; p <= passes; p += 1) {
   const row = {};
   for (const cat of DETERMINISTIC) {
     if (cat.fromStdout) continue; // stdout-only categories aren't re-derivable from a file here
-    run(cat.command);
+    // Fresh-seed categories get a DIFFERENT seed each pass, so stability here means
+    // "stable verdict across genuinely novel inputs" — a stronger claim.
+    run(cat.commandFor ? cat.commandFor(p * 31 + 7) : cat.command);
     const read = cat.read(root, {});
     row[cat.id] = read ? { score: read.score, met: read.score >= cat.floor } : { score: 0, met: false };
   }

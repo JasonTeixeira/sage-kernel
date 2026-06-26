@@ -15,7 +15,7 @@ const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "b
 
 const PYTHON_RULES = [
   { rule: "py-command-injection", severity: "high", test: (l) => /\bos\.(system|popen)\s*\(/.test(l) || /subprocess\.(run|call|Popen|check_output)\s*\([^)]*shell\s*=\s*True/.test(l), message: "Shell command execution (os.system / os.popen / shell=True) — command injection risk." },
-  { rule: "py-dynamic-eval", severity: "high", test: (l) => /(^|[^.\w])(eval|exec)\s*\(/.test(l) && !/#.*\b(eval|exec)\b/.test(l), message: "Dynamic code execution (eval/exec)." },
+  { rule: "py-dynamic-eval", severity: "high", test: (l) => /(^|[^.\w])(eval|exec)\s*\(/.test(l) && !/#.*\b(eval|exec)\b/.test(l) && !/\bdef\s+(eval|exec)\s*\(/.test(l), message: "Dynamic code execution (eval/exec)." },
   { rule: "py-dynamic-import", severity: "high", test: (l) => /\b__import__\s*\(\s*[^'")\s]/.test(l), message: "Dynamic __import__() with a non-literal name — arbitrary module load." },
   { rule: "py-ssti", severity: "high", test: (l) => /\brender_template_string\s*\(\s*[^'")\s]/.test(l), message: "render_template_string with a non-literal template — server-side template injection (SSTI)." },
   { rule: "py-insecure-deserialization", severity: "high", test: (l) => /\bpickle\.(loads?|Unpickler)\s*\(/.test(l) || /\byaml\.load\s*\((?![^)]*SafeLoader)/.test(l), message: "Insecure deserialization (pickle / yaml.load without SafeLoader)." },

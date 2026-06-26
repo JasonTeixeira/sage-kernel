@@ -42,6 +42,21 @@ export const CAPABILITY_REGISTRY = [
     improveHint: "Add generalizable SAST/taint rules for held-out misses; keep precision at 1.0; regenerate a FRESH held-out set."
   },
   {
+    id: "security-robustness-fresh",
+    floor: 90,
+    // Per-round FRESH samples (anti-overfit): the loop varies the seed each round
+    // so this measures generalization to genuinely novel surface forms, not memory.
+    commandFor: (round) => `npm run security:holdout-fresh -- --seed ${1000 + round}`,
+    command: "npm run security:holdout-fresh", // fixed-seed fallback (reproducible)
+    artifact: ".sage-kernel/evidence/security-holdout-fresh-latest.json",
+    read: (root) => {
+      const e = readJson(root, ".sage-kernel/evidence/security-holdout-fresh-latest.json");
+      if (!e) return null;
+      return { score: Math.min(pct(e.precision), pct(e.recall)), detail: `fresh seed ${e.seed} precision ${e.precision} / recall ${e.recall} (n=${e.total})`, proofRef: e };
+    },
+    improveHint: "Fix any brittleness a fresh seed surfaces (regex/literal matching); keep the engine structural so novel surface forms still resolve."
+  },
+  {
     id: "repair-intelligence",
     floor: 90,
     // Live: regenerated only when explicitly asked (costs model calls). The loop

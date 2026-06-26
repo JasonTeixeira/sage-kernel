@@ -50,6 +50,7 @@ const checks = [
   ["npm", ["run", "security:dataflow"]],
   ["npm", ["run", "security:corpus"]],
   ["npm", ["run", "security:holdout"]],
+  ["npm", ["run", "security:holdout-fresh"]],
   ["npm", ["run", "hallucination:efficacy"]],
   ["npm", ["run", "security:threat-model"]],
   ["npm", ["run", "supply-chain:scan"]],
