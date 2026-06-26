@@ -26,11 +26,24 @@ The local MCP server is `sage-kernel`.
     "sage-kernel": {
       "command": "node",
       "args": ["apps/mcp-server/src/server.mjs"],
-      "cwd": "/Users/Sage/sage-kernel"
+      "cwd": "/Users/Sage/sage-kernel",
+      "env": {
+        "SAGE_PROFILE_ALLOWED_ROOTS": "/Users/Sage/code:/Users/Sage/Documents"
+      }
     }
   }
 }
 ```
+
+Notes:
+- `cwd` MUST be this kernel checkout (the server resolves its DB/schema relative
+  to `cwd`). On another machine, set `cwd` to wherever sage-kernel is cloned.
+- To analyze YOUR OTHER projects, list their parent dirs in
+  `SAGE_PROFILE_ALLOWED_ROOTS` (colon-separated), then pass each project to a tool
+  via `projectPath`/`targetRoot` (absolute path). Without this, foreign repos are
+  refused by the path-safety gate.
+- For the self-healing loop, also set `SAGE_AGENT_COMMAND` (e.g.
+  `node providers/claude-agent.mjs` or `node providers/codex-agent.mjs`).
 
 Claude Desktop config path:
 
@@ -61,7 +74,7 @@ Relevant MCP tools:
 - `kernel.profile.gaps`
 - `kernel.loop.score`
 - `kernel.loop.full_cycle`
-- `kernel.review.score`
+- `kernel.review.quality_score`
 - `kernel.security.proof`
 - `kernel.testing.proof`
 - `kernel.redteam.agent_safety`

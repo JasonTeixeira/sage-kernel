@@ -466,8 +466,11 @@ test("MCP dispatcher covers repo, QA, scaffold, and workflow edge branches", asy
     () => callKernelTool(sandbox, "kernel.repo.inspect", { repo: "not-in-catalog" }),
     /Unknown catalog repo/
   );
+  // An EXISTING dir outside the allowed roots — so it passes the path-existence
+  // boundary and reaches the allowed-roots refusal (the behavior under test).
+  const existingOutside = fs.mkdtempSync(path.join(os.tmpdir(), "outside-roots-"));
   await assert.rejects(
-    () => callKernelTool(sandbox, "kernel.qa.run", { projectPath: "/tmp/outside-sage-kernel", mode: "fast" }),
+    () => callKernelTool(sandbox, "kernel.qa.run", { projectPath: existingOutside, mode: "fast" }),
     /Refusing to run QA outside allowed roots/
   );
   await assert.rejects(

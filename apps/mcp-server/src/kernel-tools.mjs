@@ -174,6 +174,22 @@ export function buildRepairer(root) {
 
 export async function callKernelTool(root, toolName, input = {}) {
   if (!knownKernelToolNames.has(toolName)) throw new Error(`Unknown tool: ${toolName}`);
+  // Boundary validation (fixes silent-wrong-answer class): refuse to run against a
+  // missing/invalid target instead of falling back to cwd and confidently auditing
+  // the wrong project. A provided-but-nonexistent projectPath/targetRoot is an
+  // honest error, not a "passed" scorecard of an empty/nonexistent repo.
+  if (root === null || root === undefined || String(root).trim() === "" || !(typeof root === "string")) {
+    throw new Error(`kernel tool target root is required (got ${root === "" ? "empty string" : typeof root}); pass the absolute path of the project to analyze`);
+  }
+  if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
+    throw new Error(`target root does not exist or is not a directory: ${root}`);
+  }
+  for (const key of ["projectPath", "targetRoot"]) {
+    if (input[key] && typeof input[key] === "string") {
+      const resolved = path.isAbsolute(input[key]) ? input[key] : path.resolve(root, input[key]);
+      if (!fs.existsSync(resolved)) throw new Error(`${key} does not exist: ${input[key]} (resolved ${resolved})`);
+    }
+  }
   assertToolAllowed(root, toolName.replace("kernel.", ""), input);
   switch (toolName) {
     case "kernel.phase.status":

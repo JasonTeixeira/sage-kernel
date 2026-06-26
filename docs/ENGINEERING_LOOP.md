@@ -10,7 +10,7 @@ claude mcp get sage-kernel      # Scope: User · Status: ✔ Connected
 npm --prefix /Users/Sage/sage-kernel run mcp:smoke   # boots + lists 124 tools
 ```
 In any session, ask Claude: *"use the sage-kernel MCP tools."* Then call e.g.
-`kernel.profile.detect`, `kernel.review.score`, `kernel.security.sast`,
+`kernel.profile.detect`, `kernel.review.quality_score`, `kernel.security.sast`,
 `kernel.cockpit.status`.
 
 ## The loop (run in ANY project)
@@ -22,7 +22,7 @@ sage security proof . --json              # threat model + SBOM + SAST + audit
 sage score report . --json                # weighted scorecard + caps + blockers
 node /Users/Sage/sage-kernel/scripts/cockpit.mjs   # live terminal cockpit
 ```
-Or via MCP from inside a session: `kernel.loop.full_cycle`, `kernel.review.score`,
+Or via MCP from inside a session: `kernel.loop.full_cycle`, `kernel.review.quality_score`,
 `kernel.security.sast`, `kernel.cockpit.status`.
 
 ## Autonomy (the 100x): self-healing repair

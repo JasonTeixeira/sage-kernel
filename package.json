@@ -122,6 +122,7 @@
     "goal:drive": "node scripts/drive-goal.mjs",
     "engineer:loop": "node scripts/autonomous-engineer.mjs",
     "engineer:improve": "node scripts/autonomous-improve.mjs",
+    "audit:foreign-sdlc": "node scripts/audit-foreign-sdlc.mjs",
     "engineer:measure": "node scripts/autonomous-engineer.mjs --measure-only",
     "stress:verify": "node scripts/stress-verify.mjs",
     "doctor": "node bin/sage.mjs doctor",

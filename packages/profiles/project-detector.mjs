@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createProfileProofFixtures } from "./profile-fixtures.mjs";
 
-const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "build", "coverage", "generated", ".next"]);
+const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "build", "coverage", "generated", ".next", ".nuxt", "out", ".turbo", ".cache", "venv", ".venv", "env", "__pycache__", ".pytest_cache", "vendor", "target", ".gradle", ".idea", ".vscode", "Pods", ".terraform"]);
 const CODE_FILE_PATTERN = /\.(mjs|cjs|js|jsx|ts|tsx|py|go|rs|swift|sql)$/;
 
 export const SDLC_PROFILES = [

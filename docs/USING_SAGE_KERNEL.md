@@ -71,7 +71,7 @@ CLI equivalent (add `alias sage='node /Users/Sage/sage-kernel/bin/sage.mjs'`):
   loop selection that learns from outcomes.
 
 ### As a Sr engineer (build + ship)
-- `kernel.review.score` / `kernel.security.sast` / `kernel.security.polyglot`
+- `kernel.review.quality_score` / `kernel.security.sast` / `kernel.security.polyglot`
   (Python/Swift) / `kernel.security.dataflow` (cross-file taint) — AST + measured
   (51→77-sample labeled corpus, precision/recall ≥ 0.95/0.92).
 - `kernel.deploy.verify_rollback` — deploy → verify → roll back on failure
