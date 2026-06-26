@@ -186,6 +186,53 @@ export function createProfileProofFixtures() {
       expected: "infrastructure"
     },
     {
+      name: "electron-desktop",
+      files: {
+        "package.json": JSON.stringify({ name: "electron-desktop", dependencies: { electron: "latest", react: "latest" }, scripts: { test: "node --test" } }),
+        "src/main.ts": "import { app } from 'electron';\n",
+        "tests/window.test.js": "test('ok', () => {})\n"
+      },
+      expected: "desktop-app"
+    },
+    {
+      name: "astro-site",
+      files: {
+        "package.json": JSON.stringify({ name: "astro-site", dependencies: { astro: "latest" }, scripts: { build: "astro build", test: "node --test" } }),
+        "astro.config.mjs": "export default {}\n",
+        "src/pages/index.astro": "<h1>Hi</h1>\n",
+        "tests/site.test.js": "test('ok', () => {})\n"
+      },
+      expected: "static-site"
+    },
+    {
+      name: "phaser-game",
+      files: {
+        "package.json": JSON.stringify({ name: "phaser-game", dependencies: { phaser: "latest" }, scripts: { test: "node --test" } }),
+        "src/scenes/main.js": "export class Main {}\n",
+        "tests/game.test.js": "test('ok', () => {})\n"
+      },
+      expected: "game"
+    },
+    {
+      name: "ml-training",
+      files: {
+        "requirements.txt": "torch==2.3.0\nscikit-learn\n",
+        "train.py": "import torch\n",
+        "tests/test_train.py": "def test_ok(): assert True\n"
+      },
+      expected: "ml-training"
+    },
+    {
+      name: "solidity-contracts",
+      files: {
+        "package.json": JSON.stringify({ name: "solidity-contracts", devDependencies: { hardhat: "latest" }, scripts: { test: "node --test" } }),
+        "hardhat.config.js": "module.exports = {}\n",
+        "contracts/Token.sol": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract Token {}\n",
+        "tests/token.test.js": "test('ok', () => {})\n"
+      },
+      expected: "smart-contract"
+    },
+    {
       name: "workspace-monorepo",
       files: {
         "package.json": JSON.stringify({ name: "workspace-monorepo", workspaces: ["packages/*"], scripts: { test: "node --test" } }),

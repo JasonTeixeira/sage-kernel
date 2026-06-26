@@ -22,7 +22,7 @@ test("runbooks validate and list real catalog entries", () => {
 
 test("runbook validation covers malformed, missing, duplicate, and fallback branches", () => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-runbooks-"));
-  fs.mkdirSync(path.join(workspace, "packages/intelligence/fixtures/valid"), { recursive: true });
+  fs.mkdirSync(path.join(workspace, "packages/intelligence/test-fixtures/valid"), { recursive: true });
   fs.mkdirSync(path.join(workspace, "packages/intelligence/runbooks"), { recursive: true });
   const duplicate = {
     id: "runbook_fixture",
@@ -32,7 +32,7 @@ test("runbook validation covers malformed, missing, duplicate, and fallback bran
     steps: [{ id: "inspect", title: "Inspect", action: "Read state.", timeoutMs: 1000 }],
     verification: ["npm test"]
   };
-  fs.writeFileSync(path.join(workspace, "packages/intelligence/fixtures/valid/runbook.json"), JSON.stringify(duplicate));
+  fs.writeFileSync(path.join(workspace, "packages/intelligence/test-fixtures/valid/runbook.json"), JSON.stringify(duplicate));
   fs.writeFileSync(path.join(workspace, "packages/intelligence/runbooks/duplicate.json"), JSON.stringify(duplicate));
   fs.writeFileSync(path.join(workspace, "packages/intelligence/runbooks/broken.json"), "{");
 
@@ -171,11 +171,11 @@ test("ADR generation returns markdown and writes only inside the root", () => {
 
 test("runbook execution plans, executes allowlisted commands, audits results, and blocks unsafe commands", () => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-runbook-exec-"));
-  for (const dir of ["packages/intelligence/fixtures/valid", "packages/intelligence/runbooks", "packages/db"]) {
+  for (const dir of ["packages/intelligence/test-fixtures/valid", "packages/intelligence/runbooks", "packages/db"]) {
     fs.mkdirSync(path.join(workspace, dir), { recursive: true });
   }
   fs.copyFileSync(path.join(root, "packages/db/schema.sql"), path.join(workspace, "packages/db/schema.sql"));
-  fs.copyFileSync(path.join(root, "packages/intelligence/fixtures/valid/runbook.json"), path.join(workspace, "packages/intelligence/fixtures/valid/runbook.json"));
+  fs.copyFileSync(path.join(root, "packages/intelligence/test-fixtures/valid/runbook.json"), path.join(workspace, "packages/intelligence/test-fixtures/valid/runbook.json"));
 
   const planned = executeRunbookStep({
     runbook: "runbook_release_verification",
@@ -287,7 +287,7 @@ test("runbook execution plans, executes allowlisted commands, audits results, an
   assert.match(invalidCli.stderr, /Unknown runbooks:execute argument/);
 
   const failingWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-runbook-cli-fail-"));
-  for (const dir of ["packages/intelligence/fixtures/valid", "packages/intelligence/runbooks", "packages/db"]) {
+  for (const dir of ["packages/intelligence/test-fixtures/valid", "packages/intelligence/runbooks", "packages/db"]) {
     fs.mkdirSync(path.join(failingWorkspace, dir), { recursive: true });
   }
   fs.copyFileSync(path.join(root, "packages/db/schema.sql"), path.join(failingWorkspace, "packages/db/schema.sql"));
@@ -349,7 +349,8 @@ test("runbooks smoke and CLI scripts prove daily cockpit path", () => {
   ]) {
     const result = spawnSync("npm", args, { cwd: root, encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.match(result.stdout, /passed|Today|plan_|runbooks/i);
+    // "planned" is a valid outcome for an approval-gated runbook step.
+    assert.match(result.stdout, /passed|planned|Today|plan_|runbook/i);
   }
 
   const invalid = spawnSync("node", ["packages/intelligence/scripts/plan-day.mjs", "--unknown"], {

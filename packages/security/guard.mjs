@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { createSqliteAdapter } from "../db/adapter.mjs";
 import { createApprovalLedger } from "./approvals.mjs";
+import { isDestructiveCommand } from "../policy/engine.mjs";
 
 const SAFE_ACTIONS = new Set([
   "phase.status",
@@ -62,6 +63,23 @@ const SAFE_ACTIONS = new Set([
   "security.threat_model",
   "security.supply_chain",
   "security.proof",
+  "security.sast",
+  "security.polyglot",
+  "chaos.matrix",
+  "perf.incremental",
+  "runtime.gate",
+  "autonomy.harness",
+  "intake.prd",
+  "intake.design",
+  "intake.contract",
+  "generation.scaffold",
+  "generation.prove",
+  "security.dataflow",
+  "deploy.verify_rollback",
+  "sdlc.e2e",
+  "enforce.proof_gate",
+  "contract.install",
+  "cockpit.status",
   "testing.strategy",
   "testing.playwright_template",
   "testing.performance_budget",
@@ -78,11 +96,43 @@ const SAFE_ACTIONS = new Set([
   "drift.map",
   "drift.scope",
   "drift.self_audit",
-  "drift.proof"
+  "drift.proof",
+  "proof.get",
+  "proof.list",
+  "proof.verify",
+  "proof_graph.query",
+  "proof_graph.validate",
+  "claims.verify",
+  "contract.create",
+  "contract.validate",
+  "risk.classify_diff",
+  "testing.impact",
+  "agents.route",
+  "hallucination.scan",
+  "refactor.dead_code",
+  "policy.explain",
+  "security.dlp",
+  "daemon.status",
+  "operate.diagnose",
+  "agents.verify",
+  "evals.model_rubric",
+  "evals.ground",
+  "learning.outcomes",
+  "learning.recall_fix",
+  "loops.list",
+  "loops.select"
 ]);
 
 const MUTATING_ACTIONS = new Set([
   "project.scaffold",
+  "proof.record",
+  "proof_graph.build",
+  "operate.run",
+  "goal.drive",
+  "testing.mutation",
+  "profile.learn",
+  "loops.learn",
+  "loops.run",
   "qa.run",
   "jobs.run",
   "jobs.enqueue",
@@ -139,6 +189,7 @@ export function signRecord(record) {
 }
 
 function containsDestructiveCommand(payload) {
-  const text = JSON.stringify(payload || {});
-  return /\b(rm\s+-rf|mkfs|diskutil\s+erase|dd\s+if=|shutdown|reboot)\b/i.test(text);
+  // Strengthened via the central policy engine's destructive-pattern set
+  // (fork bombs, curl|sh, chmod 777, dd, mkfs, rm -rf/-fr, disk erase, etc.).
+  return isDestructiveCommand(JSON.stringify(payload || {}));
 }

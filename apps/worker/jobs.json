@@ -81,18 +81,6 @@
         { "type": "job", "job": "warehouse-summary" },
         { "type": "job", "job": "qa-os-summary" }
       ]
-    },
-    {
-      "id": "external-deploy-placeholder",
-      "description": "Placeholder for future external deploy jobs. Exists to enforce approval boundaries.",
-      "kind": "external-mutation",
-      "risk": "external-write",
-      "approval": "required",
-      "timeoutMs": 60000,
-      "retries": 0,
-      "steps": [
-        { "type": "approval-required", "reason": "External deploy/provisioning jobs require explicit approval and are not implemented in Phase 7." }
-      ]
     }
   ]
 }

@@ -11,5 +11,5 @@ function parseArgs(argv = process.argv.slice(2)) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const report = await createMcpClientProof({ root: process.cwd(), ...parseArgs() });
   console.log(JSON.stringify(report, null, 2));
-  process.exit(report.status === "failed" ? 1 : 0);
+  process.exit(report.status === "passed" ? 0 : 1);
 }

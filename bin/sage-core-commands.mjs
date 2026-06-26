@@ -1,5 +1,7 @@
 /* node:coverage disable */
-import { help, printTool, runNode, runNpm } from "./sage-runtime.mjs";
+import path from "node:path";
+import { help, printTool, runNode, runNpm, root } from "./sage-runtime.mjs";
+import { runSupervisor, supervisorStatus, stopDaemon } from "../packages/operate/daemon.mjs";
 
 export async function handleCoreCommand(command, args) {
   switch (command) {
@@ -143,9 +145,29 @@ export async function handleCoreCommand(command, args) {
       runNode("apps/mcp-server/scripts/call-tool.mjs", ["kernel.worker.tick", "{}"]);
       return true;
 
-    case "daemon":
-      runNpm("worker:daemon");
+    case "daemon": {
+      const sub = args[0] || "start";
+      const heartbeatPath = path.join(root, ".sage-kernel/daemon/heartbeat.json");
+      if (sub === "status") {
+        console.log(JSON.stringify(supervisorStatus(heartbeatPath), null, 2));
+        return true;
+      }
+      if (sub === "stop") {
+        console.log(JSON.stringify(stopDaemon({ root }), null, 2));
+        return true;
+      }
+      const controller = new AbortController();
+      process.on("SIGINT", () => controller.abort());
+      process.on("SIGTERM", () => controller.abort());
+      console.log("Sage daemon supervisor: worker child + heartbeat + restart-on-crash. Ctrl+C to stop.");
+      const result = await runSupervisor({
+        root,
+        signal: controller.signal,
+        maxRestarts: Number(process.env.SAGE_DAEMON_MAX_RESTARTS || 50)
+      });
+      console.log(JSON.stringify(result, null, 2));
       return true;
+    }
 
     case "approvals": {
       const [status] = args;

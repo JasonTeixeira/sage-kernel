@@ -22,7 +22,7 @@ test("review report system validates schema, fixture, categories, and score cont
   assert.equal(system.checked.fixtures, 1);
   assert.deepEqual(system.failures, []);
 
-  const fixture = JSON.parse(fs.readFileSync(path.join(root, "packages/review/fixtures/valid/review-report.json"), "utf8"));
+  const fixture = JSON.parse(fs.readFileSync(path.join(root, "packages/review/test-fixtures/valid/review-report.json"), "utf8"));
   const report = validateReviewReport(fixture);
   assert.equal(report.status, "passed");
   assert.equal(scoreReviewReport(fixture).score, 92);
@@ -110,7 +110,7 @@ test("review system validator and CLI catch malformed schema and fixture states"
     "additionalProperties": true,
     "required": []
   }));
-  fs.writeFileSync(path.join(workspace, "packages/review/fixtures/valid/review-report.json"), JSON.stringify({}));
+  fs.writeFileSync(path.join(workspace, "packages/review/test-fixtures/valid/review-report.json"), JSON.stringify({}));
   const failed = validateReviewSystem({ root: workspace });
   assert.equal(failed.status, "failed");
   assert.match(failed.failures.join("\n"), /must use JSON Schema draft 2020-12/);
@@ -128,7 +128,7 @@ test("review system validator and CLI catch malformed schema and fixture states"
 test("review system validator reports unreadable or malformed contract files", () => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "sage-review-broken-json-"));
   fs.mkdirSync(path.join(workspace, "packages/review/schemas"), { recursive: true });
-  fs.mkdirSync(path.join(workspace, "packages/review/fixtures/valid"), { recursive: true });
+  fs.mkdirSync(path.join(workspace, "packages/review/test-fixtures/valid"), { recursive: true });
   fs.writeFileSync(path.join(workspace, "packages/review/schemas/review-report.schema.json"), "{ nope");
   const result = validateReviewSystem({ root: workspace });
   assert.equal(result.status, "failed");

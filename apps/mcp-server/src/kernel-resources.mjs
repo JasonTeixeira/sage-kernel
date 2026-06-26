@@ -119,10 +119,10 @@ export const kernelResources = [
   {
     name: "sage.intelligence.experiments",
     uri: "sage://intelligence/experiments",
-    title: "Sage Intelligence Experiment Fixture",
-    description: "Validated experiment-run fixture showing bounded feedback-loop structure.",
+    title: "Sage Intelligence Experiment Test Fixture",
+    description: "Validated experiment-run test fixture showing bounded feedback-loop structure.",
     mimeType: "application/json",
-    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/experiment-run.json", {})
+    read: (root) => readJson(root, "packages/intelligence/test-fixtures/valid/experiment-run.json", {})
   },
   {
     name: "sage.intelligence.runbooks",
@@ -136,17 +136,17 @@ export const kernelResources = [
     name: "sage.intelligence.operating-cockpit",
     uri: "sage://intelligence/operating-cockpit",
     title: "Sage Intelligence Operating Cockpit",
-    description: "Daily plan, runbooks, eval status, and experiment fixture for cockpit workflows.",
+    description: "Daily plan, runbooks, eval status, and experiment test fixture for cockpit workflows.",
     mimeType: "application/json",
     read: (root) => createOperatingSnapshot({ root })
   },
   {
     name: "sage.intelligence.semantic-adapters",
     uri: "sage://intelligence/semantic-adapters",
-    title: "Sage Intelligence Semantic Adapter Fixture",
-    description: "Validated semantic-code adapter fixture showing read-only capability metadata.",
+    title: "Sage Intelligence Semantic Adapter Test Fixture",
+    description: "Validated semantic-code adapter test fixture showing read-only capability metadata.",
     mimeType: "application/json",
-    read: (root) => readJson(root, "packages/intelligence/fixtures/valid/semantic-adapter.json", {})
+    read: (root) => readJson(root, "packages/intelligence/test-fixtures/valid/semantic-adapter.json", {})
   },
   {
     name: "sage.intelligence.adapters",

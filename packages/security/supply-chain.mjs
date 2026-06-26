@@ -1,5 +1,27 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { scanForSecrets } from "./secret-scan.mjs";
+import { scanSast } from "./sast.mjs";
+
+// Run npm audit and fold real dependency vulnerabilities into the security proof.
+// Degrades gracefully: if audit cannot run (no lockfile, parse error), the gate
+// is "skipped" — never a false "failed" and never a false "passed".
+export function dependencyAudit(options = {}) {
+  if (options.auditor) return options.auditor();
+  const root = options.root || process.cwd();
+  const result = spawnSync("npm", ["audit", "--json"], { cwd: root, encoding: "utf8", timeout: 120000 });
+  if (!result.stdout) return { status: "skipped", reason: "npm audit produced no output" };
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    return { status: "skipped", reason: "could not parse npm audit output" };
+  }
+  const vulnerabilities = parsed.metadata?.vulnerabilities || {};
+  const high = (vulnerabilities.high || 0) + (vulnerabilities.critical || 0);
+  return { status: high > 0 ? "failed" : "passed", high, vulnerabilities };
+}
 
 const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "coverage", "dist", "build", "generated"]);
 const HIGH_RISK_DEPENDENCY_PATTERNS = [/^left-pad$/i, /event-stream/i, /flatmap-stream/i];
@@ -75,6 +97,9 @@ export function createSupplyChainReport(options = {}) {
 export function createSecurityProof(options = {}) {
   const threatModel = generateThreatModel(options);
   const supplyChain = createSupplyChainReport(options);
+  const secretScan = options.secretScan || scanForSecrets({ root: options.root });
+  const audit = options.dependencyAudit || dependencyAudit({ root: options.root });
+  const sast = options.sast || scanSast({ root: options.root, projectPath: options.projectPath });
   const findings = [
     ...threatModel.threats
       .filter((threat) => ["critical", "high"].includes(threat.severity))
@@ -84,20 +109,49 @@ export function createSecurityProof(options = {}) {
         evidence: threat.evidence,
         recommendation: threat.mitigation
       })),
-    ...supplyChain.findings
+    ...supplyChain.findings,
+    ...secretScan.findings.map((finding) => ({
+      severity: "high",
+      message: `Secret detected: ${finding.pattern}`,
+      evidence: finding.file,
+      recommendation: "Remove the secret and rotate the credential."
+    })),
+    ...sast.findings.map((finding) => ({
+      severity: finding.severity,
+      message: `${finding.rule}: ${finding.message}`,
+      evidence: finding.evidence,
+      recommendation: finding.recommendation
+    })),
+    ...(audit.status === "failed"
+      ? [{ severity: "high", message: `${audit.high} high/critical dependency vulnerabilities`, evidence: "npm audit", recommendation: "Upgrade or replace the vulnerable dependencies." }]
+      : [])
   ];
+  const status =
+    threatModel.status === "passed" &&
+    supplyChain.status === "passed" &&
+    secretScan.status !== "failed" &&
+    sast.status !== "failed" &&
+    audit.status !== "failed"
+      ? "passed"
+      : "needs_work";
   return {
-    status: threatModel.status === "passed" && supplyChain.status === "passed" ? "passed" : "needs_work",
+    status,
     generatedAt: new Date().toISOString(),
     threatModel,
     supplyChain,
+    secretScan,
+    sast,
+    dependencyAudit: audit,
     findings,
     gates: [
       { name: "threat-model", status: threatModel.status },
       { name: "supply-chain", status: supplyChain.status },
       { name: "license", status: supplyChain.license.status },
       { name: "dependency-risk", status: supplyChain.dependencyRisk.status },
-      { name: "scorecard", status: supplyChain.scorecard.status }
+      { name: "scorecard", status: supplyChain.scorecard.status },
+      { name: "secret-scan", status: secretScan.status },
+      { name: "sast", status: sast.status },
+      { name: "dependency-audit", status: audit.status }
     ]
   };
 }

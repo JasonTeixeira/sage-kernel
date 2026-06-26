@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sage-kernel/proof/graph-schema.json",
+  "title": "Sage Kernel Proof Graph",
+  "description": "Typed graph connecting goals to evidence so claims can be rejected without a proof path.",
+  "type": "object",
+  "required": ["nodes", "edges"],
+  "properties": {
+    "meta": { "type": "object" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "goal",
+              "requirement",
+              "acceptance_criterion",
+              "risk",
+              "changed_file",
+              "test",
+              "command",
+              "mcp_tool_call",
+              "review_finding",
+              "security_finding",
+              "redteam_case",
+              "release_gate",
+              "proof",
+              "claim",
+              "score"
+            ]
+          },
+          "label": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "type"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "satisfies",
+              "tests",
+              "covers",
+              "depends_on",
+              "produced_by",
+              "verified_by",
+              "blocked_by",
+              "supersedes",
+              "regressed_from"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

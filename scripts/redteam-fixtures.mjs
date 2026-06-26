@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { runExecutableRedteam } from "../packages/security/redteam-fixtures.mjs";
+import { runExecutableRedteam } from "../packages/security/test-fixtures/redteam.mjs";
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const report = runExecutableRedteam({ root: process.cwd() });

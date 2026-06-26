@@ -5,6 +5,7 @@ import { createKernelRuntime } from "../../../packages/core/runtime.mjs";
 import { registerKernelPrompts } from "./kernel-prompts.mjs";
 import { registerKernelResources } from "./kernel-resources.mjs";
 import { toMcpTextContent } from "./kernel-tools.mjs";
+import { loadProjectPlugins } from "../../../packages/plugins/registry.mjs";
 
 const root = process.cwd();
 
@@ -16,6 +17,9 @@ export async function createServer() {
 
   const runtime = createKernelRuntime({ root });
   await runtime.loadBuiltInTools();
+  // Load project-supplied plugins (languages/engines/profiles) so extensibility
+  // is real: a project adds capability by dropping a file in .sage-kernel/plugins.
+  await loadProjectPlugins({ root });
 
   for (const tool of runtime.entries()) {
     server.registerTool(tool.name, { description: tool.description, inputSchema: tool.zodSchema }, async (input) => {

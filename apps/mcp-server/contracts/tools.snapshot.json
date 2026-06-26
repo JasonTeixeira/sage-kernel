@@ -272,12 +272,12 @@
     },
     {
       "name": "kernel.loop.prove",
-      "description": "Run deterministic proof fixtures for the closed-loop workflow engine.",
+      "description": "Run deterministic test-fixtures for the closed-loop workflow engine.",
       "risk": "safe",
       "permission": "workflow:read",
       "approvalRequired": false,
       "sideEffects": "none",
-      "outputShape": "Proof report for planned, dry-run, and runner-backed closed-loop workflows.",
+      "outputShape": "Proof report for plan, dry-run, and runner-backed closed-loop workflows.",
       "examples": [
         {
           "description": "Prove closed-loop workflows.",
@@ -285,7 +285,7 @@
         }
       ],
       "failureModes": [
-        "Closed-loop fixture proof fails."
+        "Closed-loop test-fixture proof fails."
       ],
       "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
       "required": []
@@ -362,11 +362,11 @@
     },
     {
       "name": "kernel.workflow_engine.prove",
-      "description": "Run the deterministic workflow engine fixture that fails, repairs through a bounded retry, and passes.",
+      "description": "Run the deterministic workflow engine test-fixture that fails, repairs through a bounded retry, and passes.",
       "risk": "mutating",
       "permission": "workflow:read",
       "approvalRequired": false,
-      "sideEffects": "creates a temporary fixture project and runs npm test inside it",
+      "sideEffects": "creates a temporary test-fixture project and runs npm test inside it",
       "outputShape": "Workflow engine proof report with before failure, repaired workflow run, after pass, audit trail, and repair evidence.",
       "examples": [
         {
@@ -377,7 +377,7 @@
       "failureModes": [
         "Fixture setup fails.",
         "The controlled failing test does not fail before repair.",
-        "The repaired fixture test does not pass."
+        "The repaired test-fixture test does not pass."
       ],
       "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
       "required": []
@@ -1803,6 +1803,416 @@
       "required": []
     },
     {
+      "name": "kernel.cockpit.status",
+      "description": "Gather the terminal cockpit snapshot: proof-ledger totals, recent proofs, and latest evidence-report statuses.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Cockpit snapshot with proofs (total/passed/failed/recent) and evidence statuses.",
+      "examples": [
+        {
+          "description": "Read the live kernel cockpit status.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Proof ledger or evidence directory cannot be read."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
+      "name": "kernel.security.polyglot",
+      "description": "Pattern-level SAST for Python and Swift (command injection, eval/exec, insecure deserialization, TLS-verify-off, weak hash, insecure WebView/keychain), with optional external deep-scanner fold.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Polyglot SAST report: status, languages, filesScanned, high count, findings[], summary.",
+      "examples": [
+        {
+          "description": "Scan the repo's Python/Swift files.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Source files cannot be read."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
+      "name": "kernel.chaos.matrix",
+      "description": "Run the resilience fault-injection matrix: lease contention, stale/dead-holder takeover, corrupt-lock recovery, ledger partial-write detection, DAG fail-closed, durable resume, concurrent-run isolation.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Chaos matrix report: status, total, passed, scenarios[] each with status and evidence.",
+      "examples": [
+        {
+          "description": "Prove the kernel's IO primitives recover under fault injection.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "A recovery invariant is violated (a scenario fails)."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.perf.incremental",
+      "description": "Run the incremental SAST cache cold then warm and report the speedup, cache hit/miss rates, and that warm findings match cold (proves incremental analysis works).",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Perf report: status, filesScanned, cold/warm perf stats, findings count, incremental-gain verdict.",
+      "examples": [
+        {
+          "description": "Measure incremental analysis speedup on the repo.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Source files cannot be read."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
+      "name": "kernel.runtime.gate",
+      "description": "Evaluate production-grade runtime readiness (Lighthouse scores, browser console errors, critical-flow smoke) against thresholds; reports blocked_not_available when no app/browser toolchain is present.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Runtime verdict: status (passed|failed|blocked_not_available), capability, and lighthouse/console/smoke sub-verdicts when run live.",
+      "examples": [
+        {
+          "description": "Check runtime/production-grade readiness of the target.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Target package.json cannot be read."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
+      "name": "kernel.autonomy.harness",
+      "description": "Run the self-healing close-loop over a seeded-bug corpus with the deterministic known-fix fixer; reports detect-rate, close-rate, rollback count, and the no-fake-close invariant.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Autonomy harness report: total, detected, closed, rolledBack, detectRate, closeRate, noFakeClose, results[].",
+      "examples": [
+        {
+          "description": "Prove the self-healing loop mechanics (detect -> fix -> re-verify -> rollback).",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "A seeded bug's detector cannot run."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.intake.prd",
+      "description": "Synthesize a structured PRD (goals, user stories, requirements, non-goals, risks) from a one-line idea + profile; every profile required-check becomes a covered requirement.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "PRD: idea, profileId, goals[], userStories[], requirements[], nonGoals[], risks[], coversAllRequiredChecks.",
+      "examples": [
+        {
+          "description": "PRD for a payments webhook.",
+          "input": {
+            "idea": "stripe webhook handler",
+            "profile": "payments-system"
+          }
+        }
+      ],
+      "failureModes": [
+        "Idea is empty (still produces a profile-derived PRD)."
+      ],
+      "inputHash": "1f93aad947f2a768f644a986c803962a9aafd7849522e1f1e502d0047cdb57cf",
+      "required": [
+        "idea"
+      ]
+    },
+    {
+      "name": "kernel.intake.design",
+      "description": "Derive a minimal architecture (components, data flows, ADR decisions) from an idea + profile.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Architecture: profileId, components[], dataFlows[], decisions[] (ADR stubs).",
+      "examples": [
+        {
+          "description": "Design for a SaaS dashboard.",
+          "input": {
+            "idea": "multi-tenant dashboard",
+            "profile": "saas-app"
+          }
+        }
+      ],
+      "failureModes": [
+        "Idea is empty (still produces a profile-derived design)."
+      ],
+      "inputHash": "1f93aad947f2a768f644a986c803962a9aafd7849522e1f1e502d0047cdb57cf",
+      "required": [
+        "idea"
+      ]
+    },
+    {
+      "name": "kernel.intake.contract",
+      "description": "Full intake: idea + profile -> PRD + architecture + a VALID executable task contract (the loop's input) + a generation spec. Closes the gap from intent to the proven engineering loop.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ prd, design, contract, spec, contractValid, contractErrors } — contract is a ready/implementable task contract.",
+      "examples": [
+        {
+          "description": "Idea to executable contract.",
+          "input": {
+            "idea": "stripe webhook handler",
+            "profile": "payments-system"
+          }
+        }
+      ],
+      "failureModes": [
+        "Idea is empty (produces a profile-derived contract)."
+      ],
+      "inputHash": "1f93aad947f2a768f644a986c803962a9aafd7849522e1f1e502d0047cdb57cf",
+      "required": [
+        "idea"
+      ]
+    },
+    {
+      "name": "kernel.generation.scaffold",
+      "description": "Generate code files from an idea + profile (via intake spec). Returns the file set WITHOUT writing — generated code must pass kernel.generation.prove before use.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ name, profileId, files:[{path, content}] } — a preview file set, not written to disk.",
+      "examples": [
+        {
+          "description": "Scaffold a payments service.",
+          "input": {
+            "idea": "stripe webhook service",
+            "profile": "payments-system"
+          }
+        }
+      ],
+      "failureModes": [
+        "The derived generation spec is invalid."
+      ],
+      "inputHash": "1f93aad947f2a768f644a986c803962a9aafd7849522e1f1e502d0047cdb57cf",
+      "required": [
+        "idea"
+      ]
+    },
+    {
+      "name": "kernel.generation.prove",
+      "description": "Generate code from an idea + profile and run the prove-or-discard gate over it (SAST + polyglot + parse). Accepts only when there are zero high findings and all code parses.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ accepted, fileCount, high, unparseable[], findings[], reason } — generated code is never trusted until this accepts.",
+      "examples": [
+        {
+          "description": "Prove generated payments code.",
+          "input": {
+            "idea": "stripe webhook service",
+            "profile": "payments-system"
+          }
+        }
+      ],
+      "failureModes": [
+        "The derived generation spec is invalid."
+      ],
+      "inputHash": "1f93aad947f2a768f644a986c803962a9aafd7849522e1f1e502d0047cdb57cf",
+      "required": [
+        "idea"
+      ]
+    },
+    {
+      "name": "kernel.security.dataflow",
+      "description": "Cross-file (interprocedural) taint analysis: untrusted input in one file forwarded to an imported function whose parameter reaches a shell/eval/SQL sink. Conservative direct-call chains (depth<=2).",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ status, filesScanned, high, findings[] (each with sourceFile/sinkFile/depth), depthLimit }.",
+      "examples": [
+        {
+          "description": "Scan the repo for cross-file taint chains.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "A high-severity interprocedural taint chain is found."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
+      "name": "kernel.deploy.verify_rollback",
+      "description": "Run the deploy->verify->rollback loop with the real local provider: a healthy deploy is kept; a bad deploy fails verification and is rolled back to the previous good version (fail-closed). Cloud providers are credential-gated.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ happyPath, failurePath, restoredTo } — proves a bad deploy never stays live.",
+      "examples": [
+        {
+          "description": "Prove the deploy/verify/rollback loop.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Local server cannot bind a port."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.sdlc.e2e",
+      "description": "Run the full SDLC arc on an isolated fixture: idea -> intake contract -> generation (prove-or-discard) -> SAST -> dataflow -> runtime -> deploy(verify/rollback) -> score. A defect injected at generation stops the pipeline before deploy (fail-closed).",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ status, stoppedAt, score, stages:[{stage,status}] } — proves the whole idea->proven arc composes.",
+      "examples": [
+        {
+          "description": "Run the full SDLC pipeline for a payments idea.",
+          "input": {
+            "idea": "stripe webhook handler",
+            "profile": "payments-system"
+          }
+        }
+      ],
+      "failureModes": [
+        "A stage fails; or with injectDefect the pipeline stops before deploy."
+      ],
+      "inputHash": "ad6e7b4babe66ef7368382eac58acaaf900b6bd21e8560e34cdd9357c0e28577",
+      "required": []
+    },
+    {
+      "name": "kernel.enforce.proof_gate",
+      "description": "Enforcement gate: returns whether the CURRENT working state is backed by a fresh, untampered, PASSING operate:run proof matching the current git diff. Blocks done when work was edited after the last proof. Used as a Stop-hook to make the proof loop mandatory.",
+      "risk": "safe",
+      "permission": "read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ allowed, reason, proofId?, diffHash? } — allowed only when a passing operate:run proof matches the current diff and the ledger verifies clean.",
+      "examples": [
+        {
+          "description": "Check if current work is proof-backed before declaring done.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Not a git repo (cannot bind a proof to the working state)."
+      ],
+      "inputHash": "87ffe2dacabd8580ec04b73227041ecf643b85b87da8a9f63f14b22341b71aaa",
+      "required": []
+    },
+    {
+      "name": "kernel.contract.install",
+      "description": "Render the single canonical Sage Operating Contract into a target project per model client (CLAUDE.md / .cursorrules / AGENTS.md). One source, idempotent, between managed markers so hand-authored content is preserved. Makes the kernel model-agnostic across Claude Code, Cursor, and other agents.",
+      "risk": "safe",
+      "permission": "write",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ written:[clientFile...], contractHash, root } — the client files updated and the sha256 of the canonical contract body.",
+      "examples": [
+        {
+          "description": "Install the operating contract into the current project for all default clients.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Target directory is not writable."
+      ],
+      "inputHash": "5c053db4b891762177aac47941ce462e208decfea6a68babe84f7a68d73d10fd",
+      "required": []
+    },
+    {
+      "name": "kernel.goal.drive",
+      "description": "Long-horizon autonomous driver: decompose a single objective into a task DAG, drive each task through the proof-first operate loop in dependency order (skipping tasks already backed by a passing proof), and loop to whole-goal acceptance. Returns a TYPED stop reason (completed / blocked_unsatisfiable / blocked_task_failed / needs_approval / max_rounds). Idempotent re-runs.",
+      "risk": "mutating",
+      "permission": "write",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "{ goalId, objective, stopReason, completed, detail, tasks:[{id,status,skipped?}], proofId } — every task and the goal are anchored in the ledger.",
+      "examples": [
+        {
+          "description": "Drive an objective decomposed into an explicit task DAG.",
+          "input": {
+            "objective": "ship export feature",
+            "tasks": [
+              {
+                "id": "api",
+                "goal": "build export api"
+              },
+              {
+                "id": "ui",
+                "goal": "build export ui",
+                "deps": [
+                  "api"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "failureModes": [
+        "objective is missing.",
+        "Task DAG contains a dependency cycle (blocked_unsatisfiable).",
+        "A task requires approval and approve was not set (needs_approval)."
+      ],
+      "inputHash": "3255c5e6d8c6f8660f98b6f012fd2885bfdfc0fbddb4a450355d27b713dbfef3",
+      "required": [
+        "objective"
+      ]
+    },
+    {
+      "name": "kernel.security.sast",
+      "description": "Run AST-based static application security testing for command injection, dynamic code execution, path traversal, and prototype pollution.",
+      "risk": "safe",
+      "permission": "security:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "SAST report with status, high/medium counts, files scanned, and findings (rule, severity, evidence, recommendation).",
+      "examples": [
+        {
+          "description": "Run static security analysis over the current repo.",
+          "input": {
+            "projectPath": "."
+          }
+        }
+      ],
+      "failureModes": [
+        "Project path is outside allowed security roots.",
+        "Source files cannot be parsed for analysis."
+      ],
+      "inputHash": "0cf3e9fb56c337390af7904b311bb1fde9304beab97401e7355f9e4900d5e977",
+      "required": []
+    },
+    {
       "name": "kernel.testing.strategy",
       "description": "Generate a profile-aware test strategy with required layers, proof expectations, commands, and evidence.",
       "risk": "safe",
@@ -2191,6 +2601,742 @@
         "Any drift map, scope, contract, documentation, or permission check has a blocking finding."
       ],
       "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.proof.record",
+      "description": "Record an append-only, tamper-evident proof entry for a command or tool run.",
+      "risk": "mutating",
+      "permission": "proof:write",
+      "approvalRequired": false,
+      "sideEffects": "Appends a record to the local proof ledger.",
+      "outputShape": "Recorded proof object with proofId, inputHash, outputHash, git state, prevHash, and recordHash.",
+      "examples": [
+        {
+          "description": "Record a passing test run as a proof.",
+          "input": {
+            "tool": "npm test",
+            "status": "passed"
+          }
+        }
+      ],
+      "failureModes": [
+        "Proof record is malformed and is rejected before being persisted.",
+        "The proof ledger directory is not writable."
+      ],
+      "inputHash": "edfc05f97be1612f088743c5aab1e432bbc92e2f6c827acfd83b8f6688b4b225",
+      "required": [
+        "tool",
+        "status"
+      ]
+    },
+    {
+      "name": "kernel.proof.get",
+      "description": "Fetch a single proof record by proofId.",
+      "risk": "safe",
+      "permission": "proof:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "A single proof record, or null when no record matches the proofId.",
+      "examples": [
+        {
+          "description": "Fetch a proof by id.",
+          "input": {
+            "proofId": "proof_00000000-0000-0000-0000-000000000000"
+          }
+        }
+      ],
+      "failureModes": [
+        "The proof ledger does not exist yet."
+      ],
+      "inputHash": "f06ad87bf329ae2ca8dca33d6c61ad8af582f852ed8fe4eca00bc659043e73d7",
+      "required": [
+        "proofId"
+      ]
+    },
+    {
+      "name": "kernel.proof.list",
+      "description": "List proof records, optionally filtered by runId, status, or tool.",
+      "risk": "safe",
+      "permission": "proof:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "An array of proof records matching the requested filters.",
+      "examples": [
+        {
+          "description": "List the 10 most recent proofs.",
+          "input": {
+            "limit": 10
+          }
+        }
+      ],
+      "failureModes": [
+        "The proof ledger does not exist yet."
+      ],
+      "inputHash": "126d4a45438c8f3b21835b3e5526699061aa427218fb2ad5cf42556ab614f902",
+      "required": []
+    },
+    {
+      "name": "kernel.proof.verify",
+      "description": "Verify proof integrity: a single proofId, or the whole ledger hash chain when no id is given.",
+      "risk": "safe",
+      "permission": "proof:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Verification verdict with status (verified, tampered, missing, or empty) and a list of issues.",
+      "examples": [
+        {
+          "description": "Verify the entire proof ledger chain.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "The proof ledger does not exist yet.",
+        "A record or artifact was tampered with after it was written."
+      ],
+      "inputHash": "6c2e32f9627e97f89f28093152e5d33e6eda36e273308936c0471c11db142d2d",
+      "required": []
+    },
+    {
+      "name": "kernel.proof_graph.build",
+      "description": "Build a proof graph from real repo state (goal, git changed files, test imports, and ledger proofs) and persist it.",
+      "risk": "mutating",
+      "permission": "proof_graph:write",
+      "approvalRequired": false,
+      "sideEffects": "Writes the latest proof graph to the local evidence directory.",
+      "outputShape": "Proof graph object with typed nodes and edges connecting goals to evidence.",
+      "examples": [
+        {
+          "description": "Build a proof graph for the current goal.",
+          "input": {
+            "goal": "Ship Phase C with proof"
+          }
+        }
+      ],
+      "failureModes": [
+        "The repository is not a git work tree, so changed files cannot be derived."
+      ],
+      "inputHash": "97240176a443611aed39605719ea369397d27fb76e1489519c025be8cdedbbb0",
+      "required": []
+    },
+    {
+      "name": "kernel.proof_graph.query",
+      "description": "Query the latest proof graph by node type, edge type, or endpoint.",
+      "risk": "safe",
+      "permission": "proof_graph:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Filtered nodes and edges from the latest proof graph.",
+      "examples": [
+        {
+          "description": "List all claim nodes in the graph.",
+          "input": {
+            "nodeType": "claim"
+          }
+        }
+      ],
+      "failureModes": [
+        "No proof graph has been built yet."
+      ],
+      "inputHash": "51f4d552f4eada18b123a23508455666c341a2eee162973a07219747a51cfa99",
+      "required": []
+    },
+    {
+      "name": "kernel.proof_graph.validate",
+      "description": "Validate the latest proof graph: structure, claims without a proof path, and release gates without proof edges.",
+      "risk": "safe",
+      "permission": "proof_graph:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Validation result with status, findings, and node/edge/claim counts.",
+      "examples": [
+        {
+          "description": "Validate the proof graph.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "No proof graph has been built yet.",
+        "A claim or release gate has no path to a passing proof."
+      ],
+      "inputHash": "ff31bb22db3c69309d85a3c104b55ff74a3ae97f86eed64c271621ce14786a77",
+      "required": []
+    },
+    {
+      "name": "kernel.claims.verify",
+      "description": "Verify a report or final answer against the proof ledger: reject success claims with no backing proof, downgrade stale evidence, and reject unsupported public-release or client-connection claims.",
+      "risk": "safe",
+      "permission": "claims:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Verification result with status, per-claim findings, and violations.",
+      "examples": [
+        {
+          "description": "Verify a claim that cites a proof id.",
+          "input": {
+            "text": "Tests passed [proof_00000000-0000-0000-0000-000000000000]."
+          }
+        }
+      ],
+      "failureModes": [
+        "Text contains a success claim with no backing proof.",
+        "Text contains a stale or external claim that cannot be evidenced."
+      ],
+      "inputHash": "f3a1e2d34406faebd04fb2d3a36b944f82700651a62f56d3aec380a34f12dcd0",
+      "required": [
+        "text"
+      ]
+    },
+    {
+      "name": "kernel.contract.create",
+      "description": "Convert a goal into an executable task contract: objective, profile, risk classification, and required test/review/security/release gates.",
+      "risk": "safe",
+      "permission": "contract:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Task contract with profile, risk classification, required gates, and status (ready or blocked_missing_acceptance_criteria).",
+      "examples": [
+        {
+          "description": "Create a contract for an auth feature.",
+          "input": {
+            "goal": "Add OAuth login",
+            "acceptanceCriteria": [
+              "Rejects invalid tokens"
+            ]
+          }
+        }
+      ],
+      "failureModes": [
+        "The goal is empty."
+      ],
+      "inputHash": "24079b42dac9dbf35188b5978a971effabc56459f32f96de36810b41ff015163",
+      "required": [
+        "goal"
+      ]
+    },
+    {
+      "name": "kernel.contract.validate",
+      "description": "Validate a task contract against the contract schema.",
+      "risk": "safe",
+      "permission": "contract:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Validation result with valid flag and a list of errors.",
+      "examples": [
+        {
+          "description": "Validate a contract object.",
+          "input": {
+            "contract": {
+              "contractId": "contract_x"
+            }
+          }
+        }
+      ],
+      "failureModes": [
+        "The contract is missing required fields."
+      ],
+      "inputHash": "8cb8a46edce8cd98746211483180d194e1c8d796b2c36d0be6f9f0276ddb59e4",
+      "required": [
+        "contract"
+      ]
+    },
+    {
+      "name": "kernel.risk.classify_diff",
+      "description": "Classify changed files (or the current git diff) into risk classes and the gate categories they require.",
+      "risk": "safe",
+      "permission": "risk:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Risk classification with riskLevel, classes, per-file classes, and requiredGates.",
+      "examples": [
+        {
+          "description": "Classify a package.json change.",
+          "input": {
+            "files": [
+              "package.json"
+            ]
+          }
+        }
+      ],
+      "failureModes": [
+        "The repository is not a git work tree and no files were provided."
+      ],
+      "inputHash": "dbbf9c4cb1dbe4cf2d22f5a54d69963911c28bb8a73e9d5df1af9ab87b940fa4",
+      "required": []
+    },
+    {
+      "name": "kernel.testing.impact",
+      "description": "Map changed files to the tests that exercise them via import analysis and a static surface map.",
+      "risk": "safe",
+      "permission": "testing:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Impact map with per-file mapped tests, uncovered files, and required tests.",
+      "examples": [
+        {
+          "description": "Map tests for a changed MCP tool file.",
+          "input": {
+            "files": [
+              "apps/mcp-server/src/kernel-tools.mjs"
+            ]
+          }
+        }
+      ],
+      "failureModes": [
+        "A risky changed file has no mapped test (uncovered)."
+      ],
+      "inputHash": "21e446c1bcc110469af6bafba3e81733bd9463372a7b404bb695bf3778522a2e",
+      "required": []
+    },
+    {
+      "name": "kernel.operate.run",
+      "description": "Run the daily SDLC operating loop for a goal: contract, profile, risk, test impact, required gates, bounded repair, score, and an evidence-backed report.",
+      "risk": "mutating",
+      "permission": "operate:write",
+      "approvalRequired": false,
+      "sideEffects": "Runs required gates, records proofs, and writes the proof graph.",
+      "outputShape": "Operate report with status, contractId, score, gates, blockers, nextActions, evidenceIds, and claim-firewall result.",
+      "examples": [
+        {
+          "description": "Run the loop for a documentation change.",
+          "input": {
+            "goal": "Improve the getting-started docs",
+            "acceptanceCriteria": [
+              "Reads clearly"
+            ]
+          }
+        }
+      ],
+      "failureModes": [
+        "Acceptance criteria are missing, so implementation is blocked.",
+        "A required gate fails and cannot be repaired within budget."
+      ],
+      "inputHash": "195048476a16d66c8e6a38fc9d9e8045f907b8e6c833a34aec36f84beea71f5c",
+      "required": [
+        "goal"
+      ]
+    },
+    {
+      "name": "kernel.testing.mutation",
+      "description": "Run mutation testing on a target file against its tests: plant faults and verify the tests kill them. Surviving mutants lower the mutation score.",
+      "risk": "mutating",
+      "permission": "testing:write",
+      "approvalRequired": false,
+      "sideEffects": "Temporarily rewrites the target file while mutating; the original is always restored.",
+      "outputShape": "Mutation report with mutationScore, killed/total counts, surviving mutants, and restored flag.",
+      "examples": [
+        {
+          "description": "Mutation-test the proof ledger.",
+          "input": {
+            "targetFile": "packages/proof/ledger.mjs",
+            "testFiles": [
+              "tests/proof-ledger.test.mjs"
+            ]
+          }
+        }
+      ],
+      "failureModes": [
+        "Surviving mutants put the mutation score below the threshold.",
+        "The target file or test files do not exist."
+      ],
+      "inputHash": "adbe397023546416b24e9050f8dbe689b8210d4218023e66b6933f5ee2b9ffd7",
+      "required": [
+        "targetFile",
+        "testFiles"
+      ]
+    },
+    {
+      "name": "kernel.agents.route",
+      "description": "Select the right agent for each gate of a goal, based on detected languages, profile, and risk.",
+      "risk": "safe",
+      "permission": "agents:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Routing plan with profile, languages, risk level, and an agent assignment per gate.",
+      "examples": [
+        {
+          "description": "Route agents for an auth feature.",
+          "input": {
+            "goal": "Add OAuth login"
+          }
+        }
+      ],
+      "failureModes": [
+        "The goal is empty."
+      ],
+      "inputHash": "2530df653ed54fceec982c17e8dbd667dd77af6595f084f16461bb0a001aeb92",
+      "required": [
+        "goal"
+      ]
+    },
+    {
+      "name": "kernel.hallucination.scan",
+      "description": "Measure the hallucination rate of a report or answer: the fraction of success claims with no backing evidence (unsupported, stale, or external_unproven).",
+      "risk": "safe",
+      "permission": "hallucination:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Hallucination report with totalClaims, supportedClaims, hallucinatedClaims, rate, and the offending lines.",
+      "examples": [
+        {
+          "description": "Scan a report for hallucinated claims.",
+          "input": {
+            "text": "The release is done and shipped."
+          }
+        }
+      ],
+      "failureModes": [
+        "The text contains success claims with no backing proof."
+      ],
+      "inputHash": "f3a1e2d34406faebd04fb2d3a36b944f82700651a62f56d3aec380a34f12dcd0",
+      "required": [
+        "text"
+      ]
+    },
+    {
+      "name": "kernel.profile.learn",
+      "description": "Record an operator profile correction for this repository so future runs pick it automatically. Tracks detection accuracy over time.",
+      "risk": "mutating",
+      "permission": "profile:write",
+      "approvalRequired": false,
+      "sideEffects": "Writes a per-repo profile override to the local learning store.",
+      "outputShape": "The recorded override plus learning stats (overrides, feedback, detection accuracy).",
+      "examples": [
+        {
+          "description": "Teach the kernel that this repo is an mcp-server.",
+          "input": {
+            "profile": "mcp-server",
+            "reason": "operator confirmed"
+          }
+        }
+      ],
+      "failureModes": [
+        "The profile id is unknown."
+      ],
+      "inputHash": "2e33da0cc9a744f2cefcaa64931baa9d9784e2b15704eb5ae179fc51d9bd590f",
+      "required": [
+        "profile"
+      ]
+    },
+    {
+      "name": "kernel.daemon.status",
+      "description": "Report the daemon supervisor status from its heartbeat: running, stale, or stopped, with age and restart count.",
+      "risk": "safe",
+      "permission": "daemon:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Status (running/stale/stopped) with heartbeat age and the latest heartbeat record.",
+      "examples": [
+        {
+          "description": "Check daemon health.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "No daemon heartbeat exists yet (stopped)."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.operate.diagnose",
+      "description": "Diagnose a failing gate's output: classify the failure, localize the file:line, and emit a targeted repair instruction.",
+      "risk": "safe",
+      "permission": "operate:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Diagnosis with category, message, primaryLocation, impactedFiles, and a repair instruction.",
+      "examples": [
+        {
+          "description": "Diagnose a test failure.",
+          "input": {
+            "stderr": "AssertionError at packages/x.mjs:10:3"
+          }
+        }
+      ],
+      "failureModes": [
+        "The output contains no recognizable error."
+      ],
+      "inputHash": "23719d56d53d594cf3ddb285b9e5b27a3dda5d1df990fea6f612a0dc60a38a9f",
+      "required": []
+    },
+    {
+      "name": "kernel.agents.verify",
+      "description": "Adversarially verify a claim/fix: N independent verifiers must reach a strict majority. Provider-gated (blocked_not_implemented without verifiers).",
+      "risk": "safe",
+      "permission": "agents:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Verdict (verified/rejected/blocked_not_implemented) with confirmed/total/needed and per-verifier votes.",
+      "examples": [
+        {
+          "description": "Verify a proposed fix.",
+          "input": {
+            "claim": "Fix recordHash mismatch in ledger.mjs"
+          }
+        }
+      ],
+      "failureModes": [
+        "No verifiers configured (blocked_not_implemented)."
+      ],
+      "inputHash": "7954b286f42ed52e89390ded0980f28dc39d6c3322c2bb711be2ffa743e37c4b",
+      "required": [
+        "claim"
+      ]
+    },
+    {
+      "name": "kernel.evals.model_rubric",
+      "description": "Run a model-backed eval: pass@1/pass@k/pass^k plus hallucination rate from stochastic samples. Provider-gated (blocked_not_implemented without a grader).",
+      "risk": "safe",
+      "permission": "evals:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Eval result with passAt1, passAtK, passPowerK, hallucinationRate, and per-sample results.",
+      "examples": [
+        {
+          "description": "Grade a task with 3 samples.",
+          "input": {
+            "task": {
+              "id": "fix-bug"
+            },
+            "samples": 3
+          }
+        }
+      ],
+      "failureModes": [
+        "No model grader configured (blocked_not_implemented)."
+      ],
+      "inputHash": "a312e866439c97b32c69fe2d8f2cb2601c7c438a177286a3133cdc0050976573",
+      "required": []
+    },
+    {
+      "name": "kernel.evals.ground",
+      "description": "Factual grounding: flag references to files that do not exist in the repository (factual hallucinations beyond unbacked claims).",
+      "risk": "safe",
+      "permission": "evals:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Grounding result with status, references, and ungrounded (non-existent) file references.",
+      "examples": [
+        {
+          "description": "Ground a report.",
+          "input": {
+            "text": "edited packages/proof/ledger.mjs"
+          }
+        }
+      ],
+      "failureModes": [
+        "The text references files that do not exist in the repo."
+      ],
+      "inputHash": "f3a1e2d34406faebd04fb2d3a36b944f82700651a62f56d3aec380a34f12dcd0",
+      "required": [
+        "text"
+      ]
+    },
+    {
+      "name": "kernel.learning.outcomes",
+      "description": "Per-repo outcome learning: loop pass-rate statistics and the recommended loop based on evidenced outcomes.",
+      "risk": "safe",
+      "permission": "learning:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Outcome stats per loop plus the outcome-learned recommendation (or null when insufficient data).",
+      "examples": [
+        {
+          "description": "Read learned outcomes.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "No outcomes recorded yet."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.learning.recall_fix",
+      "description": "Recall the most similar past fix for a failure signature via vector (cosine) similarity over the fix knowledge base.",
+      "risk": "safe",
+      "permission": "learning:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "The closest past fix above threshold (with similarity score) or a no_match status.",
+      "examples": [
+        {
+          "description": "Recall a fix for an assertion failure.",
+          "input": {
+            "signature": {
+              "category": "assertion",
+              "message": "recordHash mismatch"
+            }
+          }
+        }
+      ],
+      "failureModes": [
+        "No sufficiently similar past fix exists."
+      ],
+      "inputHash": "0a85a9fc139d28b7b42d9fe512b26ce1b056852c4fbf704938ded1d83c79cf35",
+      "required": [
+        "signature"
+      ]
+    },
+    {
+      "name": "kernel.policy.explain",
+      "description": "Explain the capability policy decision for a requested action (write_path, command, or network), including whether it is allowed and whether approval is required.",
+      "risk": "safe",
+      "permission": "policy:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Policy decision with allowed/requiresApproval/reasons plus the governing rules.",
+      "examples": [
+        {
+          "description": "Check a destructive command.",
+          "input": {
+            "kind": "command",
+            "value": "rm -rf /"
+          }
+        }
+      ],
+      "failureModes": [
+        "The capability kind is unknown."
+      ],
+      "inputHash": "ddaf61e7b51e118b7465b04e48534f10629f3958999bfa105cc280f9287be1df",
+      "required": [
+        "kind",
+        "value"
+      ]
+    },
+    {
+      "name": "kernel.security.dlp",
+      "description": "Redact secrets from text (DLP). Returns the redacted text and the secret rules that matched.",
+      "risk": "safe",
+      "permission": "security:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Redacted text plus findings (rule and count) and total redactions.",
+      "examples": [
+        {
+          "description": "Redact a leaked key.",
+          "input": {
+            "text": "api_key=PLACEHOLDER_VALUE"
+          }
+        }
+      ],
+      "failureModes": [
+        "The input text is missing."
+      ],
+      "inputHash": "f3a1e2d34406faebd04fb2d3a36b944f82700651a62f56d3aec380a34f12dcd0",
+      "required": [
+        "text"
+      ]
+    },
+    {
+      "name": "kernel.refactor.dead_code",
+      "description": "Detect dead code with no dependencies: orphan files (unreachable from entrypoints), unused dependencies, and unused-export candidates.",
+      "risk": "safe",
+      "permission": "refactor:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Dead-code report with status, orphanFiles, unusedDependencies, unusedExport candidates, and a summary.",
+      "examples": [
+        {
+          "description": "Scan the repo for dead code.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "Orphan files or unused dependencies are present (or unused exports under strict)."
+      ],
+      "inputHash": "ff31bb22db3c69309d85a3c104b55ff74a3ae97f86eed64c271621ce14786a77",
+      "required": []
+    },
+    {
+      "name": "kernel.loops.list",
+      "description": "List the available engineering loops (refactor-clean, bugfix, feature, hardening-audit) with their phases and required gates.",
+      "risk": "safe",
+      "permission": "loops:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Array of loop definitions with id, title, whenToUse, mutates, phases, and requiredGates.",
+      "examples": [
+        {
+          "description": "List engineering loops.",
+          "input": {}
+        }
+      ],
+      "failureModes": [
+        "The loop registry is invalid."
+      ],
+      "inputHash": "8243f0af367f188a376f2c17b5eabe872a2f7a979813e0d4e2be6d594c2aa259",
+      "required": []
+    },
+    {
+      "name": "kernel.loops.select",
+      "description": "Select the best engineering loop for a goal (explicit > learned per-repo override > goal classification).",
+      "risk": "safe",
+      "permission": "loops:read",
+      "approvalRequired": false,
+      "sideEffects": "none",
+      "outputShape": "Selection with the chosen loop id, source (explicit/learned/classified), and reason.",
+      "examples": [
+        {
+          "description": "Pick a loop for a bug.",
+          "input": {
+            "goal": "fix the failing login bug"
+          }
+        }
+      ],
+      "failureModes": [
+        "The goal is empty and no loop is provided."
+      ],
+      "inputHash": "fb9a502360779559ceb0203d7b05e4c3a4870a9d40e4c66b0b7d0606c3463798",
+      "required": []
+    },
+    {
+      "name": "kernel.loops.learn",
+      "description": "Record a per-repo default engineering loop so future runs select it automatically.",
+      "risk": "mutating",
+      "permission": "loops:write",
+      "approvalRequired": false,
+      "sideEffects": "Writes a per-repo loop override to the local learning store.",
+      "outputShape": "The recorded loop override.",
+      "examples": [
+        {
+          "description": "Default this repo to the refactor-clean loop.",
+          "input": {
+            "loop": "refactor-clean"
+          }
+        }
+      ],
+      "failureModes": [
+        "The loop id is unknown."
+      ],
+      "inputHash": "75380698aa5ab620fb58d79ce8334e398df0b0c485d2b544197c4e1fb8863f26",
+      "required": [
+        "loop"
+      ]
+    },
+    {
+      "name": "kernel.loops.run",
+      "description": "Run an engineering loop for a goal: select the loop, execute its phases as gates through the operate executor with bounded repair, and report a typed stop reason with evidence.",
+      "risk": "mutating",
+      "permission": "loops:write",
+      "approvalRequired": false,
+      "sideEffects": "Runs the loop's gates, records proofs, and writes the proof graph.",
+      "outputShape": "Operate report plus loopSelection and loop stop reason (completed, required_gate_failed, needs_work, blocked_needs_approval).",
+      "examples": [
+        {
+          "description": "Run a refactor-clean loop.",
+          "input": {
+            "goal": "refactor and remove dead code"
+          }
+        }
+      ],
+      "failureModes": [
+        "A required-before-exit gate fails and cannot be repaired within budget.",
+        "Acceptance criteria are missing, so implementation is blocked."
+      ],
+      "inputHash": "bbea408657a4761c4281e44d2ba15fc35c0c518185c7777bf7199467d7264467",
       "required": []
     }
   ]

@@ -36,7 +36,7 @@
     "Stress matrix emits latency, failure, and memory evidence.",
     "Retrieval proof emits citations and freshness fields.",
     "Orchestration proof emits durable trace and replay metadata.",
-    "Observability proof emits trace-shaped spans and metrics."
+    "Observability proof records runtime spans and metrics from real local workflow execution."
   ],
   "requiresApproval": false
 }

@@ -10,7 +10,7 @@ import { createSqliteAdapter } from "../db/adapter.mjs";
 export function listRunbooks(options = {}) {
   const root = path.resolve(options.root || process.cwd());
   const runbooks = [];
-  const fixture = readJson(path.join(root, "packages/intelligence/fixtures/valid/runbook.json"), null);
+  const fixture = readJson(path.join(root, "packages/intelligence/test-fixtures/valid/runbook.json"), null);
   if (fixture) runbooks.push(fixture);
   const dir = path.join(root, "packages/intelligence/runbooks");
   if (fs.existsSync(dir)) {
@@ -159,7 +159,7 @@ export function createOperatingSnapshot(options = {}) {
       summary: latestEval.summary || { total: 0, passed: 0, failed: 0 },
       latestId: latestEval.id || null
     },
-    experiments: readJson(path.join(root, "packages/intelligence/fixtures/valid/experiment-run.json"), null)
+    experiments: readJson(path.join(root, "packages/intelligence/test-fixtures/valid/experiment-run.json"), null)
   };
 }
 

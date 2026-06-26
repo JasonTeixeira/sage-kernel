@@ -5,6 +5,32 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureKernelSchema, sqlJson, sqlString, runSql } from "../../../packages/db/scripts/db-lib.mjs";
 import { assertToolAllowed, listApprovals, requestApproval } from "../../../packages/security/guard.mjs";
+import { recordProof, getProof, listProofs, verifyProof, verifyLedger } from "../../../packages/proof/ledger.mjs";
+import { buildProofGraph, validateProofGraph, queryGraph, writeGraph, readGraph } from "../../../packages/proof/graph.mjs";
+import { verifyReport } from "../../../packages/proof/claim-firewall.mjs";
+import { createTaskContract, validateTaskContract } from "../../../packages/contracts/task-contract.mjs";
+import { classifyDiff, classifyRepoDiff } from "../../../packages/risk/diff-classifier.mjs";
+import { mapTestImpact } from "../../../packages/testing/impact-map.mjs";
+import { runOperate } from "../../../packages/operate/operate.mjs";
+import { runMutationTesting } from "../../../packages/testing/mutation.mjs";
+import { routeTask } from "../../../packages/agents/router.mjs";
+import { computeHallucinationRate } from "../../../packages/proof/hallucination.mjs";
+import { recordProfileOverride, profileLearningStats } from "../../../packages/profiles/profile-learning.mjs";
+import { listLoops } from "../../../packages/loops/registry.mjs";
+import { selectLoop, recordLoopOverride } from "../../../packages/loops/selector.mjs";
+import { runLoop } from "../../../packages/loops/run-loop.mjs";
+import { analyzeDeadCode } from "../../../packages/refactor/dead-code.mjs";
+import { explainPolicy } from "../../../packages/policy/engine.mjs";
+import { redact } from "../../../packages/security/dlp.mjs";
+import { supervisorStatus } from "../../../packages/operate/daemon.mjs";
+import { diagnoseFailure } from "../../../packages/operate/diagnose.mjs";
+import { createAutonomousRepairer, isAgentConfigured } from "../../../packages/agents/executor.mjs";
+import { selectAgent } from "../../../packages/agents/router.mjs";
+import { runModelRubric } from "../../../packages/evals/model-rubric.mjs";
+import { groundClaimsAgainstRepo } from "../../../packages/evals/grounding.mjs";
+import { outcomeStats, recommendLoop } from "../../../packages/learning/outcomes.mjs";
+import { recallFix } from "../../../packages/learning/knowledge.mjs";
+import { adversariallyVerify } from "../../../packages/agents/verify.mjs";
 import { createSqliteAdapter } from "../../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../../packages/security/approvals.mjs";
 import { dashboardSnapshot } from "../../dashboard/server.mjs";
@@ -47,6 +73,26 @@ import {
   createSupplyChainReport,
   generateThreatModel
 } from "../../../packages/security/supply-chain.mjs";
+import { scanSast } from "../../../packages/security/sast.mjs";
+import { scanPolyglot } from "../../../packages/security/polyglot-sast.mjs";
+import { gatherCockpitSnapshot } from "../../../packages/cockpit/cockpit.mjs";
+import { runChaosMatrix } from "../../../packages/orchestration/chaos.mjs";
+import { scanSastIncremental } from "../../../packages/perf/incremental-sast.mjs";
+import { checkIncrementalGain } from "../../../packages/perf/budget.mjs";
+import { runtimeGateForTarget } from "../../../packages/runtime/gate.mjs";
+import { runAutonomyHarness } from "../../../packages/autonomy/harness.mjs";
+import { synthesizePrd } from "../../../packages/intake/prd.mjs";
+import { deriveArchitecture } from "../../../packages/intake/design.mjs";
+import { runIntake } from "../../../packages/intake/contract.mjs";
+import { generate } from "../../../packages/generation/engine.mjs";
+import { proveGenerated } from "../../../packages/generation/gate.mjs";
+import { scanInterprocedural } from "../../../packages/security/dataflow.mjs";
+import { deployVerifyRollback } from "../../../packages/deploy/pipeline.mjs";
+import { createLocalProvider } from "../../../packages/deploy/providers/local.mjs";
+import { runSdlcE2e } from "../../../packages/sdlc/e2e.mjs";
+import { checkProofGate } from "../../../packages/enforcement/proof-gate.mjs";
+import { generateClientContracts, contractHash } from "../../../packages/companion/operating-contract.mjs";
+import { driveGoal } from "../../../packages/companion/drive-goal.mjs";
 import {
   createPerformanceBudget,
   createPlaywrightTemplate,
@@ -80,10 +126,10 @@ import {
 } from "./sdlc-tools.mjs";
 import {
   createDefaultWorkflowDefinition,
-  createWorkflowEngineFixture,
   runWorkflow,
   validateWorkflowDefinition
 } from "../../../packages/workflows/engine.mjs";
+import { createWorkflowEngineFixture } from "../../../packages/workflows/test-fixtures/workflow-engine-proof.mjs";
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const knownKernelToolNames = new Set(
@@ -111,6 +157,20 @@ import {
   workflowRunFullQa,
   workflowStressDashboard
 } from "./kernel-tool-helpers.mjs";
+
+// Build the autonomous repairer that turns operate/loops from "detect" into
+// "fix". Self-gated: only active when an agent is configured (SAGE_AGENT_COMMAND);
+// otherwise undefined, so the loop honestly reports failures instead of faking a
+// repair. The repairer diagnoses each failing gate from its stdout/stderr (so the
+// fix is aimed at the real file:line) and routes to the right agent.
+export function buildRepairer(root) {
+  if (!isAgentConfigured()) return undefined;
+  return createAutonomousRepairer({
+    root,
+    diagnose: ({ failing }) => diagnoseFailure({ root, command: failing?.detail, stdout: failing?.stdout, stderr: failing?.stderr }),
+    route: (diagnosis) => selectAgent({ gate: diagnosis?.category || "unknown", riskLevel: "medium" }).agent
+  });
+}
 
 export async function callKernelTool(root, toolName, input = {}) {
   if (!knownKernelToolNames.has(toolName)) throw new Error(`Unknown tool: ${toolName}`);
@@ -417,6 +477,100 @@ export async function callKernelTool(root, toolName, input = {}) {
     case "kernel.security.proof":
       return createSecurityProof({ root, projectPath: input.projectPath || "." });
 
+    case "kernel.security.sast":
+      return scanSast({ root, projectPath: input.projectPath || "." });
+
+    case "kernel.cockpit.status":
+      return gatherCockpitSnapshot({ root });
+
+    case "kernel.security.polyglot":
+      return scanPolyglot({ root });
+
+    case "kernel.chaos.matrix":
+      return runChaosMatrix();
+
+    case "kernel.perf.incremental": {
+      const cold = scanSastIncremental({ root, cache: {} });
+      const warm = scanSastIncremental({ root, cache: cold.cache });
+      return {
+        status: warm.status,
+        filesScanned: cold.filesScanned,
+        cold: cold.perf,
+        warm: warm.perf,
+        findings: warm.findings.length,
+        gain: checkIncrementalGain(cold, warm)
+      };
+    }
+
+    case "kernel.runtime.gate":
+      return runtimeGateForTarget({ root });
+
+    case "kernel.autonomy.harness":
+      return runAutonomyHarness();
+
+    case "kernel.intake.prd":
+      return synthesizePrd(input.idea || "", input.profile || input.profileId || "library");
+
+    case "kernel.intake.design": {
+      const prd = synthesizePrd(input.idea || "", input.profile || input.profileId || "library");
+      return deriveArchitecture(prd, input.profile || input.profileId || prd.profileId);
+    }
+
+    case "kernel.intake.contract":
+      return runIntake(input.idea || "", input.profile || input.profileId || "library", { root });
+
+    case "kernel.generation.scaffold":
+      return generate(runIntake(input.idea || "", input.profile || input.profileId || "library", { root }).spec);
+
+    case "kernel.generation.prove": {
+      const intake = runIntake(input.idea || "", input.profile || input.profileId || "library", { root });
+      return proveGenerated(generate(intake.spec).files);
+    }
+
+    case "kernel.security.dataflow":
+      return scanInterprocedural({ root });
+
+    case "kernel.sdlc.e2e":
+      return runSdlcE2e({ idea: input.idea || "a small service", profile: input.profile || input.profileId || "library", injectDefect: input.injectDefect === true });
+
+    case "kernel.enforce.proof_gate":
+      return checkProofGate({ root: input.targetRoot ? path.resolve(input.targetRoot) : root });
+
+    case "kernel.contract.install": {
+      const targetRoot = input.targetRoot ? path.resolve(input.targetRoot) : root;
+      const res = generateClientContracts({ root: targetRoot, clients: input.clients });
+      return { ...res, root: targetRoot, contractHash: contractHash() };
+    }
+
+    case "kernel.goal.drive":
+      return driveGoal({
+        root,
+        objective: input.objective,
+        tasks: input.tasks,
+        decompose: Array.isArray(input.tasks) && input.tasks.length ? async () => input.tasks : undefined,
+        maxRounds: input.maxRounds,
+        approve: input.approve === true
+      });
+
+    case "kernel.deploy.verify_rollback": {
+      const provider = createLocalProvider();
+      const verify = async (handle) => {
+        try {
+          const res = await fetch(new URL("/health", handle.baseUrl), { signal: AbortSignal.timeout(2000) });
+          return { ok: res.ok };
+        } catch (error) {
+          return { ok: false, error: String(error?.message || error) };
+        }
+      };
+      try {
+        const happy = await deployVerifyRollback({ provider, verify, version: { id: "v2", healthy: true }, previous: { id: "v1", healthy: true } });
+        const rolledBack = await deployVerifyRollback({ provider, verify, version: { id: "v3", healthy: false }, previous: { id: "v2", healthy: true } });
+        return { happyPath: happy.status, failurePath: rolledBack.status, restoredTo: rolledBack.restored?.id || null };
+      } finally {
+        await provider.shutdown();
+      }
+    }
+
     case "kernel.testing.strategy":
       return generateTestStrategy({ root, projectPath: input.projectPath || ".", risk: input.risk });
 
@@ -427,7 +581,13 @@ export async function callKernelTool(root, toolName, input = {}) {
       return createPerformanceBudget({ root, projectPath: input.projectPath || ".", profile: input.profile });
 
     case "kernel.testing.proof":
-      return createTestingLabProof({ root, projectPath: input.projectPath || ".", risk: input.risk });
+      return createTestingLabProof({ root, projectPath: input.projectPath || ".", risk: input.risk, execute: input.execute });
+
+    case "kernel.testing.mutation":
+      if (!input.targetFile || !Array.isArray(input.testFiles) || input.testFiles.length === 0) {
+        throw new Error("kernel.testing.mutation requires input.targetFile and input.testFiles");
+      }
+      return runMutationTesting({ root, targetFile: input.targetFile, testFiles: input.testFiles, threshold: input.threshold, maxMutants: input.maxMutants });
 
     case "kernel.evidence.list":
       return listEvidence(root, input);
@@ -483,6 +643,161 @@ export async function callKernelTool(root, toolName, input = {}) {
 
     case "kernel.drift.proof":
       return createDriftProof({ root });
+
+    case "kernel.proof.record":
+      if (!input.tool || !input.status) throw new Error("kernel.proof.record requires input.tool and input.status");
+      return recordProof({
+        tool: input.tool,
+        command: input.command,
+        status: input.status,
+        input: input.input ?? {},
+        output: input.output ?? null,
+        stdout: input.stdout,
+        stderr: input.stderr,
+        exitCode: input.exitCode,
+        verifier: input.verifier,
+        runId: input.runId,
+        parentProofIds: input.parentProofIds,
+        approvalId: input.approvalId
+      }, { root });
+
+    case "kernel.proof.get":
+      if (!input.proofId) throw new Error("kernel.proof.get requires input.proofId");
+      return getProof(input.proofId, { root });
+
+    case "kernel.proof.list":
+      return listProofs({ root, runId: input.runId, status: input.status, tool: input.tool, limit: input.limit });
+
+    case "kernel.proof.verify":
+      return input.proofId ? verifyProof(input.proofId, { root }) : verifyLedger({ root });
+
+    case "kernel.proof_graph.build": {
+      const graph = buildProofGraph({ root, goal: input.goal, requirements: input.requirements });
+      writeGraph(graph, { root });
+      return graph;
+    }
+
+    case "kernel.proof_graph.query": {
+      const graph = input.graph || readGraph({ root });
+      if (!graph) throw new Error("kernel.proof_graph.query requires a built graph; run kernel.proof_graph.build first");
+      return queryGraph(graph, input);
+    }
+
+    case "kernel.proof_graph.validate": {
+      const graph = input.graph || readGraph({ root });
+      if (!graph) throw new Error("kernel.proof_graph.validate requires a built graph; run kernel.proof_graph.build first");
+      return validateProofGraph(graph, { strict: input.strict });
+    }
+
+    case "kernel.claims.verify":
+      if (!input.text) throw new Error("kernel.claims.verify requires input.text");
+      return verifyReport(input.text, { root });
+
+    case "kernel.contract.create":
+      if (!input.goal) throw new Error("kernel.contract.create requires input.goal");
+      return createTaskContract({
+        root,
+        goal: input.goal,
+        acceptanceCriteria: input.acceptanceCriteria,
+        scope: input.scope,
+        nonGoals: input.nonGoals
+      });
+
+    case "kernel.contract.validate":
+      if (!input.contract) throw new Error("kernel.contract.validate requires input.contract");
+      return validateTaskContract(input.contract);
+
+    case "kernel.risk.classify_diff":
+      return input.files ? classifyDiff(input.files) : classifyRepoDiff({ root });
+
+    case "kernel.testing.impact":
+      return mapTestImpact(input.files || [], { root, requireCoverage: input.requireCoverage });
+
+    case "kernel.operate.run": {
+      if (!input.goal) throw new Error("kernel.operate.run requires input.goal");
+      const opRoot = input.targetRoot ? path.resolve(input.targetRoot) : root;
+      return runOperate({
+        root: opRoot,
+        goal: input.goal,
+        acceptanceCriteria: input.acceptanceCriteria,
+        files: input.files,
+        approve: input.approve,
+        repairer: buildRepairer(opRoot)
+      });
+    }
+
+    case "kernel.agents.route":
+      if (!input.goal) throw new Error("kernel.agents.route requires input.goal");
+      return routeTask({ root, goal: input.goal, files: input.files, acceptanceCriteria: input.acceptanceCriteria });
+
+    case "kernel.hallucination.scan":
+      if (!input.text) throw new Error("kernel.hallucination.scan requires input.text");
+      return computeHallucinationRate(input.text, { root });
+
+    case "kernel.profile.learn":
+      if (!input.profile) throw new Error("kernel.profile.learn requires input.profile");
+      return {
+        override: recordProfileOverride({ root, profile: input.profile, reason: input.reason }),
+        stats: profileLearningStats({ root })
+      };
+
+    case "kernel.refactor.dead_code":
+      return analyzeDeadCode(root, { strict: input.strict });
+
+    case "kernel.daemon.status":
+      return supervisorStatus(path.join(root, ".sage-kernel/daemon/heartbeat.json"));
+
+    case "kernel.operate.diagnose":
+      return diagnoseFailure({ root, command: input.command, stdout: input.stdout, stderr: input.stderr });
+
+    case "kernel.agents.verify":
+      return adversariallyVerify({ claim: input.claim });
+
+    case "kernel.evals.model_rubric":
+      return runModelRubric({ task: input.task, samples: input.samples });
+
+    case "kernel.evals.ground":
+      if (!input.text) throw new Error("kernel.evals.ground requires input.text");
+      return groundClaimsAgainstRepo(input.text, root);
+
+    case "kernel.learning.outcomes":
+      return { stats: outcomeStats({ root }), recommendation: recommendLoop({ root }) };
+
+    case "kernel.learning.recall_fix":
+      if (!input.signature) throw new Error("kernel.learning.recall_fix requires input.signature");
+      return recallFix(input.signature, { root }) || { status: "no_match" };
+
+    case "kernel.policy.explain":
+      if (!input.kind || input.value === undefined) throw new Error("kernel.policy.explain requires input.kind and input.value");
+      return explainPolicy({ kind: input.kind, value: input.value, root });
+
+    case "kernel.security.dlp":
+      if (input.text === undefined) throw new Error("kernel.security.dlp requires input.text");
+      return redact(input.text);
+
+    case "kernel.loops.list":
+      return listLoops();
+
+    case "kernel.loops.select":
+      return selectLoop({ root, goal: input.goal, loop: input.loop });
+
+    case "kernel.loops.learn":
+      if (!input.loop) throw new Error("kernel.loops.learn requires input.loop");
+      return { override: recordLoopOverride({ root, loop: input.loop, reason: input.reason }) };
+
+    case "kernel.loops.run": {
+      if (!input.goal && !input.loop) throw new Error("kernel.loops.run requires input.goal or input.loop");
+      const loopRoot = input.targetRoot ? path.resolve(input.targetRoot) : root;
+      return runLoop({
+        root: loopRoot,
+        goal: input.goal,
+        loop: input.loop,
+        acceptanceCriteria: input.acceptanceCriteria,
+        files: input.files,
+        approve: input.approve,
+        repairer: buildRepairer(loopRoot)
+      });
+    }
 
     default:
       throw new Error(`Unknown tool: ${toolName}`);

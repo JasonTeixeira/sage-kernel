@@ -24,6 +24,7 @@ import {
   proveProfilePaths,
   validateSdlcProfiles
 } from "../packages/profiles/project-detector.mjs";
+import { recordProfileOverride, profileLearningStats } from "../packages/profiles/profile-learning.mjs";
 import {
   createClosedLoopWorkflow,
   formatClosedLoopOutput,
@@ -32,11 +33,11 @@ import {
 } from "../packages/workflows/closed-loop.mjs";
 import {
   createDefaultWorkflowDefinition,
-  createWorkflowEngineFixture,
   formatWorkflowEngineOutput,
   runWorkflow,
   validateWorkflowDefinition
 } from "../packages/workflows/engine.mjs";
+import { createWorkflowEngineFixture } from "../packages/workflows/test-fixtures/workflow-engine-proof.mjs";
 import { positionalArgs, root, valueArg } from "./sage-runtime.mjs";
 
 export async function handleAgentCommand(command, args) {
@@ -131,6 +132,24 @@ function printProfile(args) {
   const [subcommand = "detect", projectPath = "."] = positional;
   const json = args.includes("--json");
   try {
+    if (subcommand === "learn") {
+      // Learning is keyed to the target project (where the operator runs sage),
+      // not the kernel install root.
+      const learnRoot = process.cwd();
+      const profile = valueArg(args, "--profile");
+      if (!profile) {
+        console.error('Usage: sage profile learn --profile=<id> [--reason="..."]');
+        process.exitCode = 1;
+        return;
+      }
+      const override = recordProfileOverride({ root: learnRoot, profile, reason: valueArg(args, "--reason") });
+      console.log(JSON.stringify({ override, stats: profileLearningStats({ root: learnRoot }) }, null, 2));
+      return;
+    }
+    if (subcommand === "stats") {
+      console.log(JSON.stringify(profileLearningStats({ root: process.cwd() }), null, 2));
+      return;
+    }
     const value = subcommand === "detect"
       ? detectProjectProfile({ root, projectPath })
       : subcommand === "validate"

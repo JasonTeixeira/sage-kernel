@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sage-kernel/schemas/task-contract.schema.json",
+  "title": "Sage Kernel Task Contract",
+  "description": "Executable contract derived from a goal before implementation begins.",
+  "type": "object",
+  "required": [
+    "contractId",
+    "objective",
+    "profile",
+    "riskClassification",
+    "acceptanceCriteria",
+    "requiredTests",
+    "requiredReviewGates",
+    "requiredSecurityGates",
+    "requiredReleaseGates",
+    "stopConditions",
+    "proofRequirements",
+    "status"
+  ],
+  "properties": {
+    "contractId": { "type": "string", "pattern": "^contract_" },
+    "objective": { "type": "string" },
+    "scope": { "type": "array" },
+    "nonGoals": { "type": "array" },
+    "profile": { "type": "object" },
+    "riskClassification": {
+      "type": "object",
+      "required": ["level", "classes"],
+      "properties": {
+        "level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "classes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "acceptanceCriteria": { "type": "array" },
+    "requiredTests": { "type": "array", "items": { "type": "string" } },
+    "requiredReviewGates": { "type": "array", "items": { "type": "string" } },
+    "requiredSecurityGates": { "type": "array", "items": { "type": "string" } },
+    "requiredReleaseGates": { "type": "array", "items": { "type": "string" } },
+    "stopConditions": { "type": "array", "items": { "type": "string" } },
+    "proofRequirements": { "type": "array", "items": { "type": "string" } },
+    "status": { "type": "string", "enum": ["ready", "blocked_missing_acceptance_criteria"] },
+    "canImplement": { "type": "boolean" }
+  }
+}

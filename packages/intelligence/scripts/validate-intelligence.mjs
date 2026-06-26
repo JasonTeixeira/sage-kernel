@@ -39,7 +39,7 @@ const contracts = [
 
 export function validateIntelligence(options = {}) {
   const workspace = options.root || root;
-  const fixtureDir = options.fixtureDir || path.join(workspace, packageDir, "fixtures", "valid");
+  const fixtureDir = options.fixtureDir || path.join(workspace, packageDir, "test-fixtures", "valid");
   const failures = [];
   const checked = {
     schemas: 0,

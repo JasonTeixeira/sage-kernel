@@ -8,11 +8,11 @@ import test from "node:test";
 import {
   __workflowEngineTestInternals,
   createDefaultWorkflowDefinition,
-  createWorkflowEngineFixture,
   formatWorkflowEngineOutput,
   runWorkflow,
   validateWorkflowDefinition
 } from "../packages/workflows/engine.mjs";
+import { createWorkflowEngineFixture } from "../packages/workflows/test-fixtures/workflow-engine-proof.mjs";
 import { callKernelTool } from "../apps/mcp-server/src/kernel-tools.mjs";
 
 const root = new URL("..", import.meta.url).pathname;

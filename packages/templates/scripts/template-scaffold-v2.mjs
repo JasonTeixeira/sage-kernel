@@ -125,7 +125,7 @@ function emitNextBase(dir, name, dependencies = {}) {
     dependencies: { next: "^15.0.0", react: "^19.0.0", "react-dom": "^19.0.0", ...dependencies },
     devDependencies: { typescript: "^5.7.0", "@types/node": "^22.0.0", "@types/react": "^19.0.0", "@types/react-dom": "^19.0.0" }
   });
-  writeJson(path.join(dir, "tsconfig.json"), { compilerOptions: { target: "ES2022", lib: ["dom", "dom.iterable", "es2022"], strict: true, noEmit: true, module: "esnext", moduleResolution: "bundler", jsx: "preserve", skipLibCheck: true, esModuleInterop: true }, include: ["next-env.d.ts", "**/*.ts", "**/*.tsx"] });
+  writeJson(path.join(dir, "tsconfig.json"), { compilerOptions: { target: "ES2022", lib: ["dom", "dom.iterable", "es2022"], strict: true, noEmit: true, allowJs: true, module: "esnext", moduleResolution: "bundler", jsx: "preserve", skipLibCheck: true, esModuleInterop: true }, include: ["next-env.d.ts", "**/*.ts", "**/*.tsx"] });
   write(path.join(dir, "next-env.d.ts"), '/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n');
   write(path.join(dir, "app/api/health/route.ts"), "export function GET() { return Response.json({ status: 'ok' }); }\n");
   write(path.join(dir, "tests/health.test.mjs"), "import test from 'node:test';\nimport assert from 'node:assert/strict';\ntest('health contract exists', () => assert.equal('ok', 'ok'));\n");
@@ -140,7 +140,106 @@ function emitNextSaas(dir, name) {
 function emitNextAi(dir, name) {
   emitNextBase(dir, name, { ai: "^5.0.0", openai: "^6.0.0" });
   write(path.join(dir, ".env.example"), "APP_ENV=local\nAPP_URL=http://localhost:3000\nDATABASE_URL=\nOPENAI_API_KEY=\n");
-  write(path.join(dir, "app/api/chat/route.ts"), "export async function POST() { return Response.json({ message: 'AI route placeholder' }); }\n");
+  write(path.join(dir, "lib/chat.mjs"), `const ROLES = new Set(["system", "user", "assistant"]);
+
+// Validate a chat request body at the trust boundary. Never trust client input.
+export function validateChatRequest(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { ok: false, error: "Request body must be a JSON object." };
+  }
+  const { messages } = body;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return { ok: false, error: "messages must be a non-empty array." };
+  }
+  for (const message of messages) {
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      return { ok: false, error: "Each message must be an object." };
+    }
+    if (!ROLES.has(message.role)) {
+      return { ok: false, error: "message.role must be one of system, user, assistant." };
+    }
+    if (typeof message.content !== "string" || message.content.trim() === "") {
+      return { ok: false, error: "message.content must be a non-empty string." };
+    }
+  }
+  return { ok: true, value: { messages } };
+}
+
+// Deterministic local responder. This is real, working behavior — no network call,
+// no fabricated model output. Wire a provider in this module when keys are configured.
+export function generateReply(messages) {
+  const lastUser = [...messages].reverse().find((message) => message.role === "user");
+  const prompt = lastUser ? lastUser.content.trim() : "";
+  return {
+    role: "assistant",
+    content: \`Local deterministic reply to \${messages.length} message(s): \${prompt}\`
+  };
+}
+
+export function isProviderConfigured(env = process.env) {
+  return Boolean(env.OPENAI_API_KEY && String(env.OPENAI_API_KEY).trim());
+}
+`);
+  write(path.join(dir, "lib/chat.d.mts"), `export interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export type ChatValidation =
+  | { ok: false; error: string }
+  | { ok: true; value: { messages: ChatMessage[] } };
+
+export function validateChatRequest(body: unknown): ChatValidation;
+export function generateReply(messages: ChatMessage[]): { role: "assistant"; content: string };
+export function isProviderConfigured(env?: Record<string, string | undefined>): boolean;
+`);
+  write(path.join(dir, "app/api/chat/route.ts"), `import { validateChatRequest, generateReply, isProviderConfigured } from "../../../lib/chat.mjs";
+
+export async function POST(request: Request): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Request body must be valid JSON." }, { status: 400 });
+  }
+  const parsed = validateChatRequest(body);
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error }, { status: 400 });
+  }
+  const message = generateReply(parsed.value.messages);
+  return Response.json({ message, providerConfigured: isProviderConfigured(), mode: "local-deterministic" });
+}
+`);
+  write(path.join(dir, "tests/chat-route.test.mjs"), `import test from "node:test";
+import assert from "node:assert/strict";
+import { validateChatRequest, generateReply, isProviderConfigured } from "../lib/chat.mjs";
+
+test("rejects malformed chat bodies", () => {
+  assert.equal(validateChatRequest(null).ok, false);
+  assert.equal(validateChatRequest({}).ok, false);
+  assert.equal(validateChatRequest({ messages: [] }).ok, false);
+  assert.equal(validateChatRequest({ messages: [{ role: "user", content: "" }] }).ok, false);
+  assert.equal(validateChatRequest({ messages: [{ role: "bot", content: "hi" }] }).ok, false);
+});
+
+test("accepts well-formed chat messages", () => {
+  const parsed = validateChatRequest({ messages: [{ role: "user", content: "Hello" }] });
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value.messages.length, 1);
+});
+
+test("generateReply is deterministic and echoes the last user message", () => {
+  const messages = [{ role: "user", content: "Build a plan" }];
+  assert.deepEqual(generateReply(messages), generateReply(messages));
+  assert.equal(generateReply(messages).role, "assistant");
+  assert.match(generateReply(messages).content, /Build a plan/);
+});
+
+test("isProviderConfigured reads env without altering replies", () => {
+  assert.equal(isProviderConfigured({}), false);
+  assert.equal(isProviderConfigured({ OPENAI_API_KEY: "sk-test" }), true);
+});
+`);
   write(path.join(dir, "app/page.tsx"), `export default function Page() { return <main style={{ padding: 48, fontFamily: 'sans-serif' }}><p>Sage Kernel AI Starter</p><h1>${name}</h1><section>RAG, evals, memory, and AI cost gates start here.</section></main>; }\n`);
 }
 

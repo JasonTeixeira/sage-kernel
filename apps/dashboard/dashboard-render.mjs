@@ -65,7 +65,6 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
     experiments: { status: "missing" },
     ...(snapshot.operating || {})
   };
-  const completed = snapshot.phases.filter((phase) => phase.status === "complete").length;
   const health = snapshot.system.health;
   const pendingApprovals = snapshot.approvals.pending;
   const failedRuns = snapshot.jobs.timeline.filter((run) => run.status === "failed").length;
@@ -82,8 +81,10 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
     selfHealing: { status: "missing", steps: [] },
     stress: { status: "missing", stressProfiles: [] },
     benchmarks: { status: "missing", tasks: [] },
-    externalComparison: { status: "missing", requiredEvidence: [] }
+    externalComparison: { status: "missing", requiredEvidence: [] },
+    proofGraph: { status: "missing", counts: { nodes: 0, edges: 0, claims: 0, unprovenClaims: 0 }, findings: [] }
   };
+  const proofGraph = cockpit.proofGraph || { status: "missing", counts: { nodes: 0, edges: 0, claims: 0, unprovenClaims: 0 }, findings: [] };
 
   return `<!doctype html>
 <html lang="en">
@@ -202,6 +203,10 @@ export function renderDashboardHtmlView(snapshot, workflowCommands = []) {
 
       <section id="stress" class="view grid" data-view="stress">
         <article class="panel span-12" data-panel="stress-profiles"><div class="panel-header"><h2>Stress And Soak Profiles</h2><span class="badge">${escapeHtml(cockpit.stress.stressProfiles?.length || 0)} profiles</span></div><div class="panel-body">${renderStressProfiles(cockpit.stress)}</div></article>
+      </section>
+
+      <section id="proof-graph" class="view grid" data-view="proof-graph">
+        <article class="panel span-12" data-panel="proof-graph"><div class="panel-header"><h2>Proof Graph</h2><span class="badge ${proofGraph.status === "passed" ? "badge-ok" : "badge-warn"}">${escapeHtml(proofGraph.status)}</span></div><div class="panel-body"><ul class="list"><li>${escapeHtml(proofGraph.counts?.nodes || 0)} nodes · ${escapeHtml(proofGraph.counts?.edges || 0)} edges</li><li>${escapeHtml(proofGraph.counts?.claims || 0)} claims · ${escapeHtml(proofGraph.counts?.unprovenClaims || 0)} unproven</li><li>${escapeHtml((proofGraph.findings || []).filter((finding) => finding.severity === "critical").length)} blocking findings</li></ul></div></article>
       </section>
 
       <section id="final-audit" class="view grid" data-view="final-audit">

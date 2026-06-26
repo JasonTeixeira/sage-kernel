@@ -160,7 +160,7 @@ test("eval runner covers parser, fallback graders, and alternate contract branch
     type: "model_rubric",
     rubric: ["clear"],
     minimumScore: 1
-  }).status, "passed");
+  }).status, "blocked_not_implemented");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "resources", type: "mcp_contract", path: "contracts/resources.snapshot.json" }).status, "passed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "prompts", type: "mcp_contract", path: "contracts/prompts.snapshot.json" }).status, "passed");
   assert.equal(__evalRunnerTestInternals.runGrader(workspace, { id: "unknown_contract", type: "mcp_contract", path: "contracts/unknown.snapshot.json" }).status, "failed");

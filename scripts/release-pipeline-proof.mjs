@@ -15,9 +15,10 @@ export function createReleasePipelineProof(options = {}) {
     ? runPublicGlobalInstall(root)
     : { status: "blocked", reason: "Package is not published on npm." };
   const readyForPublish = provenance.status === "passed" && globalInstall.status === "passed";
+  const fullyVerified = readyForPublish && publicGlobalInstall.status === "passed";
   const report = {
     type: "release-pipeline-proof",
-    status: readyForPublish ? "ready_without_external_publish" : "blocked",
+    status: fullyVerified ? "passed" : "failed",
     provenance,
     npmAuth: {
       status: npmWhoami.status === 0 ? "authenticated" : "missing_or_invalid",
@@ -31,7 +32,7 @@ export function createReleasePipelineProof(options = {}) {
     },
     globalInstall,
     publicGlobalInstall,
-    publishBoundary: "This proof does not publish. Publish only through GitHub Release/trusted publishing or explicit npm-token approval."
+    publishBoundary: "Publishing is intentionally outside this verifier. This proof passes only after the public npm package installs and smokes successfully."
   };
   writeLatest(root, report);
   return report;
@@ -73,5 +74,5 @@ function writeLatest(root, report) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const report = createReleasePipelineProof({ root: process.cwd() });
   console.log(JSON.stringify(report, null, 2));
-  process.exit(report.status === "blocked" ? 1 : 0);
+  process.exit(report.status === "passed" ? 0 : 1);
 }

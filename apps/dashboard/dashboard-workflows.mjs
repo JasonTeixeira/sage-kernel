@@ -1,12 +1,9 @@
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createSqliteAdapter } from "../../packages/db/adapter.mjs";
 import { createApprovalLedger } from "../../packages/security/approvals.mjs";
 
 const defaultRoot = process.cwd();
-const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const workflowDefinitions = [
   {

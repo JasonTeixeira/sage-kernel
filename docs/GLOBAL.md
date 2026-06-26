@@ -278,8 +278,8 @@ engineering operating system.
    failure, late data, lineage, and backfill proof.
 7. **AI red-team proof**: prompt injection, malicious repo content, unsafe tool
    calls, memory poisoning, and output safety fixtures.
-8. **External MCP client proof**: Codex and Claude Code are proven; Cursor needs
-   live client launch and one successful tool call.
+8. **External MCP client proof**: verify clients with `npm run mcp:clients:prove`;
+   Cursor needs live client launch and one successful tool call.
 9. **Benchmark comparison**: compare against known tool classes: CI, code review,
    security scanner, test generator, MCP servers, and agent frameworks.
 10. **Evidence UX**: optional dashboard should show evidence timelines, score

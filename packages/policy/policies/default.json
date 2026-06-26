@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "writePaths": {
+    "denySensitive": [".ssh", ".aws", ".gnupg", ".npmrc", "id_rsa", "id_ed25519"]
+  },
+  "commands": {
+    "allowExecutables": [
+      "node", "npm", "npx", "pnpm", "yarn", "git", "tsc", "eslint", "prettier",
+      "sh", "bash", "echo", "cat", "ls", "mkdir", "cp", "mv", "rm", "grep",
+      "find", "jq", "test", "true", "shasum", "wc", "sort", "diff"
+    ]
+  },
+  "network": { "allowHosts": [], "default": "deny" }
+}

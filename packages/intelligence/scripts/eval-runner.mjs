@@ -164,18 +164,46 @@ function runTaskAttemptGrader(workspace, grader) {
 }
 
 function runModelRubricGrader(grader) {
-  const rubric = Array.isArray(grader.rubric) ? grader.rubric : [];
-  const score = rubric.length > 0 ? 1 : 0;
-  const minimumScore = Number(grader.minimumScore ?? 1);
-  return {
-    id: grader.id,
-    type: grader.type,
-    status: score >= minimumScore ? "passed" : "failed",
-    score,
-    minimumScore,
-    rubric,
-    note: "Deterministic rubric placeholder; attach provider-backed model grading before using this as human-quality evidence."
-  };
+  if (!process.env.SAGE_MODEL_RUBRIC_COMMAND) {
+    return {
+      id: grader.id,
+      type: grader.type,
+      status: "blocked_not_implemented",
+      message: "Set SAGE_MODEL_RUBRIC_COMMAND to enable provider-backed model rubric grading."
+    };
+  }
+  const result = spawnSync(process.env.SAGE_MODEL_RUBRIC_COMMAND, {
+    input: JSON.stringify({ rubric: grader.rubric || [], minimumScore: grader.minimumScore ?? 1 }),
+    shell: true,
+    encoding: "utf8",
+    timeout: grader.timeoutMs || 180000,
+    maxBuffer: 1024 * 1024 * 8
+  });
+  if (result.status !== 0) {
+    return {
+      id: grader.id,
+      type: grader.type,
+      status: "failed",
+      exitCode: result.status ?? 1,
+      stdout: trimOutput(result.stdout),
+      stderr: trimOutput(result.stderr)
+    };
+  }
+  try {
+    const parsed = JSON.parse(result.stdout || "{}");
+    const score = Number(parsed.score || 0);
+    const minimumScore = Number(grader.minimumScore ?? 1);
+    return {
+      id: grader.id,
+      type: grader.type,
+      status: score >= minimumScore ? "passed" : "failed",
+      score,
+      minimumScore,
+      evidence: parsed.evidence || null
+    };
+  } catch (error) {
+    return { id: grader.id, type: grader.type, status: "failed", message: error.message };
+  }
 }
 
 function summarizeMetrics(evals) {

@@ -19,7 +19,7 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.loop.score` | safe | `workflow:read` | No | none |
 | `kernel.loop.full_cycle` | safe | `workflow:read` | No | none |
 | `kernel.workflow_engine.validate` | safe | `workflow:read` | No | none |
-| `kernel.workflow_engine.prove` | mutating | `workflow:read` | No | creates a temporary fixture project and runs npm test inside it |
+| `kernel.workflow_engine.prove` | mutating | `workflow:read` | No | creates a temporary test-fixture project and runs npm test inside it |
 | `kernel.workflow_engine.run` | mutating | `workflow:write` | Yes | runs local workflow commands declared by the provided workflow definition |
 | `kernel.warehouse.summary` | safe | `warehouse:read` | No | none |
 | `kernel.warehouse.search` | safe | `warehouse:read` | No | none |
@@ -78,6 +78,24 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.security.threat_model` | safe | `security:read` | No | none |
 | `kernel.security.supply_chain` | safe | `security:read` | No | none |
 | `kernel.security.proof` | safe | `security:read` | No | none |
+| `kernel.cockpit.status` | safe | `read` | No | none |
+| `kernel.security.polyglot` | safe | `read` | No | none |
+| `kernel.chaos.matrix` | safe | `read` | No | none |
+| `kernel.perf.incremental` | safe | `read` | No | none |
+| `kernel.runtime.gate` | safe | `read` | No | none |
+| `kernel.autonomy.harness` | safe | `read` | No | none |
+| `kernel.intake.prd` | safe | `read` | No | none |
+| `kernel.intake.design` | safe | `read` | No | none |
+| `kernel.intake.contract` | safe | `read` | No | none |
+| `kernel.generation.scaffold` | safe | `read` | No | none |
+| `kernel.generation.prove` | safe | `read` | No | none |
+| `kernel.security.dataflow` | safe | `read` | No | none |
+| `kernel.deploy.verify_rollback` | safe | `read` | No | none |
+| `kernel.sdlc.e2e` | safe | `read` | No | none |
+| `kernel.enforce.proof_gate` | safe | `read` | No | none |
+| `kernel.contract.install` | safe | `write` | No | none |
+| `kernel.goal.drive` | mutating | `write` | No | none |
+| `kernel.security.sast` | safe | `security:read` | No | none |
 | `kernel.testing.strategy` | safe | `testing:read` | No | none |
 | `kernel.testing.playwright_template` | safe | `testing:read` | No | none |
 | `kernel.testing.performance_budget` | safe | `testing:read` | No | none |
@@ -95,6 +113,37 @@ Generated from `apps/mcp-server/tools.json`.
 | `kernel.drift.scope` | safe | `drift:read` | No | none |
 | `kernel.drift.self_audit` | safe | `drift:read` | No | none |
 | `kernel.drift.proof` | safe | `drift:read` | No | none |
+| `kernel.proof.record` | mutating | `proof:write` | No | Appends a record to the local proof ledger. |
+| `kernel.proof.get` | safe | `proof:read` | No | none |
+| `kernel.proof.list` | safe | `proof:read` | No | none |
+| `kernel.proof.verify` | safe | `proof:read` | No | none |
+| `kernel.proof_graph.build` | mutating | `proof_graph:write` | No | Writes the latest proof graph to the local evidence directory. |
+| `kernel.proof_graph.query` | safe | `proof_graph:read` | No | none |
+| `kernel.proof_graph.validate` | safe | `proof_graph:read` | No | none |
+| `kernel.claims.verify` | safe | `claims:read` | No | none |
+| `kernel.contract.create` | safe | `contract:read` | No | none |
+| `kernel.contract.validate` | safe | `contract:read` | No | none |
+| `kernel.risk.classify_diff` | safe | `risk:read` | No | none |
+| `kernel.testing.impact` | safe | `testing:read` | No | none |
+| `kernel.operate.run` | mutating | `operate:write` | No | Runs required gates, records proofs, and writes the proof graph. |
+| `kernel.testing.mutation` | mutating | `testing:write` | No | Temporarily rewrites the target file while mutating; the original is always restored. |
+| `kernel.agents.route` | safe | `agents:read` | No | none |
+| `kernel.hallucination.scan` | safe | `hallucination:read` | No | none |
+| `kernel.profile.learn` | mutating | `profile:write` | No | Writes a per-repo profile override to the local learning store. |
+| `kernel.daemon.status` | safe | `daemon:read` | No | none |
+| `kernel.operate.diagnose` | safe | `operate:read` | No | none |
+| `kernel.agents.verify` | safe | `agents:read` | No | none |
+| `kernel.evals.model_rubric` | safe | `evals:read` | No | none |
+| `kernel.evals.ground` | safe | `evals:read` | No | none |
+| `kernel.learning.outcomes` | safe | `learning:read` | No | none |
+| `kernel.learning.recall_fix` | safe | `learning:read` | No | none |
+| `kernel.policy.explain` | safe | `policy:read` | No | none |
+| `kernel.security.dlp` | safe | `security:read` | No | none |
+| `kernel.refactor.dead_code` | safe | `refactor:read` | No | none |
+| `kernel.loops.list` | safe | `loops:read` | No | none |
+| `kernel.loops.select` | safe | `loops:read` | No | none |
+| `kernel.loops.learn` | mutating | `loops:write` | No | Writes a per-repo loop override to the local learning store. |
+| `kernel.loops.run` | mutating | `loops:write` | No | Runs the loop's gates, records proofs, and writes the proof graph. |
 
 ## Output Shape
 
@@ -237,7 +286,7 @@ Example input:
 
 ### `kernel.loop.prove`
 
-Proof report for planned, dry-run, and runner-backed closed-loop workflows.
+Proof report for plan, dry-run, and runner-backed closed-loop workflows.
 
 Example input:
 
@@ -1008,6 +1057,221 @@ Example input:
 }
 ```
 
+### `kernel.cockpit.status`
+
+Cockpit snapshot with proofs (total/passed/failed/recent) and evidence statuses.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.security.polyglot`
+
+Polyglot SAST report: status, languages, filesScanned, high count, findings[], summary.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.chaos.matrix`
+
+Chaos matrix report: status, total, passed, scenarios[] each with status and evidence.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.perf.incremental`
+
+Perf report: status, filesScanned, cold/warm perf stats, findings count, incremental-gain verdict.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.runtime.gate`
+
+Runtime verdict: status (passed|failed|blocked_not_available), capability, and lighthouse/console/smoke sub-verdicts when run live.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.autonomy.harness`
+
+Autonomy harness report: total, detected, closed, rolledBack, detectRate, closeRate, noFakeClose, results[].
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.intake.prd`
+
+PRD: idea, profileId, goals[], userStories[], requirements[], nonGoals[], risks[], coversAllRequiredChecks.
+
+Example input:
+
+```json
+{
+  "idea": "stripe webhook handler",
+  "profile": "payments-system"
+}
+```
+
+### `kernel.intake.design`
+
+Architecture: profileId, components[], dataFlows[], decisions[] (ADR stubs).
+
+Example input:
+
+```json
+{
+  "idea": "multi-tenant dashboard",
+  "profile": "saas-app"
+}
+```
+
+### `kernel.intake.contract`
+
+{ prd, design, contract, spec, contractValid, contractErrors } — contract is a ready/implementable task contract.
+
+Example input:
+
+```json
+{
+  "idea": "stripe webhook handler",
+  "profile": "payments-system"
+}
+```
+
+### `kernel.generation.scaffold`
+
+{ name, profileId, files:[{path, content}] } — a preview file set, not written to disk.
+
+Example input:
+
+```json
+{
+  "idea": "stripe webhook service",
+  "profile": "payments-system"
+}
+```
+
+### `kernel.generation.prove`
+
+{ accepted, fileCount, high, unparseable[], findings[], reason } — generated code is never trusted until this accepts.
+
+Example input:
+
+```json
+{
+  "idea": "stripe webhook service",
+  "profile": "payments-system"
+}
+```
+
+### `kernel.security.dataflow`
+
+{ status, filesScanned, high, findings[] (each with sourceFile/sinkFile/depth), depthLimit }.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.deploy.verify_rollback`
+
+{ happyPath, failurePath, restoredTo } — proves a bad deploy never stays live.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.sdlc.e2e`
+
+{ status, stoppedAt, score, stages:[{stage,status}] } — proves the whole idea->proven arc composes.
+
+Example input:
+
+```json
+{
+  "idea": "stripe webhook handler",
+  "profile": "payments-system"
+}
+```
+
+### `kernel.enforce.proof_gate`
+
+{ allowed, reason, proofId?, diffHash? } — allowed only when a passing operate:run proof matches the current diff and the ledger verifies clean.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.contract.install`
+
+{ written:[clientFile...], contractHash, root } — the client files updated and the sha256 of the canonical contract body.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.goal.drive`
+
+{ goalId, objective, stopReason, completed, detail, tasks:[{id,status,skipped?}], proofId } — every task and the goal are anchored in the ledger.
+
+Example input:
+
+```json
+{
+  "objective": "ship export feature",
+  "tasks": [
+    {
+      "id": "api",
+      "goal": "build export api"
+    },
+    {
+      "id": "ui",
+      "goal": "build export ui",
+      "deps": [
+        "api"
+      ]
+    }
+  ]
+}
+```
+
+### `kernel.security.sast`
+
+SAST report with status, high/medium counts, files scanned, and findings (rule, severity, evidence, recommendation).
+
+Example input:
+
+```json
+{
+  "projectPath": "."
+}
+```
+
 ### `kernel.testing.strategy`
 
 Test strategy with profile, layers, missing layers, required commands, evidence, and definition of done.
@@ -1212,6 +1476,390 @@ Example input:
 {}
 ```
 
+### `kernel.proof.record`
+
+Recorded proof object with proofId, inputHash, outputHash, git state, prevHash, and recordHash.
+
+Example input:
+
+```json
+{
+  "tool": "npm test",
+  "status": "passed"
+}
+```
+
+### `kernel.proof.get`
+
+A single proof record, or null when no record matches the proofId.
+
+Example input:
+
+```json
+{
+  "proofId": "proof_00000000-0000-0000-0000-000000000000"
+}
+```
+
+### `kernel.proof.list`
+
+An array of proof records matching the requested filters.
+
+Example input:
+
+```json
+{
+  "limit": 10
+}
+```
+
+### `kernel.proof.verify`
+
+Verification verdict with status (verified, tampered, missing, or empty) and a list of issues.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.proof_graph.build`
+
+Proof graph object with typed nodes and edges connecting goals to evidence.
+
+Example input:
+
+```json
+{
+  "goal": "Ship Phase C with proof"
+}
+```
+
+### `kernel.proof_graph.query`
+
+Filtered nodes and edges from the latest proof graph.
+
+Example input:
+
+```json
+{
+  "nodeType": "claim"
+}
+```
+
+### `kernel.proof_graph.validate`
+
+Validation result with status, findings, and node/edge/claim counts.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.claims.verify`
+
+Verification result with status, per-claim findings, and violations.
+
+Example input:
+
+```json
+{
+  "text": "Tests passed [proof_00000000-0000-0000-0000-000000000000]."
+}
+```
+
+### `kernel.contract.create`
+
+Task contract with profile, risk classification, required gates, and status (ready or blocked_missing_acceptance_criteria).
+
+Example input:
+
+```json
+{
+  "goal": "Add OAuth login",
+  "acceptanceCriteria": [
+    "Rejects invalid tokens"
+  ]
+}
+```
+
+### `kernel.contract.validate`
+
+Validation result with valid flag and a list of errors.
+
+Example input:
+
+```json
+{
+  "contract": {
+    "contractId": "contract_x"
+  }
+}
+```
+
+### `kernel.risk.classify_diff`
+
+Risk classification with riskLevel, classes, per-file classes, and requiredGates.
+
+Example input:
+
+```json
+{
+  "files": [
+    "package.json"
+  ]
+}
+```
+
+### `kernel.testing.impact`
+
+Impact map with per-file mapped tests, uncovered files, and required tests.
+
+Example input:
+
+```json
+{
+  "files": [
+    "apps/mcp-server/src/kernel-tools.mjs"
+  ]
+}
+```
+
+### `kernel.operate.run`
+
+Operate report with status, contractId, score, gates, blockers, nextActions, evidenceIds, and claim-firewall result.
+
+Example input:
+
+```json
+{
+  "goal": "Improve the getting-started docs",
+  "acceptanceCriteria": [
+    "Reads clearly"
+  ]
+}
+```
+
+### `kernel.testing.mutation`
+
+Mutation report with mutationScore, killed/total counts, surviving mutants, and restored flag.
+
+Example input:
+
+```json
+{
+  "targetFile": "packages/proof/ledger.mjs",
+  "testFiles": [
+    "tests/proof-ledger.test.mjs"
+  ]
+}
+```
+
+### `kernel.agents.route`
+
+Routing plan with profile, languages, risk level, and an agent assignment per gate.
+
+Example input:
+
+```json
+{
+  "goal": "Add OAuth login"
+}
+```
+
+### `kernel.hallucination.scan`
+
+Hallucination report with totalClaims, supportedClaims, hallucinatedClaims, rate, and the offending lines.
+
+Example input:
+
+```json
+{
+  "text": "The release is done and shipped."
+}
+```
+
+### `kernel.profile.learn`
+
+The recorded override plus learning stats (overrides, feedback, detection accuracy).
+
+Example input:
+
+```json
+{
+  "profile": "mcp-server",
+  "reason": "operator confirmed"
+}
+```
+
+### `kernel.daemon.status`
+
+Status (running/stale/stopped) with heartbeat age and the latest heartbeat record.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.operate.diagnose`
+
+Diagnosis with category, message, primaryLocation, impactedFiles, and a repair instruction.
+
+Example input:
+
+```json
+{
+  "stderr": "AssertionError at packages/x.mjs:10:3"
+}
+```
+
+### `kernel.agents.verify`
+
+Verdict (verified/rejected/blocked_not_implemented) with confirmed/total/needed and per-verifier votes.
+
+Example input:
+
+```json
+{
+  "claim": "Fix recordHash mismatch in ledger.mjs"
+}
+```
+
+### `kernel.evals.model_rubric`
+
+Eval result with passAt1, passAtK, passPowerK, hallucinationRate, and per-sample results.
+
+Example input:
+
+```json
+{
+  "task": {
+    "id": "fix-bug"
+  },
+  "samples": 3
+}
+```
+
+### `kernel.evals.ground`
+
+Grounding result with status, references, and ungrounded (non-existent) file references.
+
+Example input:
+
+```json
+{
+  "text": "edited packages/proof/ledger.mjs"
+}
+```
+
+### `kernel.learning.outcomes`
+
+Outcome stats per loop plus the outcome-learned recommendation (or null when insufficient data).
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.learning.recall_fix`
+
+The closest past fix above threshold (with similarity score) or a no_match status.
+
+Example input:
+
+```json
+{
+  "signature": {
+    "category": "assertion",
+    "message": "recordHash mismatch"
+  }
+}
+```
+
+### `kernel.policy.explain`
+
+Policy decision with allowed/requiresApproval/reasons plus the governing rules.
+
+Example input:
+
+```json
+{
+  "kind": "command",
+  "value": "rm -rf /"
+}
+```
+
+### `kernel.security.dlp`
+
+Redacted text plus findings (rule and count) and total redactions.
+
+Example input:
+
+```json
+{
+  "text": "api_key=PLACEHOLDER_VALUE"
+}
+```
+
+### `kernel.refactor.dead_code`
+
+Dead-code report with status, orphanFiles, unusedDependencies, unusedExport candidates, and a summary.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.loops.list`
+
+Array of loop definitions with id, title, whenToUse, mutates, phases, and requiredGates.
+
+Example input:
+
+```json
+{}
+```
+
+### `kernel.loops.select`
+
+Selection with the chosen loop id, source (explicit/learned/classified), and reason.
+
+Example input:
+
+```json
+{
+  "goal": "fix the failing login bug"
+}
+```
+
+### `kernel.loops.learn`
+
+The recorded loop override.
+
+Example input:
+
+```json
+{
+  "loop": "refactor-clean"
+}
+```
+
+### `kernel.loops.run`
+
+Operate report plus loopSelection and loop stop reason (completed, required_gate_failed, needs_work, blocked_needs_approval).
+
+Example input:
+
+```json
+{
+  "goal": "refactor and remove dead code"
+}
+```
+
 ## Failure Modes
 
 ### `kernel.phase.status`
@@ -1270,7 +1918,7 @@ Example input:
 
 ### `kernel.loop.prove`
 
-- Closed-loop fixture proof fails.
+- Closed-loop test-fixture proof fails.
 
 ### `kernel.loop.score`
 
@@ -1291,7 +1939,7 @@ Example input:
 
 - Fixture setup fails.
 - The controlled failing test does not fail before repair.
-- The repaired fixture test does not pass.
+- The repaired test-fixture test does not pass.
 
 ### `kernel.workflow_engine.run`
 
@@ -1614,6 +2262,81 @@ Example input:
 - Project path is outside allowed security roots.
 - Security proof cannot be constructed.
 
+### `kernel.cockpit.status`
+
+- Proof ledger or evidence directory cannot be read.
+
+### `kernel.security.polyglot`
+
+- Source files cannot be read.
+
+### `kernel.chaos.matrix`
+
+- A recovery invariant is violated (a scenario fails).
+
+### `kernel.perf.incremental`
+
+- Source files cannot be read.
+
+### `kernel.runtime.gate`
+
+- Target package.json cannot be read.
+
+### `kernel.autonomy.harness`
+
+- A seeded bug's detector cannot run.
+
+### `kernel.intake.prd`
+
+- Idea is empty (still produces a profile-derived PRD).
+
+### `kernel.intake.design`
+
+- Idea is empty (still produces a profile-derived design).
+
+### `kernel.intake.contract`
+
+- Idea is empty (produces a profile-derived contract).
+
+### `kernel.generation.scaffold`
+
+- The derived generation spec is invalid.
+
+### `kernel.generation.prove`
+
+- The derived generation spec is invalid.
+
+### `kernel.security.dataflow`
+
+- A high-severity interprocedural taint chain is found.
+
+### `kernel.deploy.verify_rollback`
+
+- Local server cannot bind a port.
+
+### `kernel.sdlc.e2e`
+
+- A stage fails; or with injectDefect the pipeline stops before deploy.
+
+### `kernel.enforce.proof_gate`
+
+- Not a git repo (cannot bind a proof to the working state).
+
+### `kernel.contract.install`
+
+- Target directory is not writable.
+
+### `kernel.goal.drive`
+
+- objective is missing.
+- Task DAG contains a dependency cycle (blocked_unsatisfiable).
+- A task requires approval and approve was not set (needs_approval).
+
+### `kernel.security.sast`
+
+- Project path is outside allowed security roots.
+- Source files cannot be parsed for analysis.
+
 ### `kernel.testing.strategy`
 
 - Project path is outside allowed roots.
@@ -1696,6 +2419,137 @@ Example input:
 ### `kernel.drift.proof`
 
 - Any drift map, scope, contract, documentation, or permission check has a blocking finding.
+
+### `kernel.proof.record`
+
+- Proof record is malformed and is rejected before being persisted.
+- The proof ledger directory is not writable.
+
+### `kernel.proof.get`
+
+- The proof ledger does not exist yet.
+
+### `kernel.proof.list`
+
+- The proof ledger does not exist yet.
+
+### `kernel.proof.verify`
+
+- The proof ledger does not exist yet.
+- A record or artifact was tampered with after it was written.
+
+### `kernel.proof_graph.build`
+
+- The repository is not a git work tree, so changed files cannot be derived.
+
+### `kernel.proof_graph.query`
+
+- No proof graph has been built yet.
+
+### `kernel.proof_graph.validate`
+
+- No proof graph has been built yet.
+- A claim or release gate has no path to a passing proof.
+
+### `kernel.claims.verify`
+
+- Text contains a success claim with no backing proof.
+- Text contains a stale or external claim that cannot be evidenced.
+
+### `kernel.contract.create`
+
+- The goal is empty.
+
+### `kernel.contract.validate`
+
+- The contract is missing required fields.
+
+### `kernel.risk.classify_diff`
+
+- The repository is not a git work tree and no files were provided.
+
+### `kernel.testing.impact`
+
+- A risky changed file has no mapped test (uncovered).
+
+### `kernel.operate.run`
+
+- Acceptance criteria are missing, so implementation is blocked.
+- A required gate fails and cannot be repaired within budget.
+
+### `kernel.testing.mutation`
+
+- Surviving mutants put the mutation score below the threshold.
+- The target file or test files do not exist.
+
+### `kernel.agents.route`
+
+- The goal is empty.
+
+### `kernel.hallucination.scan`
+
+- The text contains success claims with no backing proof.
+
+### `kernel.profile.learn`
+
+- The profile id is unknown.
+
+### `kernel.daemon.status`
+
+- No daemon heartbeat exists yet (stopped).
+
+### `kernel.operate.diagnose`
+
+- The output contains no recognizable error.
+
+### `kernel.agents.verify`
+
+- No verifiers configured (blocked_not_implemented).
+
+### `kernel.evals.model_rubric`
+
+- No model grader configured (blocked_not_implemented).
+
+### `kernel.evals.ground`
+
+- The text references files that do not exist in the repo.
+
+### `kernel.learning.outcomes`
+
+- No outcomes recorded yet.
+
+### `kernel.learning.recall_fix`
+
+- No sufficiently similar past fix exists.
+
+### `kernel.policy.explain`
+
+- The capability kind is unknown.
+
+### `kernel.security.dlp`
+
+- The input text is missing.
+
+### `kernel.refactor.dead_code`
+
+- Orphan files or unused dependencies are present (or unused exports under strict).
+
+### `kernel.loops.list`
+
+- The loop registry is invalid.
+
+### `kernel.loops.select`
+
+- The goal is empty and no loop is provided.
+
+### `kernel.loops.learn`
+
+- The loop id is unknown.
+
+### `kernel.loops.run`
+
+- A required-before-exit gate fails and cannot be repaired within budget.
+- Acceptance criteria are missing, so implementation is blocked.
 
 ## Approval Required
 

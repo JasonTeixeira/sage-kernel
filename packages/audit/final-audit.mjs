@@ -54,8 +54,11 @@ async function check(id, fn) {
 }
 
 function normalizeStatus(result) {
-  if (["passed", "defined"].includes(result?.status)) return "passed";
-  if (result?.status === "needs_external_evidence") return "warning";
+  if (result?.status === "passed") return "passed";
+  if (result?.status === "defined") return "warning";
+  // blocked_not_verified is an UNVERIFIED claim — it must fail (not warn) so the
+  // final audit can never quietly pass on something that was never proven.
+  if (result?.status === "blocked_not_verified") return "failed";
   if (result?.report?.status === "passed") return "passed";
   return result?.status === "needs_work" ? "warning" : "failed";
 }

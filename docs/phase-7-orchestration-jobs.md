@@ -21,7 +21,7 @@ Phase 7 makes Sage Kernel OS alive locally through repeatable jobs, run history,
 - `qa-os-summary`
 - `template-smoke`
 - `nightly-local-audit`
-- `external-deploy-placeholder`
+- external deploy jobs are intentionally absent until a real provider-backed implementation exists
 
 ## MCP Tools
 

@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sage-kernel/proof/schema.json",
+  "title": "Sage Kernel Proof Record",
+  "description": "Append-only, tamper-evident evidence record for a command or tool run.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "proofId",
+    "runId",
+    "parentProofIds",
+    "tool",
+    "inputHash",
+    "outputHash",
+    "status",
+    "verifier",
+    "git",
+    "startedAt",
+    "finishedAt",
+    "durationMs",
+    "recordHash"
+  ],
+  "properties": {
+    "proofId": { "type": "string", "pattern": "^proof_" },
+    "runId": { "type": "string" },
+    "parentProofIds": { "type": "array", "items": { "type": "string" } },
+    "tool": { "type": ["string", "null"] },
+    "command": { "type": ["string", "null"] },
+    "input": {},
+    "inputHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "output": {},
+    "outputHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "stdoutPath": { "type": ["string", "null"] },
+    "stderrPath": { "type": ["string", "null"] },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "hash", "bytes"],
+        "properties": {
+          "path": { "type": "string" },
+          "hash": { "type": "string" },
+          "bytes": { "type": "number" }
+        }
+      }
+    },
+    "exitCode": { "type": ["number", "null"] },
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "error",
+        "blocked_not_verified",
+        "blocked_not_implemented",
+        "blocked_ui_proof",
+        "blocked_external_proof"
+      ]
+    },
+    "verifier": { "type": "string" },
+    "git": {
+      "type": "object",
+      "properties": {
+        "commit": { "type": ["string", "null"] },
+        "dirty": { "type": ["boolean", "null"] },
+        "diffHash": { "type": ["string", "null"] },
+        "tracked": { "type": "boolean" }
+      }
+    },
+    "startedAt": { "type": "string" },
+    "finishedAt": { "type": "string" },
+    "durationMs": { "type": "number", "minimum": 0 },
+    "freshnessExpiresAt": { "type": ["string", "null"] },
+    "riskLevel": { "type": ["string", "null"] },
+    "approvalId": { "type": ["string", "null"] },
+    "prevHash": { "type": ["string", "null"] },
+    "recordHash": { "type": "string", "minLength": 64, "maxLength": 64 }
+  }
+}

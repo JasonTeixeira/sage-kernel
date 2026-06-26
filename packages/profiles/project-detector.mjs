@@ -167,6 +167,46 @@ export const SDLC_PROFILES = [
     evidence: ["plan output", "secret boundary proof", "rollback runbook", "drift check"]
   },
   {
+    id: "desktop-app",
+    title: "Desktop App",
+    appliesTo: ["electron", "tauri"],
+    requiredChecks: ["install", "unit", "e2e", "packaging", "auto-update", "code-signing", "release"],
+    commands: ["npm test", "npm run test:coverage"],
+    evidence: ["window/IPC smoke", "packaged build proof", "auto-update proof", "code-signing notes"]
+  },
+  {
+    id: "static-site",
+    title: "Static Site",
+    appliesTo: ["astro", "eleventy", "docusaurus", "jekyll"],
+    requiredChecks: ["build", "link-check", "accessibility", "lighthouse", "seo", "deploy"],
+    commands: ["npm run build", "npm test"],
+    evidence: ["static build output", "broken-link report", "lighthouse report", "accessibility proof"]
+  },
+  {
+    id: "game",
+    title: "Game",
+    appliesTo: ["unity", "godot", "phaser", "three"],
+    requiredChecks: ["build", "asset-pipeline", "frame-budget", "input", "save-state", "release"],
+    commands: ["npm test"],
+    evidence: ["build proof", "asset pipeline proof", "frame-budget proof", "input/save-state proof"]
+  },
+  {
+    id: "ml-training",
+    title: "ML Training Pipeline",
+    appliesTo: ["pytorch", "tensorflow", "sklearn", "keras"],
+    requiredChecks: ["data-contract", "reproducibility", "train-eval-split", "metrics", "model-card", "regression"],
+    commands: ["pytest"],
+    evidence: ["data contract proof", "seeded reproducible run", "offline eval metrics", "model card"]
+  },
+  {
+    id: "smart-contract",
+    title: "Smart Contract",
+    appliesTo: ["solidity", "hardhat", "foundry", "anchor"],
+    requiredChecks: ["compile", "unit", "invariant-fuzz", "gas", "audit", "testnet-deploy"],
+    commands: ["npm test"],
+    evidence: ["compilation proof", "invariant/fuzz proof", "gas report", "audit checklist", "testnet deploy proof"]
+  },
+  {
     id: "monorepo",
     title: "Monorepo",
     appliesTo: ["monorepo"],
@@ -183,11 +223,12 @@ export function detectProjectProfile(options = {}) {
   const fileSet = new Set(files);
   const pkg = readJson(path.join(projectRoot, "package.json"), null);
   const deps = packageDeps(pkg);
+  mergeWorkspaceDeps(projectRoot, deps); // monorepo: surface apps/*/packages/* framework signals
   const scripts = Object.keys(pkg?.scripts || {}).sort();
   const languages = detectLanguages(files, fileSet);
   const frameworks = detectFrameworks({ projectRoot, files, fileSet, deps, scripts });
   const projectTypes = detectProjectTypes({ projectRoot, files, fileSet, deps, scripts, languages, frameworks, pkg });
-  const profile = chooseProfile(projectTypes, frameworks);
+  const profile = chooseProfile({ projectTypes, frameworks, files, deps, scripts });
   const profileDecision = explainProfileDecision({ profile, projectTypes, frameworks, files, deps, scripts });
 
   return {
@@ -199,7 +240,7 @@ export function detectProjectProfile(options = {}) {
     },
     profile,
     secondaryProfiles: secondaryProfiles(projectTypes, profile.id),
-    confidence: confidenceScore({ files, pkg, frameworks, projectTypes, profileDecision }),
+    confidence: confidenceScore({ files, fileSet, pkg, frameworks, projectTypes, profileDecision }),
     profileDecision,
     packageManager: detectPackageManager(fileSet),
     languages,
@@ -357,20 +398,41 @@ export function formatProfileOutput(value, options = {}) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+// Data-driven framework detection: each rule is { name, when(ctx) -> boolean }.
+// Keeping this declarative (one table + one loop) keeps the function's cyclomatic
+// complexity flat as languages/frameworks grow — new framework = new table row.
+const FRAMEWORK_RULES = [
+  { name: "nextjs", when: ({ deps, fileSet }) => hasDep(deps, "next") || hasAny(fileSet, ["next.config.js", "next.config.mjs", "next.config.ts"]) },
+  { name: "react", when: ({ deps }) => hasDep(deps, "react") },
+  { name: "vite", when: ({ deps, files }) => hasDep(deps, "vite") || files.some((file) => /^vite\.config\.[cm]?[jt]s$/.test(file)) },
+  { name: "express", when: ({ deps }) => hasDep(deps, "express") },
+  { name: "mcp", when: ({ deps, fileSet, scripts }) => hasDep(deps, "@modelcontextprotocol/sdk") || fileSet.has("apps/mcp-server/tools.json") || scripts.some((script) => script.startsWith("mcp:")) },
+  { name: "expo", when: ({ deps, fileSet }) => hasDep(deps, "expo") || fileSet.has("app.json") },
+  { name: "react-native", when: ({ deps }) => hasDep(deps, "react-native") },
+  { name: "fastapi", when: ({ py }) => py.includes("fastapi") },
+  { name: "django", when: ({ py }) => py.includes("django") },
+  { name: "go", when: ({ fileSet }) => fileSet.has("go.mod") },
+  { name: "rust", when: ({ fileSet }) => fileSet.has("Cargo.toml") },
+  { name: "swift", when: ({ fileSet }) => fileSet.has("Package.swift") },
+  { name: "electron", when: ({ deps }) => hasDep(deps, "electron") || hasDep(deps, "@electron/remote") },
+  { name: "tauri", when: ({ deps, fileSet }) => hasDep(deps, "@tauri-apps/api") || fileSet.has("src-tauri/tauri.conf.json") },
+  { name: "astro", when: ({ deps, files }) => hasDep(deps, "astro") || files.some((file) => /^astro\.config\.[cm]?[jt]s$/.test(file)) },
+  { name: "eleventy", when: ({ deps, fileSet }) => hasDep(deps, "@11ty/eleventy") || hasAny(fileSet, [".eleventy.js", "eleventy.config.js"]) },
+  { name: "docusaurus", when: ({ deps, files }) => hasDep(deps, "@docusaurus/core") || files.some((file) => /^docusaurus\.config\.[cm]?[jt]s$/.test(file)) },
+  { name: "jekyll", when: ({ fileSet }) => fileSet.has("_config.yml") },
+  { name: "game-engine", when: ({ deps }) => hasDep(deps, "phaser") || hasDep(deps, "three") },
+  { name: "godot", when: ({ fileSet }) => fileSet.has("project.godot") },
+  { name: "unity", when: ({ fileSet }) => fileSet.has("ProjectSettings/ProjectVersion.txt") },
+  { name: "ml", when: ({ py }) => /(^|\s|=|"|')(torch|tensorflow|scikit-learn|sklearn|keras)\b/.test(py) },
+  { name: "solidity-toolchain", when: ({ deps, fileSet, files }) => hasDep(deps, "hardhat") || hasAny(fileSet, ["hardhat.config.js", "hardhat.config.ts", "foundry.toml", "Anchor.toml"]) || files.some((file) => /\.sol$/.test(file)) }
+];
+
 function detectFrameworks({ projectRoot, files, fileSet, deps, scripts }) {
+  const ctx = { projectRoot, files, fileSet, deps, scripts, py: pythonText(projectRoot) };
   const frameworks = new Set();
-  if (hasDep(deps, "next") || hasAny(fileSet, ["next.config.js", "next.config.mjs", "next.config.ts"])) frameworks.add("nextjs");
-  if (hasDep(deps, "react")) frameworks.add("react");
-  if (hasDep(deps, "vite") || files.some((file) => /^vite\.config\.[cm]?[jt]s$/.test(file))) frameworks.add("vite");
-  if (hasDep(deps, "express")) frameworks.add("express");
-  if (hasDep(deps, "@modelcontextprotocol/sdk") || fileSet.has("apps/mcp-server/tools.json") || scripts.some((script) => script.startsWith("mcp:"))) frameworks.add("mcp");
-  if (hasDep(deps, "expo") || fileSet.has("app.json")) frameworks.add("expo");
-  if (hasDep(deps, "react-native")) frameworks.add("react-native");
-  if (pythonText(projectRoot).includes("fastapi")) frameworks.add("fastapi");
-  if (pythonText(projectRoot).includes("django")) frameworks.add("django");
-  if (fileSet.has("go.mod")) frameworks.add("go");
-  if (fileSet.has("Cargo.toml")) frameworks.add("rust");
-  if (fileSet.has("Package.swift")) frameworks.add("swift");
+  for (const rule of FRAMEWORK_RULES) {
+    if (rule.when(ctx)) frameworks.add(rule.name);
+  }
   return [...frameworks].sort();
 }
 
@@ -388,7 +450,7 @@ function detectProjectTypes({ files, fileSet, deps, scripts, languages, framewor
   if (pkg?.exports || fileSet.has("src/index.ts") || fileSet.has("src/index.js")) types.add("library");
   if (files.some((file) => /(^|\/)(pipelines?|etl|datasets?|notebooks?)\//.test(file))) types.add("data-pipeline");
   if (fileSet.has("dbt_project.yml") || hasAnyFile(files, /(^|\/)(models|macros|snapshots)\/.*\.sql$/)) types.add("data-warehouse-dbt");
-  if (hasCodeFile(files, /(^|\/)(trading|market-data|signals?|positions?|risk-engine|risk\/|orders\/)/)) types.add("trading-system");
+  if (hasCodeFile(files, /(^|\/)(trading|market-data|signals?|positions?|risk-engine|orders\/)/)) types.add("trading-system");
   const hasAgentSurface = hasAnyFile(files, /(^|\/)(agents?|evals?)\//) || scripts.some((script) => /(^|:)(agents?|eval)(:|$)/.test(script));
   const hasAiSurface = hasDep(deps, "ai") || hasDep(deps, "openai") || hasDep(deps, "@anthropic-ai/sdk") || hasAnyFile(files, /prompts?|llm|completion|chat/);
   const hasAgentPlatformSurface = hasAnyFile(files, /(^|\/)(memory|tools|orchestration|council)\//);
@@ -400,13 +462,31 @@ function detectProjectTypes({ files, fileSet, deps, scripts, languages, framewor
   if (hasCodeFile(files, /(^|\/)(fintech|kyc|ledger|wallet|banking)\//) || hasCodeFile(files, /(^|\/)src\/(ledger|wallet|kyc|money)\//)) types.add("fintech-app");
   if (files.some((file) => /^(infra|terraform|k8s|helm|docker-compose)/.test(file)) || hasAny(fileSet, ["Dockerfile", "docker-compose.yml"])) types.add("infrastructure");
   if (pkg?.workspaces || fileSet.has("pnpm-workspace.yaml") || fileSet.has("turbo.json") || fileSet.has("nx.json")) types.add("monorepo");
+  if (frameworks.some((item) => ["electron", "tauri"].includes(item))) types.add("desktop-app");
+  if (frameworks.some((item) => ["astro", "eleventy", "docusaurus", "jekyll"].includes(item))) types.add("static-site");
+  if (frameworks.some((item) => ["game-engine", "godot", "unity"].includes(item))) types.add("game");
+  if (frameworks.includes("ml")) types.add("ml-training");
+  if (frameworks.includes("solidity-toolchain")) types.add("smart-contract");
   if (types.size === 0 && languages.length > 0) types.add("library");
   return [...types].sort();
 }
 
-function chooseProfile(projectTypes, frameworks) {
-  const id = PROFILE_PRIORITY.find((candidate) => projectTypes.includes(candidate)) || (frameworks.includes("mcp") ? "mcp-server" : "library");
-  return findProfile(id);
+function chooseProfile(context) {
+  const { projectTypes, frameworks } = context;
+  if (!projectTypes || projectTypes.length === 0) {
+    return findProfile(frameworks.includes("mcp") ? "mcp-server" : "library");
+  }
+  // Rank by evidence score (platform/feature weighting), priority list as the
+  // deterministic tiebreak — so the chosen profile matches the decision report.
+  const ranked = projectTypes
+    .map((id) => ({ id, score: profileEvidenceScore(id, context), priority: priorityRank(id) }))
+    .sort((left, right) => right.score - left.score || left.priority - right.priority);
+  return findProfile(ranked[0].id);
+}
+
+function priorityRank(id) {
+  const index = PROFILE_PRIORITY.indexOf(id);
+  return index < 0 ? PROFILE_PRIORITY.length : index;
 }
 
 const PROFILE_PRIORITY = [
@@ -416,6 +496,11 @@ const PROFILE_PRIORITY = [
     "trading-system",
     "mcp-server",
     "llm-agent-platform",
+    "smart-contract",
+    "ml-training",
+    "game",
+    "desktop-app",
+    "static-site",
     "mobile-app",
     "saas-app",
     "admin-dashboard",
@@ -443,16 +528,39 @@ function findProfile(id) {
   return profile;
 }
 
-function confidenceScore({ files, pkg, frameworks, projectTypes, profileDecision }) {
+// Any recognized ecosystem manifest, not just package.json — so Python, Go,
+// Rust, Java, Ruby, PHP, .NET, Terraform, Swift, and C/C++ repos are not
+// penalized for lacking a Node manifest. This is what closes the bogus
+// "low-confidence" verdicts on legitimate non-JS projects.
+const MANIFEST_FILES = new Set([
+  "package.json", "pyproject.toml", "requirements.txt", "setup.py", "setup.cfg", "Pipfile",
+  "go.mod", "Cargo.toml", "pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle",
+  "Gemfile", "composer.json", "Package.swift", "CMakeLists.txt", "Makefile", "main.tf"
+]);
+
+function detectManifests(fileSet, files) {
+  const found = new Set();
+  for (const file of files) {
+    const base = file.split("/").pop();
+    if (MANIFEST_FILES.has(base)) found.add(base);
+    if (/\.(csproj|sln|fsproj)$/.test(file)) found.add("dotnet-project");
+    if (/\.tf$/.test(file)) found.add("terraform");
+  }
+  return [...found];
+}
+
+function confidenceScore({ files, fileSet, pkg, frameworks, projectTypes, profileDecision }) {
+  const manifests = detectManifests(fileSet || new Set(files), files);
   let score = 35;
-  if (pkg) score += 15;
+  if (pkg || manifests.length > 0) score += 15; // any ecosystem manifest counts
+  if (manifests.length > 1) score += 5; // polyglot / well-described project
   if (frameworks.length > 0) score += 20;
   if (projectTypes.length > 0) score += 15;
   if (files.some((file) => isTestFile(file))) score += 10;
   if (files.some((file) => file === "README.md")) score += 5;
   if (profileDecision?.ambiguous) score -= 10;
   if (profileDecision?.candidates?.[0]?.score < 60) score -= 10;
-  return Math.min(100, score);
+  return Math.min(100, Math.max(0, score));
 }
 
 function detectLanguages(files, fileSet) {
@@ -463,6 +571,13 @@ function detectLanguages(files, fileSet) {
   if (files.some((file) => /\.go$/.test(file)) || fileSet.has("go.mod")) languages.add("go");
   if (files.some((file) => /\.rs$/.test(file)) || fileSet.has("Cargo.toml")) languages.add("rust");
   if (files.some((file) => /\.swift$/.test(file)) || fileSet.has("Package.swift")) languages.add("swift");
+  if (files.some((file) => /\.(java|kt|kts)$/.test(file)) || fileSet.has("pom.xml") || fileSet.has("build.gradle")) languages.add("java");
+  if (files.some((file) => /\.rb$/.test(file)) || fileSet.has("Gemfile")) languages.add("ruby");
+  if (files.some((file) => /\.php$/.test(file)) || fileSet.has("composer.json")) languages.add("php");
+  if (files.some((file) => /\.(cs|fs)$/.test(file)) || files.some((file) => /\.(csproj|sln|fsproj)$/.test(file))) languages.add("dotnet");
+  if (files.some((file) => /\.tf$/.test(file))) languages.add("terraform");
+  if (files.some((file) => /\.(c|cc|cpp|h|hpp)$/.test(file)) || fileSet.has("CMakeLists.txt")) languages.add("c-cpp");
+  if (files.some((file) => /\.sh$/.test(file))) languages.add("shell");
   return [...languages].sort();
 }
 
@@ -539,6 +654,17 @@ function profileEvidenceScore(id, context) {
   score += Math.min(35, reasons.length * 10);
   if (id === "mcp-server" && context.frameworks.includes("mcp")) score += 15;
   if (id === "library" && context.projectTypes.length === 0) score += 20;
+  // Platform signal wins primary: a mobile app that also takes payments is
+  // primarily a mobile-app (its lifecycle/tooling is mobile); payments becomes a
+  // secondary profile rather than mis-claiming the project as a payments-system.
+  if (id === "mobile-app" && context.frameworks.some((item) => ["expo", "react-native", "swift"].includes(item))) score += 15;
+  // Platform/toolchain signals win primary over the generic web-app/library they
+  // share a language with (an Electron app is a desktop-app, not a web-app).
+  if (id === "desktop-app" && context.frameworks.some((item) => ["electron", "tauri"].includes(item))) score += 15;
+  if (id === "static-site" && context.frameworks.some((item) => ["astro", "eleventy", "docusaurus", "jekyll"].includes(item))) score += 15;
+  if (id === "game" && context.frameworks.some((item) => ["game-engine", "godot", "unity"].includes(item))) score += 15;
+  if (id === "ml-training" && context.frameworks.includes("ml")) score += 15;
+  if (id === "smart-contract" && context.frameworks.includes("solidity-toolchain")) score += 15;
   return Math.min(100, score);
 }
 
@@ -546,11 +672,16 @@ function profileReasons(id, { projectTypes, frameworks, files, deps, scripts }) 
   const reasons = [];
   if (projectTypes.includes(id)) reasons.push(`detected project type ${id}`);
   if (id === "mcp-server" && frameworks.includes("mcp")) reasons.push("MCP SDK/tool manifest/script detected");
-  if (id === "web-app" && frameworks.some((item) => ["nextjs", "react", "vite"].includes(item))) reasons.push(`web framework: ${frameworks.join(", ")}`);
+  if (["web-app", "saas-app", "admin-dashboard"].includes(id) && frameworks.some((item) => ["nextjs", "react", "vite"].includes(item))) reasons.push(`web framework: ${frameworks.join(", ")}`);
   if (id === "payments-system" && deps.has("stripe")) reasons.push("Stripe dependency detected");
   if (id === "cli-tool" && files.some((file) => file.startsWith("bin/"))) reasons.push("bin entrypoint detected");
   if (id === "worker-service" && scripts.some((script) => /worker|queue|jobs?/.test(script))) reasons.push("worker/queue script detected");
   if (id === "data-warehouse-dbt" && files.some((file) => file === "dbt_project.yml")) reasons.push("dbt_project.yml detected");
+  if (id === "desktop-app" && frameworks.some((item) => ["electron", "tauri"].includes(item))) reasons.push(`desktop runtime: ${frameworks.filter((f) => ["electron", "tauri"].includes(f)).join(", ")}`);
+  if (id === "static-site" && frameworks.some((item) => ["astro", "eleventy", "docusaurus", "jekyll"].includes(item))) reasons.push("static-site generator detected");
+  if (id === "game" && frameworks.some((item) => ["game-engine", "godot", "unity"].includes(item))) reasons.push("game engine detected");
+  if (id === "ml-training" && frameworks.includes("ml")) reasons.push("ML training stack (torch/tensorflow/sklearn) detected");
+  if (id === "smart-contract" && frameworks.includes("solidity-toolchain")) reasons.push("Solidity/contract toolchain detected");
   if (id === "library" && projectTypes.length === 0) reasons.push("fallback for untyped code/documentation repository");
   return reasons;
 }
@@ -588,6 +719,25 @@ function listFiles(dir, base = dir) {
 
 function packageDeps(pkg) {
   return new Set(Object.keys({ ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}), ...(pkg?.peerDependencies || {}) }));
+}
+
+// In a monorepo, framework signals live in workspace package.json files
+// (apps/*/packages/*), not the root. Merge their deps so profile detection sees
+// the real stack (e.g. Expo in apps/mobile makes the repo a mobile-app).
+function mergeWorkspaceDeps(projectRoot, deps) {
+  for (const dir of ["apps", "packages"]) {
+    let entries = [];
+    try {
+      entries = fs.readdirSync(path.join(projectRoot, dir), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const workspacePkg = readJson(path.join(projectRoot, dir, entry.name, "package.json"), null);
+      for (const name of packageDeps(workspacePkg)) deps.add(name);
+    }
+  }
 }
 
 function hasDep(deps, name) {
@@ -633,7 +783,14 @@ function detectPackageManager(fileSet) {
 }
 
 function isTestFile(file) {
-  return /(^|\/)(tests?|__tests__)\//.test(file) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(file) || /test_.*\.py$/.test(file);
+  return /(^|\/)(tests?|__tests__|spec|specs)\//.test(file)
+    || /\.(test|spec)\.[cm]?[jt]sx?$/.test(file)
+    || /(^|\/)test_.*\.py$/.test(file) || /_test\.py$/.test(file)
+    || /_test\.go$/.test(file) // Go
+    || /(Test|Tests|Spec)\.(java|kt)$/.test(file) || /src\/test\//.test(file) // JVM
+    || /_spec\.rb$/.test(file) // Ruby
+    || /Test\.php$/.test(file) // PHP
+    || /\.rs$/.test(file) && /(^|\/)tests\//.test(file); // Rust integration tests
 }
 
 function realPath(absolutePath) {

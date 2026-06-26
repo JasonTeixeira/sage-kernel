@@ -14,7 +14,7 @@ export function createSemanticCode(options = {}) {
       const projectPath = resolveInsideRoot(root, input.projectPath || ".");
       const files = collectFiles(projectPath, {
         root,
-        limit: clampNumber(input.limit, 1, 1000, 250),
+        limit: clampNumber(input.limit, 1, 5000, 1000),
         extensions: input.extensions ? new Set(input.extensions.map((item) => `.${String(item).replace(/^\./, "")}`)) : DEFAULT_EXTENSIONS
       });
       const modules = files.map((file) => analyzeFile(file, root));
@@ -85,7 +85,7 @@ export function createSemanticCode(options = {}) {
 export function semanticSmoke(options = {}) {
   const root = path.resolve(options.root || process.cwd());
   const semantic = createSemanticCode({ root });
-  const index = semantic.indexProject({ projectPath: ".", limit: 300 });
+  const index = semantic.indexProject({ projectPath: ".", limit: 2000 });
   const search = semantic.searchSymbol({ query: "createSemanticCode", limit: 5 });
   const module = semantic.summarizeModule({ file: "packages/intelligence/semantic-code.mjs" });
   const references = semantic.findReferences({ query: "semantic", limit: 5 });
@@ -100,7 +100,7 @@ export function semanticSmoke(options = {}) {
 }
 
 function readLocalAdapter(root) {
-  const fixture = path.join(root, "packages/intelligence/fixtures/valid/semantic-adapter.json");
+  const fixture = path.join(root, "packages/intelligence/test-fixtures/valid/semantic-adapter.json");
   if (!fs.existsSync(fixture)) {
     return {
       id: "semantic_local_baseline",

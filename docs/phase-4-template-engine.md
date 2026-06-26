@@ -6,7 +6,7 @@ Phase 4 creates the first real scaffold path from kernel catalog to generated pr
 
 - `template-manifest.schema.json`
 - `template-list.mjs`
-- `template-scaffold.mjs`
+- `template-scaffold-v2.mjs` (production scaffold; the placeholder-based `template-scaffold.mjs` was removed)
 
 ## Current Capability
 

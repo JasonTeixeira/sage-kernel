@@ -51,6 +51,7 @@ const qaProfilesPath = path.join(root, "packages", "qa", "profiles.json");
 const qaProfiles = fs.existsSync(qaProfilesPath)
   ? JSON.parse(fs.readFileSync(qaProfilesPath, "utf8"))
   : { profiles: [] };
+const moduleStatuses = new Set(["implemented", "partial"]);
 
 for (const file of requiredFiles) {
   readJson(file);
@@ -73,6 +74,12 @@ for (const repo of repos.repos) {
 }
 
 for (const module of modules.modules) {
+  if (!moduleStatuses.has(module.status)) {
+    throw new Error(`module ${module.id} has invalid shipped status: ${module.status}`);
+  }
+  if (!module.package || !fs.existsSync(path.join(root, module.package))) {
+    throw new Error(`module ${module.id} package path does not exist: ${module.package}`);
+  }
   assertScore(module, "scoreCurrent", `module ${module.id}`);
   assertScore(module, "scoreTarget", `module ${module.id}`);
   if (module.scoreTarget < module.scoreCurrent) {

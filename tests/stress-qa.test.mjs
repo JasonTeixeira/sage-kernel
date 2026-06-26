@@ -14,6 +14,8 @@ import { createWarehouseSummary } from "../packages/ai-warehouse/scripts/warehou
 import { validateIntelligence } from "../packages/intelligence/scripts/validate-intelligence.mjs";
 import { validateMarkdownLinks, validatePublicSurface } from "../scripts/validate-public-surface.mjs";
 import { validateReleaseProvenance } from "../scripts/validate-release-provenance.mjs";
+import { createKillRestartProof } from "../packages/testing/kill-restart-proof.mjs";
+import { createFullStressMatrix } from "../packages/testing/stress-matrix.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -381,6 +383,36 @@ test("dashboard stress core covers defaults, response failures, and thrown fetch
   });
   assert.equal(thrown.failures, 1);
   assert.equal(thrown.errorCodes.connection_error, 1);
+});
+
+test("kill/restart proof starts, kills, restarts, and records recovery evidence", async () => {
+  const proofRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-kill-restart-proof-"));
+  const proof = await createKillRestartProof({ root: proofRoot, timeoutMs: 5000 });
+  assert.equal(proof.status, "passed");
+  assert.equal(proof.events.some((item) => item.type === "started" && item.pid), true);
+  assert.equal(proof.events.some((item) => item.type === "killed" && item.status === "passed"), true);
+  assert.equal(proof.events.some((item) => item.type === "restarted" && item.pid), true);
+  assert.equal(proof.events.some((item) => item.type === "health" && item.phase === "after_restart" && item.status === "passed"), true);
+  assert.equal(fs.existsSync(path.join(proofRoot, ".sage-kernel/evidence/kill-restart-latest.json")), true);
+});
+
+test("kill/restart proof reports failure when the process cannot start", async () => {
+  const proof = await createKillRestartProof({
+    root,
+    save: false,
+    starter: async () => {
+      throw new Error("forced start failure");
+    }
+  });
+  assert.equal(proof.status, "failed");
+  assert.match(proof.error, /forced start failure/);
+});
+
+test("full stress matrix passes when real stress, soak, queue, and kill/restart proofs pass", async () => {
+  const matrix = await createFullStressMatrix({ root, save: false });
+  assert.equal(matrix.status, "passed");
+  assert.equal(matrix.killRestart.status, "passed");
+  assert.equal(matrix.chaos.find((item) => item.id === "kill-restart").status, "passed");
 });
 
 test("QA runner covers mode selection, static checks, failures, and root boundaries", () => {

@@ -1,4 +1,29 @@
+import { spawnSync } from "node:child_process";
 import { detectProjectProfile, generateDefinitionOfDone } from "../profiles/project-detector.mjs";
+import { mapTestImpact } from "./impact-map.mjs";
+import { changedFiles } from "../risk/diff-classifier.mjs";
+
+// Actually execute tests. By default the testing proof is plan-only (fast, for
+// dashboards) and transparently reports executed:false; pass execute:true (via
+// testing:execute, the operate loop, or kernel.testing.proof execute) to run the
+// impacted tests and gate on the real result.
+export function runTestExecution(options = {}) {
+  if (options.runner) return options.runner(options);
+  const root = options.root || process.cwd();
+  let files = options.testFiles;
+  if (!files) {
+    const changed = options.files || changedFiles(root);
+    files = mapTestImpact(changed, { root, requireCoverage: false }).requiredTests;
+  }
+  if (!files || files.length === 0) return { status: "skipped", reason: "no impacted tests", files: [] };
+  const env = { ...process.env };
+  delete env.NODE_OPTIONS;
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("NODE_TEST")) delete env[key];
+  }
+  const result = spawnSync(process.execPath, ["--test", ...files], { cwd: root, encoding: "utf8", timeout: 600000, env });
+  return { status: result.status === 0 ? "passed" : "failed", files, exitCode: result.status ?? 1 };
+}
 
 const PROFILE_LAYERS = {
   "web-app": ["unit", "integration", "browser-e2e", "accessibility", "visual-state", "security", "performance"],
@@ -90,8 +115,15 @@ export function createTestingLabProof(options = {}) {
   const strategy = generateTestStrategy(options);
   const playwright = createPlaywrightTemplate(options);
   const performance = createPerformanceBudget(options);
+  const execution = options.execute
+    ? runTestExecution(options)
+    : { status: "not_run", note: "Plan-only; pass execute:true (testing:execute / operate) to run impacted tests." };
+  const planningPassed = [strategy, playwright, performance].every((item) => item.status === "passed");
+  const status = execution.status === "failed" ? "failed" : planningPassed ? "passed" : "needs_work";
   return {
-    status: [strategy, playwright, performance].every((item) => item.status === "passed") ? "passed" : "needs_work",
+    status,
+    executed: execution.status === "passed",
+    execution,
     strategy,
     playwright,
     performance,

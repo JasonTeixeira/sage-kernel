@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
+import { recordProof } from "../packages/proof/ledger.mjs";
 
 const root = process.cwd();
+const releaseRunId = `run_release_${new Date().toISOString()}`;
 const checks = [
   ["npm", ["run", "catalog:validate"]],
   ["npm", ["run", "intelligence:validate"]],
@@ -30,12 +32,25 @@ const checks = [
   ["npm", ["run", "stress:matrix"]],
   ["npm", ["run", "retrieval:prove"]],
   ["npm", ["run", "orchestration:prove"]],
+  ["npm", ["run", "chaos:matrix"]],
+  ["npm", ["run", "perf:incremental"]],
+  ["npm", ["run", "runtime:gate"]],
+  ["npm", ["run", "autonomy:harness"]],
+  ["npm", ["run", "intake:proof"]],
+  ["npm", ["run", "generation:proof"]],
+  ["npm", ["run", "deploy:proof"]],
+  ["npm", ["run", "sdlc:e2e"]],
   ["npm", ["run", "observability:prove"]],
   ["npm", ["run", "template:validate-blueprints"]],
   ["npm", ["run", "templates:e2e"]],
   ["npm", ["run", "templates:benchmark"]],
   ["npm", ["run", "v03:validate"]],
   ["npm", ["run", "security:scan"]],
+  ["npm", ["run", "security:polyglot"]],
+  ["npm", ["run", "security:dataflow"]],
+  ["npm", ["run", "security:corpus"]],
+  ["npm", ["run", "security:holdout"]],
+  ["npm", ["run", "hallucination:efficacy"]],
   ["npm", ["run", "security:threat-model"]],
   ["npm", ["run", "supply-chain:scan"]],
   ["npm", ["run", "security:e2e"]],
@@ -54,7 +69,16 @@ const checks = [
   ["npm", ["run", "public:validate"]],
   ["npm", ["run", "release:provenance"]],
   ["npm", ["run", "verify:global-install"]],
+  ["npm", ["run", "status:honesty"]],
   ["npm", ["run", "qa:gate"]],
+  ["npm", ["run", "proof:ledger"]],
+  ["npm", ["run", "proof:graph"]],
+  ["npm", ["run", "hallucination:gate"]],
+  ["npm", ["run", "dead-code"]],
+  ["npm", ["run", "quality:complexity"]],
+  ["npm", ["run", "test:coverage"]],
+  ["npm", ["run", "policy:validate"]],
+  ["npm", ["run", "security:dlp"]],
   ["npm", ["pack", "--dry-run"]]
 ];
 
@@ -69,14 +93,38 @@ console.log(JSON.stringify({
 process.exit(failed.length === 0 ? 0 : 1);
 
 function run(command, args) {
+  const startedAt = new Date().toISOString();
   const result = spawnSync(command, args, {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 1024 * 1024 * 8
   });
-  if (result.status !== 0) {
+  const status = result.status ?? 1;
+  if (status !== 0) {
     process.stderr.write(result.stdout || "");
     process.stderr.write(result.stderr || "");
   }
-  return { command, args, status: result.status ?? 1 };
+  // Every release gate writes a proof record (best-effort; proof recording must
+  // never mask or break the underlying check result).
+  try {
+    recordProof(
+      {
+        tool: `${command} ${args.join(" ")}`.trim(),
+        command: `${command} ${args.join(" ")}`.trim(),
+        input: { command, args },
+        stdout: result.stdout || "",
+        stderr: result.stderr || "",
+        exitCode: status,
+        status: status === 0 ? "passed" : "failed",
+        verifier: "release-check",
+        runId: releaseRunId,
+        startedAt,
+        finishedAt: new Date().toISOString()
+      },
+      { root }
+    );
+  } catch (error) {
+    process.stderr.write(`[release-check] proof recording failed: ${error.message}\n`);
+  }
+  return { command, args, status };
 }

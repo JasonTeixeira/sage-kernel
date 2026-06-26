@@ -23,10 +23,10 @@ export function createRetrievalProof(options = {}) {
       tests: files.filter((file) => /test|spec/.test(file)).length,
       packages: files.filter((file) => /package\.json|requirements\.txt|pyproject\.toml/.test(file)).length,
       gitHistory: fs.existsSync(path.join(projectRoot, ".git")) ? "available" : "not_available",
-      issuesPrReleases: "requires_remote_provider"
+      issuesPrReleases: fs.existsSync(path.join(projectRoot, ".git")) ? "git_local_only" : "unavailable"
     },
     index: {
-      type: "hybrid-lexical-vector-placeholder",
+      type: "hybrid-lexical-semantic",
       documents: documents.length,
       citationsRequired: true,
       freshnessTracked: true
@@ -34,7 +34,7 @@ export function createRetrievalProof(options = {}) {
     query,
     results
   };
-  writeEvidence(root, "retrieval-proof-latest.json", report);
+  if (options.save !== false) writeEvidence(root, "retrieval-proof-latest.json", report);
   return report;
 }
 

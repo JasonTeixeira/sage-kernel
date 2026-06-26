@@ -1,0 +1,249 @@
+================================================================================
+SDLC COMPLETION PROGRAM — P28 to P33
+Idea -> Production-Grade App, end to end, for LOCAL senior-level engineering.
+Doctrine: nothing stated, everything proven. No fake-green. No debt. Honest
+blocked_* where a live tool/credential is absent — never a faked pass.
+Scope: LOCAL development only. Team/enterprise concerns (RBAC, multi-tenant,
+SSO, distributed exec) are explicitly OUT OF SCOPE for this program.
+================================================================================
+
+WHY THIS PROGRAM
+--------------------------------------------------------------------------------
+Post-P27 the kernel is world-class in the MIDDLE of the SDLC (implement -> review
+-> secure -> test -> prove -> maintain) but thin at the ENDS:
+  FRONT:  idea -> spec -> design -> generated code   (stages 1,2,4)
+  BACK:   release -> deploy -> verify-in-prod         (stage 11)
+  DEPTH:  live runtime by default; cross-file security (stages 9,7)
+This program closes the ends and deepens the middle so the WHOLE arc — idea to
+proven-in-prod — is loopable and gate-enforced.
+
+GLOBAL DISCIPLINE (applies to EVERY phase; a phase is not "done" until all hold)
+--------------------------------------------------------------------------------
+  D1  TDD: write the failing test first (RED), implement (GREEN), refactor.
+  D2  Every new capability ships a GATE wired into release:check so it cannot rot.
+  D3  Every new capability ships an MCP tool (tools.json + dispatcher + guard
+      SAFE_ACTIONS + regenerated docs); conformance bijection + per-tool smoke
+      must stay green.
+  D4  No eval / new Function in source (kernel SAST must stay 0-high). Vulnerable
+      samples live as string literals, never as live calls.
+  D5  Coverage stays >= floor (lines 98 / branches 86 / functions 96); add tests
+      for new branches BEFORE running the full gate.
+  D6  Honest blocked_* for anything needing a live browser/cloud/credential; the
+      gate proves the LOGIC deterministically + runs live when the tool is present.
+  D7  Each phase ends with: full suite green, `npm run release:check` EXIT 0,
+      CHANGELOG + this doc updated, and an E2E proof artifact in the ledger.
+  D8  Complexity gate: any function approaching 30 cyclomatic is refactored to a
+      data-driven table (see FRAMEWORK_RULES precedent), never allowlisted away.
+
+================================================================================
+P28 — INTAKE: idea -> PRD -> design -> gated contract   (stages 1-2, front-end)
+================================================================================
+GOAL  Turn a one-line idea + detected profile into the CONTRACT the loop already
+      consumes, with a deterministic floor (profile.requiredChecks -> requirements)
+      and optional model enrichment (gated, honest).
+
+DELIVERABLES
+  packages/intake/prd.mjs        synthesizePrd(idea, profile) ->
+                                 { goals, userStories[], requirements[], nonGoals[], risks[] }
+  packages/intake/design.mjs     deriveArchitecture(prd, profile) ->
+                                 { components[], dataFlows[], decisions[] (ADR stubs) }
+  packages/intake/contract.mjs   prdToContract(prd, design, profile) -> contract
+                                 (valid input to loop.plan / done.generate)
+  packages/intake/spec.mjs       zod GenerationSpec schema (consumed by P29)
+  scripts/intake-proof.mjs       gate: intake:proof
+  MCP: kernel.intake.prd, kernel.intake.design, kernel.intake.contract
+
+BUILD
+  - Deterministic floor: every profile.requiredCheck becomes a requirement with a
+    matching acceptance criterion; risks seeded from profile (e.g. payments ->
+    webhook replay). Model enrichment via SAGE_AGENT_COMMAND when present.
+  - contract output must round-trip into loop.plan with no schema errors.
+
+PROVE (tests/intake.test.mjs)
+  - "PRD covers every required check" — for 3 profiles, each requiredCheck maps to
+    >=1 requirement (completeness invariant, deterministic).
+  - "design yields >=1 component and >=1 ADR decision".
+  - "contract is a valid loop.plan input" — round-trip, no schema error.
+  - "intake is profile-correct" — payments idea -> requirements include
+    webhook-signature + idempotency.
+E2E (tests/intake.test.mjs > e2e)
+  - idea "stripe webhook handler" + profile payments-system -> PRD -> design ->
+    contract -> loop.plan accepts it and the plan lists the payments gates.
+EXIT  intake:proof green in release:check; 3 MCP tools smoke-green.
+CEILING  Spec richness is model-bound; the deterministic floor (required-checks ->
+         requirements) is what the gate proves. Stated, not hidden.
+
+================================================================================
+P29 — GENERATION: spec -> gated code (never trusted, always proven)  (stage 4)
+================================================================================
+GOAL  A codegen lane that produces files from a GenerationSpec and ACCEPTS them
+      only if they pass the proof spine; otherwise discards (no debt written).
+
+DELIVERABLES
+  packages/generation/engine.mjs   generate(spec) -> { files: [{path, content}] }
+                                   deterministic template-expansion (model lane gated)
+  packages/generation/gate.mjs     proveGenerated(files, profile, root) -> runs
+                                   review + sast + polyglot + (optional) tests on the
+                                   generated set; returns accept|reject + findings
+  scripts/generation-proof.mjs     gate: generation:proof
+  MCP: kernel.generation.scaffold, kernel.generation.prove
+
+BUILD
+  - generate() expands a spec into real files into a temp workspace.
+  - proveGenerated() runs the SAME engines the loop uses; ACCEPT only if 0 high
+    findings + review score >= threshold; on reject, the temp workspace is dropped
+    (generation never half-writes into the target).
+
+PROVE (tests/generation.test.mjs)
+  - "deterministic spec -> expected files" (path + content shape).
+  - "gate REJECTS generated code with an injected SAST-high" (cannot pass bad code).
+  - "gate ACCEPTS clean generated code".
+  - "reject leaves the target untouched" (no debt; temp-only).
+E2E
+  - spec for a small module -> generate -> proveGenerated ACCEPT -> commit to temp
+    -> independent scanSast on the written files = 0 high.
+EXIT  generation:proof green; 2 MCP tools smoke-green.
+CEILING  Full-app generation is model-bound (the generator is the brain); the
+         deterministic lane is template-scoped. The GATE (prove-or-discard) is the
+         universal, always-real part.
+
+================================================================================
+P30 — LIVE RUNTIME BY DEFAULT  (stage 9 — make runtime.gate actually run)
+================================================================================
+GOAL  Boot the app, drive Playwright smoke + Lighthouse + console capture, feed
+      the existing runtime evaluator. Live when the toolchain exists; honest skip
+      otherwise (already supported).
+
+DELIVERABLES
+  packages/runtime/server-boot.mjs  startApp({root, script}) / stopApp() with
+                                    health-wait (reuse kill-restart patterns)
+  packages/runtime/capture.mjs      captureRuntime({root, baseUrl, runner}) ->
+                                    { lighthouse, console, smoke } (shells to local
+                                    playwright/lighthouse; runner injectable)
+  wire into runtimeGateForTarget: capability present -> live capture; else blocked.
+  extend scripts/runtime-gate.mjs: live when SAGE_RUNTIME_LIVE=1 or app has playwright.
+
+BUILD
+  - server-boot starts the dev/start script, waits on /health or a ready signal,
+    returns baseUrl; guaranteed stop in finally.
+  - capture detects routes (from profile/file scan), runs smoke per route.
+
+PROVE (tests/runtime-capture.test.mjs)
+  - "server-boot starts and stops a fixture HTTP server" (REAL local server, like
+    kill-restart-proof).
+  - "captureRuntime orchestrates boot->capture->evaluate->stop with an injected
+    runner" (deterministic; verdict computed from captured evidence).
+  - "honest blocked_not_available when no playwright" (no fake pass).
+E2E (opt-in, SAGE_RUNTIME_LIVE=1)
+  - run runtime:gate against a fixture static app with a real headless browser ->
+    real Lighthouse + console + smoke verdict written to evidence.
+EXIT  runtime:gate green (self-check + capture-orchestration proven); live path
+      exercised on a fixture under SAGE_RUNTIME_LIVE.
+CEILING  Real browser run needs browser binaries; CI/test uses a real local server
+         + injected browser runner. Full headless e2e is opt-in, stated.
+
+================================================================================
+P31 — DEPLOY -> VERIFY -> ROLLBACK LOOP  (stage 11 — back-end)
+================================================================================
+GOAL  Deploy a preview, verify it live, roll back on failure — proven with a local
+      provider; cloud adapters wired but credential-gated.
+
+DELIVERABLES
+  packages/deploy/pipeline.mjs        deployVerifyRollback({provider, verify}) ->
+                                      deploy -> verify -> (fail) rollback; typed report
+  packages/deploy/providers/local.mjs real local-server "deploy" for tests
+  packages/deploy/providers/vercel.mjs / supabase.mjs  adapters (MCP/CLI),
+                                      credential-gated, honest blocked when absent
+  scripts/deploy-proof.mjs            gate: deploy:proof (uses local provider)
+  MCP: kernel.deploy.verify_rollback
+
+BUILD
+  - pipeline: deploy() -> handle; verify(handle) (health + smoke); if fail,
+    rollback(handle, previous). Provider is an interface; local provider is real.
+
+PROVE (tests/deploy-pipeline.test.mjs)
+  - "happy path: deploy -> verify green -> kept" (new version live).
+  - "failure path: verify red -> rollback invoked -> previous restored".
+  - "provider adapter contract" (deploy/verify/rollback shapes).
+  - "cloud provider honest-blocks without credentials" (no fake deploy).
+E2E
+  - local provider: deploy a fixture server, verify /health, push a bad version,
+    verify fails, rollback -> /health green again. Proven by assertion.
+EXIT  deploy:proof green; MCP tool smoke-green.
+CEILING  Real cloud deploy is opt-in (needs creds); loop logic + rollback proven
+         with the local provider; cloud adapters wired, credential-gated.
+
+================================================================================
+P32 — CROSS-FILE SECURITY DATAFLOW  (stage 7 depth — interprocedural taint)
+================================================================================
+GOAL  Source -> sink taint across files/functions, not just intra-procedural.
+
+DELIVERABLES
+  packages/security/dataflow.mjs   buildCallGraph(root) (reuse module-graph) +
+                                   propagateTaint(): untrusted param -> callers
+                                   passing untrusted args -> sink in callee.
+  fold into scanSast as interprocedural findings; new gate security:dataflow.
+  (no new MCP tool required; surfaced via kernel.security.sast result)
+
+BUILD
+  - Conservative (sound-leaning) propagation over DIRECT call chains across the
+    export/import graph; documented depth limit (no path-sensitivity).
+
+PROVE (tests/security-dataflow.test.mjs)
+  - "cross-file taint: untrusted in A -> passed to fn in B -> shell sink in B" flagged.
+  - "sanitized cross-file flow NOT flagged".
+  - "kernel stays 0-high under interprocedural analysis".
+  - "depth limit honestly reported" (findings note traversal depth).
+E2E
+  - multi-file fixture project: end-to-end source->sink across 3 files detected.
+EXIT  security:dataflow green; kernel 0-high.
+CEILING  Full path-sensitive interprocedural analysis is research-grade; we ship
+         conservative direct-chain cross-file with a stated depth limit.
+
+================================================================================
+P33 — CAPSTONE: FULL-SDLC E2E  (idea -> proven-in-prod, on a fixture)
+================================================================================
+GOAL  One gate that runs the WHOLE arc on a fixture, proving the pipeline composes.
+
+DELIVERABLES
+  scripts/sdlc-e2e.mjs   gate: sdlc:e2e
+  MCP: kernel.sdlc.e2e
+
+FLOW (all on a temp fixture, deterministic providers/runners)
+  idea -> intake.contract -> generation (prove-or-discard) -> loop.full_cycle ->
+  review + sast + dataflow + testing -> runtime.gate (injected runner) ->
+  deploy.verify_rollback (local provider) -> loop.score -> proof ledger entry.
+
+PROVE (tests/sdlc-e2e.test.mjs)
+  - "the full pipeline runs idea->score on a fixture and every stage reports a
+    proven status" (no stage skipped, no fake-green).
+  - "a seeded defect at the generation stage is caught and the pipeline stops
+    (fail-closed, no deploy of bad code)".
+E2E  the test IS the e2e; evidence written to .sage-kernel/evidence/sdlc-e2e-*.json.
+EXIT  sdlc:e2e green in release:check; capstone proof in the ledger.
+
+================================================================================
+SEQUENCING (front-to-back; each phase build->test->release:check green->next)
+================================================================================
+  P28 Intake (idea->contract)        front-end, feeds P29 + the loop
+  P29 Generation (spec->gated code)   consumes P28 spec
+  P30 Live runtime                    deepens stage 9
+  P31 Deploy-verify-rollback          back-end
+  P32 Cross-file dataflow             security depth (independent; any time)
+  P33 Full-SDLC e2e capstone          requires P28-P31 (P32 folded if ready)
+
+PROJECTED POSTURE AFTER P33 (honest, earned-not-claimed)
+  Stage 1 ideation/PRD     35 -> 80   (deterministic floor + model enrichment)
+  Stage 2 architecture     50 -> 82
+  Stage 4 generation       40 -> 85   (gate is 95; model lane honest)
+  Stage 9 runtime          80 -> 92   (live by default)
+  Stage 11 deploy          55 -> 88   (local proven; cloud credential-gated)
+  Stage 7 security         88 -> 93   (interprocedural)
+  + full idea->prod pipeline composable and gate-enforced end to end.
+
+REMAINING HONEST CEILINGS AFTER P33 (named, not faked)
+  - Autonomy/generation quality is model-bound (mitigated by verify panels).
+  - Cloud deploy + live browser runtime need creds/binaries (opt-in, honest skip).
+  - Dataflow is conservative direct-chain, not path-sensitive.
+  These are stated in every relevant gate's output. World-class = honest, not magic.
+================================================================================

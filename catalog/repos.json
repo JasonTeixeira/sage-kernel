@@ -196,14 +196,6 @@
       "score": 50,
       "domains": ["product", "frontend"],
       "consolidation": "reference only unless a reusable pattern is proven"
-    },
-    {
-      "name": "nexural-discord-bot",
-      "role": "connector-source",
-      "target": "packages/connectors",
-      "score": 48,
-      "domains": ["discord", "bot", "connector"],
-      "consolidation": "extract connector/bot adapter concepts"
     }
   ]
 }

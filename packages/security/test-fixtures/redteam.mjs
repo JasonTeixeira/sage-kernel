@@ -2,9 +2,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { assertToolAllowed } from "./guard.mjs";
-import { enforceMemoryPolicy } from "../intelligence/knowledge-graph.mjs";
-import { detectProjectProfile } from "../profiles/project-detector.mjs";
+import { assertToolAllowed } from "../guard.mjs";
+import { enforceMemoryPolicy } from "../../intelligence/knowledge-graph.mjs";
+import { detectProjectProfile } from "../../profiles/project-detector.mjs";
 
 export function runExecutableRedteam(options = {}) {
   const root = options.root || process.cwd();
@@ -16,6 +16,7 @@ export function runExecutableRedteam(options = {}) {
     hugeLogFixture(fixtureRoot),
     brokenPackageScriptFixture(fixtureRoot),
     destructiveToolFixture(root),
+    sandboxedExecutionFixture(fixtureRoot),
     flakyTestFixture(fixtureRoot),
     poisonedMemoryFixture(),
     maliciousMcpManifestFixture(fixtureRoot),
@@ -228,6 +229,29 @@ function destructiveToolFixture(root) {
       observed: error.message
     };
   }
+}
+
+// Genuinely loads and executes untrusted code in a constrained child process
+// (minimal env, restricted cwd, hard timeout + SIGKILL) and proves the runaway
+// code is contained rather than allowed to run unbounded.
+function sandboxedExecutionFixture(fixtureRoot) {
+  const dir = path.join(fixtureRoot, "sandboxed-exec");
+  fs.mkdirSync(dir, { recursive: true });
+  const script = path.join(dir, "untrusted.mjs");
+  fs.writeFileSync(script, "while (true) {}\n"); // untrusted runaway code
+  const result = spawnSync(process.execPath, [script], {
+    cwd: dir,
+    timeout: 800,
+    encoding: "utf8",
+    env: { PATH: process.env.PATH || "" }, // no inherited secrets
+    killSignal: "SIGKILL"
+  });
+  const contained = result.status !== 0 && (result.signal != null || result.error?.code === "ETIMEDOUT" || result.status === null);
+  return {
+    id: "sandboxed-execution-containment",
+    status: contained ? "passed" : "failed",
+    observed: { signal: result.signal, status: result.status, error: result.error?.code || null, envIsolated: true }
+  };
 }
 
 function flakyTestFixture(fixtureRoot) {

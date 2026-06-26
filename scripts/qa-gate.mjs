@@ -30,6 +30,8 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"))
 for (const script of ["test", "test:coverage", "qa:gate", "mcp:contracts", "template:validate-blueprints"]) {
   if (!pkg.scripts?.[script]) failures.push(`Missing package script: ${script}`);
 }
+if (!pkg.scripts?.["zero-dead:gate"]) failures.push("Missing package script: zero-dead:gate");
+if (!pkg.scripts?.["status:honesty"]) failures.push("Missing package script: status:honesty");
 
 for (const file of ["apps/mcp-server/contracts/tools.snapshot.json", "docs/mcp-tools.md"]) {
   if (!fs.existsSync(path.join(root, file))) failures.push(`Missing generated MCP contract artifact: ${file}`);

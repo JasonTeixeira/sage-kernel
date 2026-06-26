@@ -3,29 +3,18 @@
   "name": "100 Score Eval Reliability",
   "scope": "evals",
   "version": 1,
-  "description": "Measures pass@k and pass^k for deterministic SDLC proof tasks.",
+  "description": "Measures pass@k and pass^k against a real repository validation command.",
   "graders": [
     {
       "id": "task_attempt_reliability",
       "type": "task_attempt",
-      "command": "node -e \"process.exit(0)\"",
+      "command": "npm run workflows:validate",
       "attempts": 3,
       "timeoutMs": 30000
-    },
-    {
-      "id": "rubric_contract",
-      "type": "model_rubric",
-      "rubric": [
-        "The task has explicit success criteria.",
-        "The grader records artifacts.",
-        "The grader exposes recovery evidence."
-      ],
-      "minimumScore": 1
     }
   ],
   "successCriteria": [
-    "pass@1, pass@3, and pass^3 are recorded.",
-    "Rubric grading has an explicit machine-readable contract."
+    "pass@1, pass@3, and pass^3 are recorded from repeated real command attempts."
   ],
   "requiresApproval": false
 }

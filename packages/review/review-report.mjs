@@ -81,7 +81,7 @@ export function validateReviewSystem(options = {}) {
     checked.schemas += 1;
     validateSchema(schema, "review-report.schema.json", failures);
   }
-  const fixture = readJson(path.join(root, "packages/review/fixtures/valid/review-report.json"), failures, "review-report.json");
+  const fixture = readJson(path.join(root, "packages/review/test-fixtures/valid/review-report.json"), failures, "review-report.json");
   if (fixture) {
     checked.fixtures += 1;
     failures.push(...validateReviewReport(fixture, "review-report.json").failures);

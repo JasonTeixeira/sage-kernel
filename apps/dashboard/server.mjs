@@ -10,6 +10,7 @@ import { createKnowledgeGraph } from "../../packages/intelligence/knowledge-grap
 import { createPerformanceBudget, createTestingLabProof } from "../../packages/testing/testing-lab.mjs";
 import { createRepairPlan } from "../../packages/self-healing/self-healing.mjs";
 import { createBenchmarkReport, createExternalComparisonReport, validateScoreModel } from "../../packages/score/scoreboard.mjs";
+import { buildProofGraph, readGraph, validateProofGraph } from "../../packages/proof/graph.mjs";
 import { createDefaultWorkflowDefinition, validateWorkflowDefinition } from "../../packages/workflows/engine.mjs";
 import { listDashboardWorkflows, runDashboardWorkflow } from "./dashboard-workflows.mjs";
 import { renderDashboardHtmlView } from "./dashboard-render.mjs";
@@ -96,7 +97,11 @@ export function dashboardSnapshot(options = {}) {
       selfHealing: safeValue(() => createRepairPlan({ failedGate: "controlled fixture proof" }), { status: "failed", steps: [] }),
       stress: safeValue(() => createPerformanceBudget({ root, projectPath: "." }), { status: "failed", stressProfiles: [] }),
       benchmarks: safeValue(() => createBenchmarkReport({ root, projectPath: "." }), { status: "failed", tasks: [] }),
-      externalComparison: safeValue(() => createExternalComparisonReport(), { status: "failed", requiredEvidence: [] })
+      externalComparison: safeValue(() => createExternalComparisonReport(), { status: "failed", requiredEvidence: [] }),
+      proofGraph: safeValue(
+        () => validateProofGraph(readGraph({ root }) || buildProofGraph({ root }), {}),
+        { status: "missing", counts: { nodes: 0, edges: 0, claims: 0, unprovenClaims: 0 }, findings: [] }
+      )
     },
     system: {
       health: systemHealth({ phases, repoHealthRows, templates, tools, jobTimeline }),

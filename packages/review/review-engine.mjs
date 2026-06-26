@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createReviewReport } from "./review-report.mjs";
+import { auditSourceTree, astFindingsByCategory } from "./ast-audit.mjs";
 
 const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "build", "coverage", "generated"]);
 
@@ -72,6 +73,7 @@ export function auditCleanCode(options = {}) {
   for (const item of largeFiles) findings.push(finding("low", `Large source file has ${item.lines} lines.`, item.file));
   if (!inspection.scripts.includes("test")) findings.push(finding("high", "No test script is declared.", "package.json"));
   if (!inspection.scripts.some((script) => script.includes("validate"))) findings.push(finding("medium", "No validation script is declared.", "package.json"));
+  findings.push(...astFindings(options, inspection).clean_code);
   return category("clean_code", 100 - penalty(findings), findings);
 }
 
@@ -93,6 +95,9 @@ export function auditSecurity(options = {}) {
   if (!inspection.scripts.includes("audit") && !inspection.scripts.some((script) => script.includes("release"))) {
     findings.push(finding("medium", "No dependency audit or release gate script detected.", "package.json"));
   }
+  // Security code analysis is owned by the dedicated SAST engine
+  // (packages/security/sast.mjs, surfaced via kernel.security.sast) to avoid
+  // double-counting; the review's security category covers policy/process signals.
   return category("security", 100 - penalty(findings), findings);
 }
 
@@ -444,6 +449,17 @@ function detectPackageManager(projectRoot) {
   if (exists(projectRoot, "bun.lockb")) return "bun";
   if (exists(projectRoot, "package-lock.json")) return "npm";
   return "unknown";
+}
+
+// AST-backed findings for the inspected tree, grouped by review category.
+// Computed once per inspection (the structural walk is the expensive part) and
+// cached on the inspection so auditCleanCode + auditSecurity share one pass.
+function astFindings(options, inspection) {
+  if (options.astFindings) return options.astFindings;
+  if (inspection.__ast) return inspection.__ast;
+  const grouped = astFindingsByCategory(auditSourceTree({ projectRoot: inspection.project.root }));
+  Object.defineProperty(inspection, "__ast", { value: grouped, enumerable: false, configurable: true });
+  return grouped;
 }
 
 function category(id, score, findings) {

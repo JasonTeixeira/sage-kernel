@@ -14,7 +14,7 @@ import { createDurableOrchestrationProof } from "../packages/orchestration/durab
 import { createObservabilityProof } from "../packages/observability/proof.mjs";
 import { createQualityScoreboard, validateScoreModel } from "../packages/score/scoreboard.mjs";
 import { applyApprovedRepair, createRepairPlan, createSelfHealingProof } from "../packages/self-healing/self-healing.mjs";
-import { runExecutableRedteam } from "../packages/security/redteam-fixtures.mjs";
+import { runExecutableRedteam } from "../packages/security/test-fixtures/redteam.mjs";
 import { createFullStressMatrix } from "../packages/testing/stress-matrix.mjs";
 import { createReleaseStressEvidence } from "../packages/testing/release-evidence.mjs";
 import { runTemplatesE2E } from "../scripts/templates-e2e.mjs";
@@ -53,9 +53,11 @@ test("scoreboard, release evidence, self-healing, memory e2e, and final audit pr
   const repaired = applyApprovedRepair(plan, { root: fixture, approved: true, relativePath: "proof.txt", verifyCommand: "test -f proof.txt" });
   assert.equal(repaired.status, "passed");
 
+  // Self-healing proof is now GENUINE: it runs the foreign-repair harness, which
+  // drives the production loop to fix a real seeded bug end-to-end (no tautology).
   const selfHealing = createSelfHealingProof({ root });
   assert.equal(selfHealing.status, "passed");
-  assert.equal(selfHealing.blocked.status, "blocked");
+  assert.match(selfHealing.proof, /harness/);
 
   const memory = createMemoryE2EProof({ root, projectPath: "." });
   assert.equal(memory.status, "passed");
@@ -70,7 +72,10 @@ test("scoreboard, release evidence, self-healing, memory e2e, and final audit pr
   const audit = await createFinalAuditReport({ root, projectPath: "." });
   assert.equal(["passed", "needs_work"].includes(audit.status), true);
   assert.equal(audit.checks.some((check) => check.id === "self_healing"), true);
-  assert.equal(audit.checks.find((check) => check.id === "external_comparison").status, "warning");
+  // external_comparison is unverified locally -> now honestly "failed" (P11:
+  // blocked_not_verified must fail, not warn, so the audit never quietly passes
+  // on something never proven).
+  assert.equal(audit.checks.find((check) => check.id === "external_comparison").status, "failed");
 });
 
 test("100 proof modules generate corpus, hostile, stress, retrieval, orchestration, and observability evidence", async () => {
@@ -83,25 +88,32 @@ test("100 proof modules generate corpus, hostile, stress, retrieval, orchestrati
   assert.equal(redteam.results.some((item) => item.id === "malicious-mcp-manifest"), true);
   assert.equal(redteam.results.some((item) => item.id === "symlink-traversal"), true);
 
-  const stress = await createFullStressMatrix({ root });
+  const stress = await createFullStressMatrix({ root, save: false });
   assert.equal(stress.status, "passed");
   assert.equal(stress.dashboard.latencyMs.p99 >= 0, true);
   assert.equal(stress.soak.thresholdChecks.memoryGrowth.status, "passed");
+  assert.equal(stress.chaos.find((item) => item.id === "kill-restart").status, "passed");
 
-  const retrieval = createRetrievalProof({ root, query: "release" });
+  const retrieval = createRetrievalProof({ root, query: "release", save: false });
   assert.equal(retrieval.status, "passed");
   assert.equal(retrieval.results.length > 0, true);
   assert.equal(retrieval.index.citationsRequired, true);
 
-  const orchestration = createDurableOrchestrationProof({ root });
+  const orchestration = await createDurableOrchestrationProof({ root, save: false });
   assert.equal(orchestration.status, "passed");
   assert.equal(orchestration.leases.length, 5);
   assert.equal(orchestration.failureReplay.available, true);
+  assert.equal(orchestration.runLease.acquired, true);
+  assert.equal(orchestration.runLease.mutualExclusion, true);
+  assert.equal(orchestration.concurrency.tasks, 4);
+  assert.ok(orchestration.concurrency.peakObserved >= 1);
+  assert.equal(orchestration.durable.resumable, true);
+  assert.equal(orchestration.leases.every((l) => l.acquired && l.released), true);
 
-  const observability = createObservabilityProof({ root });
+  const observability = await createObservabilityProof({ root, save: false });
   assert.equal(observability.status, "passed");
-  assert.equal(observability.openTelemetryShape, true);
-  assert.equal(observability.spans.length >= 4, true);
+  assert.equal(observability.telemetrySource, "runtime-instrumented-local-workflow");
+  assert.equal(observability.spans.length >= 2, true);
 });
 
 test("new world-class finish commands are executable from the CLI", () => {

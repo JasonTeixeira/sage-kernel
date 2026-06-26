@@ -1,8 +1,6 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { runSelfAudit } from "../drift/drift-engine.mjs";
 
 export function createRepairPlan(input = {}) {
   const failedGate = input.failedGate || "unknown";
@@ -56,24 +54,25 @@ export function applyApprovedRepair(plan, options = {}) {
   };
 }
 
+// GENUINE self-healing proof. Runs the foreign-repair harness, which seeds a
+// REAL broken repo (off-by-one bug, a real failing test) and drives the
+// PRODUCTION operate loop to fix it end-to-end. Replaces the former tautology
+// (write a file, then test that the file exists) with a proof that actually
+// exercises diagnose -> repair -> re-verify on a real failure. Fails honestly if
+// the loop cannot fix the seeded bug.
 export function createSelfHealingProof(options = {}) {
-  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sage-self-healing-"));
-  const plan = createRepairPlan({ failedGate: "test -f SELF_HEALING_PROOF.txt", signal: "proof file missing", retryBudget: 1 });
-  const blocked = applyApprovedRepair(plan, { root: fixtureRoot, approved: false });
-  const repaired = applyApprovedRepair(plan, {
-    root: fixtureRoot,
-    approved: true,
-    relativePath: "SELF_HEALING_PROOF.txt",
-    verifyCommand: "test -f SELF_HEALING_PROOF.txt"
-  });
-  const audit = runSelfAudit({ root: options.root || process.cwd() });
+  const kernelRoot = options.kernelRoot || path.resolve(import.meta.dirname, "../..");
+  const harness = path.join(kernelRoot, "tests/harness/foreign-repair.mjs");
+  if (!fs.existsSync(harness)) {
+    return { status: "blocked_not_available", reason: "foreign-repair harness not found", harness };
+  }
+  const result = spawnSync("node", [harness], { cwd: kernelRoot, encoding: "utf8", timeout: 120000 });
+  const output = `${result.stdout || ""}\n${result.stderr || ""}`.trim();
   return {
-    status: blocked.status === "blocked" && repaired.status === "passed" ? "passed" : "failed",
-    fixtureRoot,
-    blocked,
-    repaired,
-    selfAudit: { status: audit.status, checks: audit.checks?.length || 0 },
-    nextActions: ["Use approval-gated repairs only for controlled fixture failures until project-specific policies are configured."]
+    status: result.status === 0 ? "passed" : "failed",
+    proof: "foreign-repair harness (real broken-repo end-to-end fix)",
+    detail: output.slice(-500),
+    nextActions: result.status === 0 ? [] : ["The production loop failed to fix the seeded bug; investigate operate/repair wiring."]
   };
 }
 
