@@ -23,8 +23,10 @@ export async function createServer() {
 
   for (const tool of runtime.entries()) {
     server.registerTool(tool.name, { description: tool.description, inputSchema: tool.zodSchema }, async (input) => {
-      const result = await runtime.call(tool.name, input);
-      return toMcpTextContent(result);
+      // Uniform envelope to the client: success -> { ok:true, data }, failure ->
+      // { ok:false, error:{ code, kind, ... } } with isError set. No raw throws.
+      const envelope = await runtime.callSafe(tool.name, input);
+      return toMcpTextContent(envelope, { isError: !envelope.ok });
     });
   }
   registerKernelResources(server, { root });

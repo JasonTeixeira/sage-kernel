@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createAuditSink } from "./audit-log.mjs";
-import { KernelError, normalizeKernelError } from "./kernel-error.mjs";
+import { KernelError, normalizeKernelError, classifyErrorKind } from "./kernel-error.mjs";
 import { zodFromJsonSchema } from "./zod-schema.mjs";
 import { createEventBus } from "./event-bus.mjs";
 import { createPolicyEngine } from "./policy-engine.mjs";
@@ -53,6 +53,18 @@ export function createKernelRuntime(options = {}) {
         });
         eventBus.emit({ type: "tool.failed", tool: name, risk: tool.risk, error: normalized.message, code: normalized.code });
         throw normalized;
+      }
+    },
+    // Uniform error envelope: never throws. Returns { ok:true, data } on success
+    // or { ok:false, error:{ code, kind, message, remediation, details } }. This is
+    // the contract MCP clients and the autonomous loop reason over — a tool failure
+    // is data, not an exception. (call() keeps throwing for internal callers/tests.)
+    async callSafe(name, input = {}) {
+      try {
+        return { ok: true, data: await this.call(name, input) };
+      } catch (error) {
+        const normalized = normalizeKernelError(error, { code: "KERNEL_TOOL_FAILED", details: { tool: name } });
+        return { ok: false, error: { ...normalized.toJSON(), kind: classifyErrorKind(normalized) } };
       }
     },
     events() {

@@ -94,6 +94,21 @@ export const CAPABILITY_REGISTRY = [
     improveHint: "Extend project detection to more ecosystems/signals so legitimate repos clear the confidence floor; genuinely-thin reference repos stay honestly low."
   },
   {
+    id: "profile-accuracy-fresh",
+    floor: 90,
+    // Ground-truth synthetic repos, fresh per round: real detection ACCURACY (does
+    // the primary profile match the constructed-correct answer?), not confidence.
+    commandFor: (round) => `npm run profile:accuracy-fresh -- --seed ${2000 + round}`,
+    command: "npm run profile:accuracy-fresh",
+    artifact: ".sage-kernel/evidence/profile-accuracy-latest.json",
+    read: (root) => {
+      const e = readJson(root, ".sage-kernel/evidence/profile-accuracy-latest.json");
+      if (!e) return null;
+      return { score: pct(e.accuracy), detail: `accuracy ${e.accuracy} / near ${e.nearAccuracy} (seed ${e.seed}, n=${e.total})`, proofRef: e };
+    },
+    improveHint: "Fix any synthetic repo whose clear-cut type is misclassified; keep detection structural."
+  },
+  {
     id: "live-autonomy",
     floor: 90,
     command: null, // live (model calls); regenerated on demand

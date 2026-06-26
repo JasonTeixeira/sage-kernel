@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { normalizeKernelError, classifyErrorKind } from "../../../packages/core/kernel-error.mjs";
 import { ensureKernelSchema, sqlJson, sqlString, runSql } from "../../../packages/db/scripts/db-lib.mjs";
 import { assertToolAllowed, listApprovals, requestApproval } from "../../../packages/security/guard.mjs";
 import { recordProof, getProof, listProofs, verifyProof, verifyLedger } from "../../../packages/proof/ledger.mjs";
@@ -824,15 +825,27 @@ function cryptoRandomId() {
   return `job_${crypto.randomUUID()}`;
 }
 
-export function toMcpTextContent(value) {
+export function toMcpTextContent(value, options = {}) {
   return {
     content: [
       {
         type: "text",
         text: JSON.stringify(value, null, 2)
       }
-    ]
+    ],
+    ...(options.isError ? { isError: true } : {})
   };
+}
+
+// Convenience safe wrapper for callers without a runtime (e.g. the autonomous
+// loop): same envelope contract as runtime.callSafe, never throws.
+export async function callKernelToolSafe(root, toolName, input = {}) {
+  try {
+    return { ok: true, data: await callKernelTool(root, toolName, input) };
+  } catch (error) {
+    const normalized = normalizeKernelError(error, { code: "KERNEL_TOOL_FAILED", details: { tool: toolName } });
+    return { ok: false, error: { ...normalized.toJSON(), kind: classifyErrorKind(normalized) } };
+  }
 }
 
 export const __kernelToolsTestInternals = {

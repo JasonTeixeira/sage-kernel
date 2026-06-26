@@ -29,8 +29,22 @@ export function defaultGitOps(root) {
       return git(["ls-files", "--error-unmatch", file]).status === 0;
     },
     revert(file) { git(["checkout", "--", file]); },
-    remove(file) { try { fs.rmSync(path.join(root, file), { force: true }); } catch { /* ignore */ } }
+    remove(file) { try { fs.rmSync(path.join(root, file), { force: true }); } catch { /* ignore */ } },
+    // Unified diff of the given paths (tracked changes + new files), for the
+    // approval queue. `--` then `-N` (intent-to-add) so new files appear in diff.
+    diff(files) {
+      for (const f of files) { if (!this.isTracked(f)) git(["add", "-N", f]); }
+      const r = git(["diff", "--", ...files]);
+      return r.stdout || "";
+    }
   };
+}
+
+// Revert ONLY the given files: tracked -> restore from HEAD, new -> delete.
+// Exported so the approval loop can return the tree to a clean baseline after
+// snapshotting a kept change as a patch.
+export function scopedRevertFiles(gitOps, touched) {
+  scopedRevert(gitOps, touched);
 }
 
 // Revert ONLY the worker-touched files: tracked -> restore from HEAD, new -> delete.
