@@ -23,7 +23,7 @@ export function dependencyAudit(options = {}) {
   return { status: high > 0 ? "failed" : "passed", high, vulnerabilities };
 }
 
-const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "coverage", "dist", "build", "generated"]);
+const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "coverage", "dist", "build", "generated", ".next", ".nuxt", "out", ".turbo", ".cache", "venv", ".venv", "env", "__pycache__", ".pytest_cache", "vendor", "target", ".gradle", ".idea", ".vscode", "Pods", ".terraform"]);
 const HIGH_RISK_DEPENDENCY_PATTERNS = [/^left-pad$/i, /event-stream/i, /flatmap-stream/i];
 const RESTRICTED_LICENSES = new Set(["GPL-2.0", "GPL-3.0", "AGPL-1.0", "AGPL-3.0", "UNLICENSED"]);
 
