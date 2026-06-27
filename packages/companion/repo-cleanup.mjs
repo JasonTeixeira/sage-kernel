@@ -29,15 +29,25 @@ const USER_DOCS = new Set([
   "docs/ARCHITECTURE.md", "docs/INSTALL.md", "docs/USAGE.md", "docs/MCP_CLIENTS.md",
   "docs/MCP_SERVER.md", "docs/PERSISTENCE.md", "docs/SECURITY_MODEL.md",
   "docs/RELEASE_PROCESS.md", "docs/ROADMAP.md", "docs/VISUAL_GUIDE.md",
-  "docs/QUALITY_RATCHET.md", "docs/RUNTIME_ENGINE.md", "docs/DEMO_ASSETS.md"
+  "docs/QUALITY_RATCHET.md", "docs/RUNTIME_ENGINE.md", "docs/DEMO_ASSETS.md",
+  // Proof/program docs that are LOAD-BEARING: referenced by the kernel's own evals
+  // (100-score), tests (release-quality), and architecture docs. Keeping them is
+  // correct for a proof-first kernel — removing them would break gates.
+  "docs/100_SCORE_IMPLEMENTATION_PROGRAM.md", "docs/SDLC_AI_GAP_AUDIT.md",
+  "docs/AUDIT_REPORT.md", "docs/RELEASE_PROOF.md", "docs/source-repo-policy.md",
+  "docs/PROGRAM_1_BASELINE_PROOF.md", "docs/PROGRAM_1_FOUNDATION_HARDENING.md",
+  "docs/PROGRAM_2_INTELLIGENCE_LAYER.md", "docs/PROGRAM_2_PROFILE_PROOF.md",
+  "docs/PROGRAM_3_CLOSED_LOOP_PROOF.md"
 ]);
 
 // Internal planning / program-tracking / proof-log patterns (NOT for a public repo).
+// Internal scratch: master-plan .txt files, build-phase logs, orphan audits. The
+// load-bearing proof .md docs are protected above (USER_DOCS), so the .md proof
+// patterns here only catch ones NOT in that allowlist.
 const RESIDUAL_PATTERNS = [
   /MASTER_PLAN/i, /MASTER_PROGRAM/i, /BLUEPRINT/i, /COMPLETION_PROGRAM/i,
   /COMPANION_LAYER_PROGRAM/i, /WORLD_CLASS/i, /90_?99/i, /_PROGRAM\.txt$/i,
-  /AUDIT_REPORT/i, /GAP_AUDIT/i, /_PROOF\.md$/i, /(^|\/)PROGRAM_\d/i,
-  /100_SCORE/i, /IMPLEMENTATION_PROGRAM/i
+  /(^|\/)phase-\d+-/i, /PROFILE_LOOP_AUDIT/i
 ];
 
 // Always-scratch (junk) patterns.

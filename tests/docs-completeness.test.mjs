@@ -17,7 +17,8 @@ test("every MCP tool in the manifest is documented in the generated reference", 
 
 test("key program/architecture docs exist", () => {
   for (const file of [
-    "docs/WORLD_CLASS_90_99_PROGRAM.txt",
+    "docs/GETTING_STARTED.md",
+    "docs/USING_SAGE_KERNEL.md",
     "docs/ENGINEERING_LOOP.md",
     "docs/BRAIN_ACTIVATION.md",
     "docs/adr/README.md",

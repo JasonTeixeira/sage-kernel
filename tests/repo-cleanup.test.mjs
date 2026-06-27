@@ -18,18 +18,26 @@ test("product code + essential files are never removable", () => {
   assert.equal(r.essential.length, files.length);
 });
 
-test("internal planning / proof / audit docs are classified residual with reasons", () => {
+test("internal scratch (master-plans, phase logs, orphan audits) is residual", () => {
   const files = [
     "docs/GLOBAL_SDLC_OPERATING_SYSTEM_MASTER_PLAN.txt",
     "docs/COMPANION_LAYER_PROGRAM.txt",
     "docs/WORLD_CLASS_90_99_PROGRAM.txt",
-    "docs/AUDIT_REPORT.md",
-    "docs/SDLC_AI_GAP_AUDIT.md",
-    "docs/PROGRAM_2_PROFILE_PROOF.md"
+    "docs/phase-3-qa-os.md",
+    "docs/SDLC_PROFILE_LOOP_AUDIT.md"
   ];
   const r = classifyRepoFiles(files);
   assert.equal(r.residual.length, files.length, `expected all residual: ${JSON.stringify(r)}`);
   assert.ok(r.residual.every((x) => x.reason && x.reason.length > 0));
+});
+
+test("load-bearing proof/audit docs (wired into evals/tests) are KEPT, not residual", () => {
+  // These are referenced by the 100-score eval, release-quality test, architecture
+  // docs — removing them would break gates, so the classifier must protect them.
+  const files = ["docs/100_SCORE_IMPLEMENTATION_PROGRAM.md", "docs/SDLC_AI_GAP_AUDIT.md", "docs/AUDIT_REPORT.md", "docs/RELEASE_PROOF.md", "docs/PROGRAM_2_PROFILE_PROOF.md"];
+  const r = classifyRepoFiles(files);
+  assert.equal(r.residual.length, 0, `must keep load-bearing proof docs: ${JSON.stringify(r.residual)}`);
+  assert.equal(r.essential.length, files.length);
 });
 
 test("scratch/junk is residual", () => {
