@@ -126,6 +126,8 @@
     "improve:loop": "node scripts/improve-loop.mjs",
     "approvals": "node scripts/approvals-review.mjs",
     "audit:foreign-sdlc": "node scripts/audit-foreign-sdlc.mjs",
+    "repo:cleanup": "node scripts/repo-cleanup.mjs",
+    "publish:ready": "node scripts/publish-readiness.mjs",
     "onboard": "node scripts/onboard.mjs",
     "engineer:measure": "node scripts/autonomous-engineer.mjs --measure-only",
     "stress:verify": "node scripts/stress-verify.mjs",
