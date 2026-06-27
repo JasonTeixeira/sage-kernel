@@ -250,13 +250,17 @@ Details: **[docs/QUALITY_RATCHET.md](docs/QUALITY_RATCHET.md)** · **[docs/RELEA
 
 ## ✦ Daily commands
 
+The `sage` CLI is optional — enable it once with `npm link` (or call `node bin/sage.mjs <cmd>` directly). The `npm run` commands need no linking.
+
 ```bash
+npm link                           # one-time: makes the `sage` command available
+
 sage daily                         # health, tools, jobs, approvals, next actions
 sage audit .                       # repo audit workflow
-npm run onboard -- <repo>          # one-shot SDLC report for any project
+sage mcp config cursor --json      # generate client config
+npm run onboard -- <repo>          # one-shot SDLC report for any project (no link needed)
 npm run engineer:measure           # proof-backed capability scorecard
 npm run stress:verify -- --passes 5  # stability / flake detection
-sage mcp config cursor --json      # generate client config
 ```
 
 Full reference: **[docs/USAGE.md](docs/USAGE.md)**
@@ -270,7 +274,8 @@ Full reference: **[docs/USAGE.md](docs/USAGE.md)**
 | [Getting Started](docs/GETTING_STARTED.md) | [Architecture](docs/ARCHITECTURE.md) | [Usage Guide](docs/USAGE.md) |
 | [Install](docs/INSTALL.md) | [MCP Server](docs/MCP_SERVER.md) · [Clients](docs/MCP_CLIENTS.md) | [Security Model](docs/SECURITY_MODEL.md) |
 | [Using the Kernel](docs/USING_SAGE_KERNEL.md) | [MCP Tools](docs/mcp-tools.md) · [Resources](docs/mcp-resources.md) · [Prompts](docs/mcp-prompts.md) | [Persistence](docs/PERSISTENCE.md) |
-| [Engineering Loop](docs/ENGINEERING_LOOP.md) | [Runtime Engine](docs/RUNTIME_ENGINE.md) | [Release Process](docs/RELEASE_PROCESS.md) |
+| [Engineering Loop](docs/ENGINEERING_LOOP.md) | [Runtime Engine](docs/RUNTIME_ENGINE.md) | [Release Process](docs/RELEASE_PROCESS.md) · [Release Proof](docs/RELEASE_PROOF.md) |
+| [Visual Guide](docs/VISUAL_GUIDE.md) | [Source Repo Policy](docs/source-repo-policy.md) | [Quality Ratchet](docs/QUALITY_RATCHET.md) |
 
 Also: [Roadmap](docs/ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [Security Policy](SECURITY.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Changelog](CHANGELOG.md)
 
