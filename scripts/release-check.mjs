@@ -78,7 +78,7 @@ const checks = [
   ["npm", ["run", "hallucination:gate"]],
   ["npm", ["run", "dead-code"]],
   ["npm", ["run", "quality:complexity"]],
-  ["npm", ["run", "test:coverage"]],
+  ["npm", ["run", "coverage:full"]],
   ["npm", ["run", "policy:validate"]],
   ["npm", ["run", "security:dlp"]],
   ["npm", ["pack", "--dry-run"]]

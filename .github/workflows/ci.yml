@@ -63,7 +63,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 24]
+        # package.json engines require Node >= 22 (uses node:sqlite, import
+        # attributes). Node 20 is intentionally NOT tested — it is unsupported.
+        node: [24]
     steps:
       - name: Checkout
         uses: actions/checkout@v6

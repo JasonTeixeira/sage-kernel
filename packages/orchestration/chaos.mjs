@@ -207,19 +207,26 @@ export async function chaosForkedLeaseContention(options = {}) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, JSON.stringify({ leaseId: "stale", name: "shared", pid: 2 ** 22, acquiredAt: 0, expiresAt: 1 }));
     const workers = options.workers || 12;
-    // A winner HOLDS the lease briefly (stays alive) before exiting — a real
-    // holder does not vanish the instant it acquires. Losers exit immediately.
-    // (Without the hold, the winner's pid looks dead and others falsely take over.)
-    const code = `import(${JSON.stringify(LEASE_MODULE)}).then((m) => { const r = m.acquireLease(${JSON.stringify(root)}, "shared", { ttlMs: 60000, now: 1000 }); if (r.acquired) { process.stdout.write("WIN"); setTimeout(() => process.exit(0), 700); } else { process.stdout.write("LOSE"); process.exit(0); } });`;
+    // The winner HOLDS the lease (stays alive) until the parent has collected EVERY
+    // contender's decision, then the parent kills it. This removes a timing flake:
+    // with a fixed hold, a straggler scheduled AFTER the winner exited would see a
+    // dead pid and validly take over (a real, correct feature) → a 2nd "winner".
+    // Keeping the winner alive for the whole contention window makes "exactly one"
+    // deterministic regardless of system load.
+    const code = `import(${JSON.stringify(LEASE_MODULE)}).then((m) => { const r = m.acquireLease(${JSON.stringify(root)}, "shared", { ttlMs: 60000, now: 1000 }); if (r.acquired) { process.stdout.write("WIN\\n"); setInterval(() => {}, 1e9); } else { process.stdout.write("LOSE\\n"); process.exit(0); } });`;
+    const children = [];
     const outs = await Promise.all(
       Array.from({ length: workers }, () => new Promise((resolve) => {
         const child = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["ignore", "pipe", "ignore"] });
+        children.push(child);
         let out = "";
-        child.stdout.on("data", (d) => { out += d; });
-        child.on("close", () => resolve(out.trim()));
+        child.stdout.on("data", (d) => { out += d; if (out.includes("WIN")) resolve("WIN"); else if (out.includes("LOSE")) resolve("LOSE"); });
+        child.on("close", () => resolve(out.trim() || "ERR"));
         child.on("error", () => resolve("ERR"));
       }))
     );
+    // Every contender has decided; the winner is still holding. Release them all.
+    for (const child of children) { try { child.kill("SIGKILL"); } catch { /* already gone */ } }
     const wins = outs.filter((o) => o === "WIN").length;
     return verdict("forked-lease-contention", wins === 1, { workers, wins, losses: outs.filter((o) => o === "LOSE").length });
   } finally {

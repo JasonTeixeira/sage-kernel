@@ -252,3 +252,41 @@ test("repository eval definitions run individually against real commands", () =>
   assert.equal(report.status, "passed");
   assert.equal(report.evals[0].id, "eval_project_workflows");
 });
+
+test("model_rubric grader: blocked without provider, and all provider branches with a stub command", () => {
+  const grader = { id: "rubric", type: "model_rubric", rubric: ["criterion"], minimumScore: 1 };
+  const saved = process.env.SAGE_MODEL_RUBRIC_COMMAND;
+  try {
+    // No provider configured -> honest blocked, never a fake pass.
+    delete process.env.SAGE_MODEL_RUBRIC_COMMAND;
+    assert.equal(__evalRunnerTestInternals.runModelRubricGrader(grader).status, "blocked_not_implemented");
+
+    // Provider returns a passing score (>= minimumScore) with evidence.
+    process.env.SAGE_MODEL_RUBRIC_COMMAND = "node -e \"console.log(JSON.stringify({score:1,evidence:'looks good'}))\"";
+    const pass = __evalRunnerTestInternals.runModelRubricGrader(grader);
+    assert.equal(pass.status, "passed");
+    assert.equal(pass.score, 1);
+    assert.equal(pass.evidence, "looks good");
+
+    // Provider returns a score below the minimum -> failed (not blocked).
+    process.env.SAGE_MODEL_RUBRIC_COMMAND = "node -e \"console.log(JSON.stringify({score:0}))\"";
+    const low = __evalRunnerTestInternals.runModelRubricGrader(grader);
+    assert.equal(low.status, "failed");
+    assert.equal(low.evidence, null);
+
+    // Provider exits non-zero -> failed with exit code captured.
+    process.env.SAGE_MODEL_RUBRIC_COMMAND = "node -e \"process.exit(3)\"";
+    const errExit = __evalRunnerTestInternals.runModelRubricGrader(grader);
+    assert.equal(errExit.status, "failed");
+    assert.equal(errExit.exitCode, 3);
+
+    // Provider emits non-JSON -> failed via the parse catch (never a crash).
+    process.env.SAGE_MODEL_RUBRIC_COMMAND = "node -e \"console.log('not json at all')\"";
+    const badJson = __evalRunnerTestInternals.runModelRubricGrader(grader);
+    assert.equal(badJson.status, "failed");
+    assert.ok(badJson.message);
+  } finally {
+    if (saved === undefined) delete process.env.SAGE_MODEL_RUBRIC_COMMAND;
+    else process.env.SAGE_MODEL_RUBRIC_COMMAND = saved;
+  }
+});

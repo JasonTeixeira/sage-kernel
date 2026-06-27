@@ -160,6 +160,7 @@
     "soak:quick": "node scripts/soak-runner.mjs --profile=quick",
     "v03:validate": "node scripts/validate-v03.mjs",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "coverage:full": "node scripts/coverage-full.mjs",
     "test:coverage": "SAGE_SQLITE_DRIVER=cli node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-lines=98 --test-coverage-branches=86 --test-coverage-functions=96 --test-coverage-exclude=tests/postgres-integration.test.mjs tests/*.test.mjs",
     "coverage:critical": "node scripts/coverage-critical-gate.mjs",
     "qa:gate": "node scripts/qa-gate.mjs",
