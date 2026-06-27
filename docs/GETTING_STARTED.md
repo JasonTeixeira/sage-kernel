@@ -2,6 +2,25 @@
 
 Three steps from clone to a real SDLC assessment of your own repo.
 
+## Language support (be honest about what's deep vs. shallow)
+
+The deep analysis engines are **JavaScript / TypeScript / Node-native**. Other
+languages get profile detection + repository meta-checks, with toolchain commands
+**inferred** (not run). Use this matrix to set expectations:
+
+| Capability | JS / TS / Node | Python | Go / Rust / Java / Ruby / PHP / Swift / others |
+| --- | --- | --- | --- |
+| Profile detection + definition-of-done | ✅ deep | ✅ | ✅ |
+| Loop score / gaps / required checks | ✅ | ✅ (meta) | ✅ (meta) |
+| AST code review (`review.quality_score`) | ✅ structural | ⚠️ heuristic | ⚠️ heuristic / meta |
+| SAST + taint (`security.proof`) | ✅ AST taint | ⚠️ regex rules | ❌ meta only |
+| Executed coverage / test run | ✅ `node --test` | ❌ (commands inferred) | ❌ (commands inferred) |
+
+For a non-Node repo, `done.generate` / `profile.gaps` now return the correct
+toolchain commands for the detected language (e.g. `pytest`, `go test`) plus a
+`toolchainNote` stating the deep analysis is JS/TS-native. **Bottom line: trust the
+full SDLC depth on Node/TS repos; treat non-Node output as profile + meta guidance.**
+
 ## 1. Install (one time)
 
 ```bash

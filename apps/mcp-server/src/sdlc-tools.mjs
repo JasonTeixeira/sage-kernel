@@ -6,6 +6,7 @@ import {
 } from "../../../packages/profiles/project-detector.mjs";
 import { createSeniorReview, createReviewScore, inspectRepository } from "../../../packages/review/review-engine.mjs";
 import { detectRequiredChecks } from "../../../packages/profiles/required-checks.mjs";
+import { localizeCommands } from "../../../packages/profiles/toolchain.mjs";
 import { createSecurityProof } from "../../../packages/security/supply-chain.mjs";
 import { createTestingLabProof } from "../../../packages/testing/testing-lab.mjs";
 import { createClosedLoopWorkflow } from "../../../packages/workflows/closed-loop.mjs";
@@ -20,10 +21,16 @@ export function createProfileGapReport(root, input = {}) {
   const missing = [];
 
   // 1. Required profile commands the target repo cannot run (no matching script).
-  for (const command of profile.commands || []) {
-    const scriptName = String(command).replace(/^npm run /, "").replace(/^npm /, "").trim();
-    if (scriptName && scriptName !== "test" && !scripts.has(scriptName)) missing.push(`Missing required command for ${profile.id}: ${command}`);
-    if (scriptName === "test" && !scripts.has("test")) missing.push(`Missing required command for ${profile.id}: ${command}`);
+  // Only meaningful for Node projects — profile commands are npm scripts. For a
+  // non-Node repo "npm run X is missing" is a FALSE gap; surface the language
+  // toolchain note instead (honest, language-aware).
+  const isNodeProject = Boolean(detected.project?.package);
+  if (isNodeProject) {
+    for (const command of profile.commands || []) {
+      const scriptName = String(command).replace(/^npm run /, "").replace(/^npm /, "").trim();
+      if (scriptName && scriptName !== "test" && !scripts.has(scriptName)) missing.push(`Missing required command for ${profile.id}: ${command}`);
+      if (scriptName === "test" && !scripts.has("test")) missing.push(`Missing required command for ${profile.id}: ${command}`);
+    }
   }
 
   // 2. Real per-repo hygiene gaps from repository inspection.
@@ -39,6 +46,7 @@ export function createProfileGapReport(root, input = {}) {
     if (!entry.present) missing.push(`${profile.id} required check not detected: ${entry.check}${entry.reason ? ` (${entry.reason})` : ""}`);
   }
 
+  const toolchain = localizeCommands(profile.commands || [], { languages: detected.languages || [], hasPackageJson: isNodeProject });
   return {
     status: missing.length ? "blocked_not_verified" : "passed",
     project: detected.project,
@@ -46,6 +54,9 @@ export function createProfileGapReport(root, input = {}) {
     secondaryProfiles: detected.secondaryProfiles.map((entry) => entry.id),
     confidence: detected.confidence,
     decision: detected.profileDecision,
+    languages: detected.languages,
+    toolchain: toolchain.toolchain,
+    toolchainNote: toolchain.note,
     requiredChecks,
     detectedChecks: checkReport.checks,
     missing,

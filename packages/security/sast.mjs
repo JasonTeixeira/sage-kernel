@@ -9,8 +9,8 @@ import path from "node:path";
 import { walkAst, nodeLine } from "../ast/parse.mjs";
 import { parseByPath } from "../plugins/registry.mjs";
 import { analyzeTaintFile } from "./taint.mjs";
+import { IGNORED_DIRS } from "../core/ignore-dirs.mjs";
 
-const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "build", "coverage", "generated", ".next", ".nuxt", "out", ".turbo", ".cache", "venv", ".venv", "env", "__pycache__", ".pytest_cache", "vendor", "target", ".gradle", ".idea", ".vscode", "Pods", ".terraform"]);
 const SHELL_ALWAYS = new Set(["exec", "execSync"]);
 const SPAWN_LIKE = new Set(["spawn", "spawnSync", "execFile", "execFileSync"]);
 const CHILD_PROCESS_ALIASES = new Set(["child_process", "cp", "childProcess", "node:child_process"]);

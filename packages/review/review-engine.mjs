@@ -3,8 +3,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createReviewReport } from "./review-report.mjs";
 import { auditSourceTree, astFindingsByCategory } from "./ast-audit.mjs";
+import { IGNORED_DIRS } from "../core/ignore-dirs.mjs";
 
-const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "build", "coverage", "generated", ".next", ".nuxt", "out", ".turbo", ".cache", "venv", ".venv", "env", "__pycache__", ".pytest_cache", "vendor", "target", ".gradle", ".idea", ".vscode", "Pods", ".terraform"]);
 
 export function inspectRepository(options = {}) {
   const root = options.root || process.cwd();

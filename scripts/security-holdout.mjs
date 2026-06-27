@@ -13,7 +13,14 @@ const evidenceDir = path.join(process.cwd(), ".sage-kernel/evidence");
 fs.mkdirSync(evidenceDir, { recursive: true });
 fs.writeFileSync(
   path.join(evidenceDir, "security-holdout-latest.json"),
-  `${JSON.stringify({ type: "security-holdout", ...result, generatedAt: new Date().toISOString() }, null, 2)}\n`
+  `${JSON.stringify({
+    type: "security-holdout",
+    // Honesty: recall is measured OVER THE ENGINE'S KNOWN VULN CLASSES, not all
+    // vulnerabilities. It does not imply complete real-world coverage.
+    scope: "known classes: command-injection, eval/dynamic-code, path-traversal, weak-crypto/hash, prototype-pollution, ssrf, dynamic-require/import, taint-to-sink, insecure-random (JS/TS deep; Python regex)",
+    ...result,
+    generatedAt: new Date().toISOString()
+  }, null, 2)}\n`
 );
 
 console.log(`Security HELD-OUT (n=${result.total}): precision ${result.precision} / recall ${result.recall} / F1 ${result.f1}`);

@@ -6,6 +6,13 @@ Sage Kernel is an MCP-native engineering operating system for local software wor
 
 The MCP server is the primary product interface. The dashboard is an optional local cockpit. Hosted deployment is optional.
 
+> **Scope (honest):** the deep analysis engines (AST review, SAST, taint, executed
+> coverage) are **JavaScript / TypeScript / Node-native**. Other languages get
+> profile detection + repository meta-checks with toolchain commands inferred. See
+> [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for the capability matrix.
+> Connect via any MCP-capable client (Claude Code, Claude Desktop, Cursor,
+> Windsurf, Cline, Codex) — it is not usable from a non-MCP chatbot.
+
 ## What It Does
 
 Sage Kernel turns a local repo into a strict engineering control plane:

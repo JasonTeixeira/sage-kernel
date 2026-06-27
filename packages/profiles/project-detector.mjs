@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createProfileProofFixtures } from "./profile-fixtures.mjs";
+import { localizeCommands } from "./toolchain.mjs";
+import { IGNORED_DIRS } from "../core/ignore-dirs.mjs";
 
-const IGNORED_DIRS = new Set([".git", "node_modules", ".sage-kernel", "dist", "build", "coverage", "generated", ".next", ".nuxt", "out", ".turbo", ".cache", "venv", ".venv", "env", "__pycache__", ".pytest_cache", "vendor", "target", ".gradle", ".idea", ".vscode", "Pods", ".terraform"]);
 const CODE_FILE_PATTERN = /\.(mjs|cjs|js|jsx|ts|tsx|py|go|rs|swift|sql)$/;
 
 export const SDLC_PROFILES = [
@@ -267,6 +268,11 @@ export function generateDefinitionOfDone(input = {}, options = {}) {
     : risk === "medium"
       ? ["focused regression tests", "diff review", "docs update check"]
       : ["focused tests", "diff review"];
+  // Honest, language-aware commands: don't prescribe npm for a non-Node repo.
+  const localized = localizeCommands(profile.commands, {
+    languages: detected?.languages || [],
+    hasPackageJson: Boolean(detected?.project?.package)
+  });
   return {
     objective,
     risk,
@@ -281,7 +287,9 @@ export function generateDefinitionOfDone(input = {}, options = {}) {
       "Final answer includes proof commands and remaining gaps."
     ],
     requiredChecks: [...new Set([...profile.requiredChecks, ...riskChecks])],
-    recommendedCommands: profile.commands,
+    recommendedCommands: localized.commands,
+    toolchain: localized.toolchain,
+    toolchainNote: localized.note,
     evidenceRequired: profile.evidence,
     rollback: {
       required: risk === "high" || risk === "critical",
