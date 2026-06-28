@@ -1,3 +1,4 @@
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -7,7 +8,13 @@ import { registerKernelResources } from "./kernel-resources.mjs";
 import { toMcpTextContent } from "./kernel-tools.mjs";
 import { loadProjectPlugins } from "../../../packages/plugins/registry.mjs";
 
-const root = process.cwd();
+// The kernel's OWN root is derived from this file's location, NOT process.cwd().
+// An MCP client launches the server with cwd = the session's project dir, so
+// trusting cwd made the server try to load its tools.json/DB schema from the wrong
+// place and crash (JSON-RPC -32000). Self-locating makes the server work no matter
+// where it is launched from; SAGE_KERNEL_ROOT can still override if ever needed.
+const root = process.env.SAGE_KERNEL_ROOT
+  || path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 export async function createServer() {
   const server = new McpServer({
