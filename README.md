@@ -267,6 +267,29 @@ Full reference: **[docs/USAGE.md](docs/USAGE.md)**
 
 ---
 
+## ✦ Drive it from your AI client (slash-command chains)
+
+Once the MCP server is wired into your client (see [Getting Started](docs/GETTING_STARTED.md)), you describe an outcome and the agent calls the right `kernel.*` tools. To make the common multi-step flows one keystroke, copy the ready-made chains into your client's commands dir:
+
+```bash
+cp examples/slash-commands/*.md ~/.claude/commands/    # Claude Code (user-scoped)
+```
+
+Each chain names the exact sage-kernel tools (so routing is deterministic) and composes with your other MCP servers (docs, browser, GitHub):
+
+| Command | Chain | Use it to |
+| --- | --- | --- |
+| `/sk-audit [path]` | profile → done → loop score → review → security → top-5 fixes | size up any repo |
+| `/sk-onboard <path>` | one-screen SDLC report | first look at a project |
+| `/sk-feature <what>` | current docs → implement → tests → review/security on the diff | build a change correctly |
+| `/sk-ship [title]` | review → verify → proof gate → open a PR with the evidence attached | merge with evidence, not vibes |
+| `/sk-secure [path]` | SAST + taint + supply-chain, ranked by severity | a focused security pass |
+| `/sk-proof` | enforce the proof gate on the current diff | confirm work is genuinely backed |
+
+A typical loop: `/sk-audit` → `/sk-feature add X` → `/sk-ship` → `/sk-secure`. The proof gate in `/sk-ship` and `/sk-proof` refuses to bless a diff that isn't backed by a fresh passing proof. Templates: **[examples/slash-commands/](examples/slash-commands/)**.
+
+---
+
 ## ✦ Documentation map
 
 | Start here | Reference | Operate |

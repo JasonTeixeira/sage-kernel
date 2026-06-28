@@ -14,7 +14,12 @@ const output = `${run.stdout || ""}${run.stderr || ""}`;
 process.stdout.write(output);
 
 if (run.status !== 0) {
-  console.error("\ncoverage:full FAILED — global coverage thresholds not met.");
+  // Distinguish a real coverage-threshold miss from a failed/flaky test so the
+  // cause is obvious (the old message always blamed "thresholds").
+  const testFailed = /# fail [1-9]/.test(output) || /\bnot ok \d/.test(output);
+  console.error(testFailed
+    ? "\ncoverage:full FAILED — a test failed during the coverage run (see 'not ok' above)."
+    : "\ncoverage:full FAILED — global coverage thresholds not met.");
   process.exit(1);
 }
 
